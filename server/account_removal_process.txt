@@ -1,0 +1,3 @@
+How to delete accounts.
+1. remove from memory (create the text file with names)
+2. remove from databases (manually run delete_user.py)
