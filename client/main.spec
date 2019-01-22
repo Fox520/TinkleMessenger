@@ -20,11 +20,9 @@ pyz = PYZ(a.pure, a.zipped_data,
          cipher=block_cipher)
 
 a.datas += [('back.png', 'back.png', 'DATA')]
-a.datas += [('defstatus.jpg', 'defstatus.jpg', 'DATA')]
+a.datas += [('cat.jpg', 'cat.jpg', 'DATA')]
 a.datas += [('confirm.png', 'confirm.png', 'DATA')]
 a.datas += [('left.png', 'left.png', 'DATA')]
-a.datas += [('font.ttf', 'font.ttf', 'DATA')]
-a.datas += [('navigationdrawer_gradient_rtol.png', 'navigationdrawer_gradient_rtol.png', 'DATA')]
 
 
 exe = EXE(pyz,

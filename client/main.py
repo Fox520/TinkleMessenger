@@ -25,7 +25,6 @@ from functools import partial
 from kivy import Config
 from kivy.app import App
 from kivy.clock import Clock
-#from kivy.core.audio import SoundLoader
 
 from kivy.core.text import LabelBase
 from kivy.core.window import Window
@@ -49,29 +48,26 @@ from kivy.uix.widget import Widget
 from kivy.uix.filechooser import FileChooserIconView
 #
 from kivy.utils import get_color_from_hex
-import List
+
 import toto
+from kivymd.bottomsheet import MDListBottomSheet
+from kivymd.theming import ThemeManager
+from kivymd.button import MDRaisedButton
+from kivymd.dialog import MDDialog
+from kivymd.list import OneLineListItem, TwoLineListItem, TwoLineAvatarListItem, ThreeLineAvatarListItem,  AvatarSampleWidget, MDList
+from kivymd.textfields import MDTextField
+from kivymd.label import MDLabel
+from kivymd.snackbar import Snackbar
 
-from button import MDRaisedButton
-from dialog import MDDialog
-
-from label import MDLabel
-from List import AvatarSampleWidget, MDList
-from navigationdrawer import NavigationDrawer
-from snackbar import Snackbar
 from spin_load import ProgressSpinner
-from textfields import MDTextField
+
 from magnet import Magnet
 from random import sample, randint
 
-
-# os.environ['KIVY_IMAGE'] = 'sdl' #To compile to exe
 os.environ['KIVY_GL_BACKEND'] = 'sdl2'
 
 Config.set('graphics', 'multisamples', '0')  # sdl error
 Config.set('kivy', 'window_icon', 'img/tinkle_logo.png')
-Config.set('graphics', 'default_font', [
-           "font", ".font.ttf", ".font.ttf", ".font.ttf", ".font.ttf"])
 
 
 json_settings = json.dumps([
@@ -117,7 +113,7 @@ receiver_name = ""
 group_name = "null"
 OLD_GROUP_ID = ""
 DEFAULT_ACCOUNT = False
-DEFAULT_STATUS = "defstatus.jpg"
+DEFAULT_STATUS = "cat.jpg"
 MAX_FILE_SIZE = 15000000
 MSG_CHECK_DELAY = 0.5
 LOADING_IMAGE = os.path.join(resource_folder, "tinkle_loading.png")
@@ -189,7 +185,7 @@ try:
         chat_clr_value = "#ffffff"
 except Exception as e:
     print(e)
-ACTION = "#4285f4"
+ACTION = "#ff5722"
 NAV_COLOR = "#00A1F1"
 IS_TYPING = False
 
@@ -431,11 +427,6 @@ def global_snackbar(msg):
     Snackbar(text=msg).show()
 
 
-def sep_name_state(data):
-    both = data.split(" - ")
-    return both[0]
-
-
 class A:
     def get_the_name(self):
         global name
@@ -453,26 +444,20 @@ def write_status_comments(name, msg, link):
 
 def doHashCheckServer(fname, media_type):
     fhash = md5(fname)
-    # print("Hash:",fhash)
     try:
         template = {}
         template["media_type"] = media_type
         template["hash"] = fhash
         fsock = socket.socket()
         fsock.connect((return_server_address(), port_files))
-        # print("connected")
         fsock.send(json.dumps(template))
-        #print("sent, now waiting")
         result = json.loads(fsock.recv(1024))
-        #print("received data")
-        # print(result)
         if result["type"] == "hash_request":
             if result["result"] == True:
                 return [True, result["file_path"]]
             else:
                 return [False, ""]
     except:
-        print("checking hash exception")
         print(traceback.format_exc())
         return [False, ""]
 
@@ -497,164 +482,70 @@ Builder.load_string("""
 #:import ProgressSpinner __main__.ProgressSpinner
 #:import Clock __main__.Clock
 #:import get_random_color kivy.utils.get_random_color
-#:import OneLineAvatarListItem List.OneLineAvatarListItem
-#:import AvatarSampleWidget __main__.AvatarSampleWidget
 #:import OpacityScrollEffect __main__.OpacityScrollEffect
-#:import MDTextField __main__.MDTextField 
-#:import MDRaisedButton __main__.MDRaisedButton 
+
+#:import Toolbar kivymd.toolbar.Toolbar
+#:import NavigationLayout kivymd.navigationdrawer.NavigationLayout
+#:import MDThemePicker kivymd.theme_picker.MDThemePicker
 
 <MyImageButton@ButtonBehavior+AsyncImage>:
 
+<MyNavigationDrawerIconButton@NavigationDrawerIconButton>:
+    icon: 'checkbox-blank-circle'
+
+<MainNavigationDrawer@MDNavigationDrawer>:
+    drawer_logo: "resources/tinkle_loading.png"
+    
+    MyNavigationDrawerIconButton:
+        text: "Show Friend Requests"
+        on_release:
+            app.manage_screens("names_for_friend_req","add")
+            app.change_screen("names_for_friend_req")
+    MyNavigationDrawerIconButton:
+        text: "Change Profile Picture"
+        on_release:
+            app.decide_change_dp()
+    MyNavigationDrawerIconButton:
+        text: "New Status"
+        on_release:
+            app.manage_screens("status_screen","add")
+            app.change_screen("status_screen")
+    MyNavigationDrawerIconButton:
+        text: "Check Statuses"
+        on_release:
+            app.manage_screens("names_for_status","add")
+            app.change_screen("names_for_status")
+
+    MyNavigationDrawerIconButton:
+        text: "Change theme"
+        on_release:
+            MDThemePicker().open()
+
 <Chat>:
-    NavigationDrawer:
+    NavigationLayout:
         id: nav_draw
-        GridLayout:
-
-            #orientation: "vertical"
-            spacing: 10
-            padding: 12
-            cols: 1
-
-            canvas:
-                Color:
-                    rgba: get_color_from_hex(NAV_COLOR)
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
-
-
-            MDList:
-                OneLineAvatarListItem:
-                    text: "Friends"
-                    text_size: self.size
-                    font_name: "font"
-                    #disabled: True
-                    on_release:
-                        app.manage_screens("names_for_friends_accept","add")
-                        root.manager.current = "names_for_friends_accept"
-                        nav_draw.toggle_state()
-                    AvatarSampleWidget:
-                        source: "img/baseline_chat_black.png"
-            MDList:
-                OneLineAvatarListItem:
-                    text: "Find Friends"
-                    text_size: self.size
-                    font_name: "font"
-                    #disabled: True
-                    on_release:
-                        app.manage_screens("names_for_find_friends","add")
-                        root.manager.current = "names_for_find_friends"
-                        nav_draw.toggle_state()
-                    AvatarSampleWidget:
-                        source: "img/baseline_people_black.png"
-            MDList:
-                OneLineAvatarListItem:
-                    text: "Requests"
-                    text_size: self.size
-                    font_name: "font"
-                    #disabled: True
-                    on_release:
-                        app.manage_screens("names_for_friend_req","add")
-                        root.manager.current = "names_for_friend_req"
-                        nav_draw.toggle_state()
-                    AvatarSampleWidget:
-                        source: "img/baseline_person_add_black.png"
-
-            MDList:
-                OneLineAvatarListItem:
-                    text: "Change DP"
-                    text_size: self.size
-                    on_release:
-                        nav_draw.toggle_state()
-                        app.decide_change_dp()
-                        # app.manage_screens("profile_Pic","add")
-                        # root.manager.current = "profile_Pic"
-                    AvatarSampleWidget:
-                        source: "img/face.png"
-            MDList:
-                OneLineAvatarListItem:
-                    text: "New status"
-                    text_size: self.size
-                    on_release:
-                        app.manage_screens("status_screen","add")
-                        root.manager.current = "status_screen"
-                        nav_draw.toggle_state()
-            MDList:
-                OneLineAvatarListItem:
-                    text: "View status"
-                    text_size: self.size
-                    on_release:
-                        app.manage_screens("names_for_status","add")
-                        root.manager.current = "names_for_status"
-                        nav_draw.toggle_state()
-                    AvatarSampleWidget:
-                        source: "img/explorer.png"
-
+        MainNavigationDrawer:
+            id: nothing
         GridLayout:
             rows: 3
-            ActionBar:
-                pos_hint: {'top':1}
-                background_image: ''
-                background_color: get_color_from_hex(ACTION)
-                on_previous: nav_draw.toggle_state()
-                ActionView:
-                    use_separator: True
-                    ActionPrevious:
-                        with_previous: False
-                        app_icon:"img/sort.png"
-                        on_release:nav_draw.toggle_state()
-                    ActionButton:
-                        id: your_name_just
-                        size_hint_x: None
-                        size: self.size
-                        text: ""
-                        font_size: sp(18)
-                        font_name: "font"
-                        disabled: True
-                    ActionOverflow:
-
-                        ActionButton:
-                            id: clears
-                            size_hint_x: None
-                            size: self.size
-                            pos_hint:{'right': 1, 'top': 1}
-                            on_release: root.clear_log()
-                            font_size: sp(15)
-                            text: "Clear"
-                        ActionButton:
-                            text: "Settings"
-                            font_name: "font"
-                            on_release: app.open_settings()
-                        ActionButton:
-                            text: "Refresh"
-                            font_name: "font"
-                            on_release: root.refresh_msgs()
-                        ActionButton:
-                            text: "Get Groups"
-                            font_name: "font"
-                            on_release: root.get_groups_list()
-                        ActionButton:
-                            text: "Options"
-                            font_name: "font"
-                            on_release:
-                                root.show_more_options()
-                        ActionButton:
-                            text: "Info"
-                            font_name: "font"
-                            on_release:
-                                root.show_about()
+            Toolbar:
+                id: toolbar
+                title: "Tinkle"
+                md_bg_color: app.theme_cls.primary_color
+                background_palette: 'Primary'
+                background_hue: '500'
+                elevation: 10
+                left_action_items:
+                    [['menu', lambda x: nav_draw.toggle_nav_drawer()]]
+                right_action_items:
+                    [['blur', lambda x: root.show_bottom_sheet_chat()], \
+                        ['dots-vertical', lambda x: root.show_bottom_sheet()]]
 
             GridLayout:
                 cols: 1
                 rows: 0
                 spacing: 5
                 padding: 10
-                canvas:
-                    Color:
-                        rgba: get_color_from_hex(chat_clr_value)
-                    Rectangle:
-                        pos: self.pos
-                        size: self.size
                 ScrollView:
                     do_scroll_x: False
                     effect_cls: OpacityScrollEffect
@@ -667,12 +558,6 @@ Builder.load_string("""
                 height: 40
                 spacing: 20
 
-                canvas:
-                    Color:
-                        rgba: get_color_from_hex(chat_clr_value)
-                    Rectangle:
-                        pos: self.pos
-                        size: self.size
                 MDTextField:
                     id: message
                     #disabled: True
@@ -680,41 +565,26 @@ Builder.load_string("""
                     multiline: False
                     valign: 'bottom'
                     on_text_validate: root.send_msg()
-                    font_name: "font"
 
 
 
 <Registration>:
     GridLayout:
         rows: 2
-        ActionBar:
-            pos_hint: {'top':1}
-            background_image: ''
-            background_color: get_color_from_hex(ACTION)
-            ActionView:
-                use_separator: True
-                ActionPrevious:
-                    with_previous: False
-                    app_icon:"left.png"
-                    on_release:
-                        root.manager.current = "signin_screen"
-                ActionOverflow:
-                    ActionButton:
-                        text: "Settings"
-                        font_name: "font"
-                        on_release: app.open_settings()
+        Toolbar:
+            id: toolbar
+            title: "Registration"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            left_action_items: [['arrow-left', lambda x: root.on_back_pressed()]]
 
         GridLayout:
             rows: 3
             orientation: 'vertical'
             padding: [10,50,10,50]
             #spacing: 50
-            canvas.before:
-                Color:
-                    rgba: get_color_from_hex(chat_clr_value)
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
             BoxLayout:
                 Image:
                     halign: "center"
@@ -724,81 +594,61 @@ Builder.load_string("""
                 rows:4
                 cols:3
                 orientation: "vertical"
-                Label:
+                MDLabel:
                     size_hint:(0.1,0.1) 
                 MDTextField:
                     id: username
                     multiline: False
                     max_text_length: 12
                     required: True
-                    font_size: sp(16)
-                    font_name: "font"
                     hint_text: "Username"
                     helper_text: "min 3 characters; no spaces"
                     helper_text_mode: "on_focus"
                     write_tab: False
-                    cursor_color: get_color_from_hex("#4885ed")
-                    hint_text_color: get_color_from_hex("#000080")
-                    foreground_color: get_color_from_hex("#000000ff")
                     on_text_validate: first_name.focus = True
-                Label:
+                MDLabel:
                     size_hint:(0.1,0.1) 
-                Label:
+                MDLabel:
                     size_hint:(0.1,0.1) 
                 MDTextField:
                     id: first_name
                     multiline: False
-                    font_size: sp(16)
-                    font_name: "font"
                     hint_text: "First name"
                     required: True
                     write_tab: False
-                    cursor_color: get_color_from_hex("#4885ed")
-                    hint_text_color: get_color_from_hex("#000080")
-                    foreground_color: get_color_from_hex("#000000ff")
                     on_text_validate: last_name.focus = True
-                Label:
+                MDLabel:
                     size_hint:(0.1,0.1) 
-                Label:
+                MDLabel:
                     size_hint:(0.1,0.1) 
                 MDTextField:
                     id: last_name
                     multiline: False
-                    font_size: sp(16)
-                    font_name: "font"
                     hint_text: "Surname"
                     write_tab: False
-                    cursor_color: get_color_from_hex("#4885ed")
-                    hint_text_color: get_color_from_hex("#000080")
-                    foreground_color: get_color_from_hex("#000000ff")
                     on_text_validate: email_address.focus = True
-                Label:
+                MDLabel:
                     size_hint:(0.1,0.1) 
-                Label:
+                MDLabel:
                     size_hint:(0.1,0.1) 
                 MDTextField:
                     id: email_address
                     multiline: False
-                    font_size: sp(16)
-                    font_name: "font"
                     hint_text: "E-mail"
                     write_tab: False
                     required: True
-                    cursor_color: get_color_from_hex("#4885ed")
-                    hint_text_color: get_color_from_hex("#000080")
-                    foreground_color: get_color_from_hex("#000000ff")
-                Label:
+                MDLabel:
                     size_hint:(0.1,0.1) 
             GridLayout:
                 rows:4
                 cols:3
-                Label:
+                MDLabel:
                     text: ""
-                Label:
+                MDLabel:
                     text: ""
-                Label:
+                MDLabel:
                     text: ""
-                Label:
+                MDLabel:
                     text: ""
 
                 BoxLayout:
@@ -814,47 +664,31 @@ Builder.load_string("""
                             stroke_width: 1.6
                 MDRaisedButton:
                     font_size: sp(20)
-                    font_name: "font"
                     text: "Proceed"
                     on_release:
                         prg_spin.start_spinning()
                         Clock.schedule_once(lambda dt: root.call_check_name_function(), 2)
 
-                Label:
+                MDLabel:
                     text: ""
 
 <SignInScreen>:
     GridLayout:
         rows: 2
-        ActionBar:
-            pos_hint: {'top':1}
-            background_image: ''
-            background_color: get_color_from_hex(ACTION)
-            ActionView:
-                use_separator: True
-                ActionPrevious:
-                    with_previous: False
-                ActionOverflow:
-                    ActionButton:
-                        text: "Export Key"
-                        font_name: "font"
-                        on_release: root.export_key()
-                    ActionButton:
-                        text: "Recover"
-                        font_name: "font"
-                        on_release: root.recover_backup()
+        Toolbar:
+            id: toolbar
+            title: "Sign in"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            right_action_items: [['dots-vertical', lambda x: root.show_bottom_sheet()]]
 
         GridLayout:
             rows: 3
             orientation: 'vertical'
             padding: [10,50,10,50]
             #spacing: 50
-            canvas.before:
-                Color:
-                    rgba: get_color_from_hex(chat_clr_value)
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
             BoxLayout:
 
                 Image:
@@ -864,57 +698,39 @@ Builder.load_string("""
                 rows:3
                 cols:3
                 orientation: "vertical"
-                Label:
+                MDLabel:
                 MDTextField:
                     hint_text: "Username"
                     max_text_length: 12
                     id: alias
                     multiline: False
-                    font_size: sp(20)
-                    font_name: "font"
                     write_tab: False
-                    cursor_color: get_color_from_hex("#4885ed")
-                    hint_text_color: get_color_from_hex("#000080")
-                    foreground_color: get_color_from_hex("#000000ff")
-                Label:
-                Label:
-                MDTextField:
-                    hint_text: "Password"
-                    helper_text: "enter if using a different account"
-                    helper_text_mode: "on_focus"
-                    id: password_field
-                    multiline: False
-                    font_size: sp(20)
-                    font_name: "font"
-                    password: True
-                    write_tab: False
-                    cursor_color: get_color_from_hex("#4885ed")
-                    hint_text_color: get_color_from_hex("#000080")
-                    foreground_color: get_color_from_hex("#000000ff")
-                Label:
+                MDLabel:
+                MDLabel:
+                MDLabel:
+                MDLabel:
 
-                Label:
+                MDLabel:
                 MDRaisedButton:
                     #text_size: self.size
                     font_size: sp(20)
-                    font_name: "font"
                     text:"Proceed"
                     on_release:
                         prg_spin.start_spinning()
                         Clock.schedule_once(lambda dt: root._signin(), 2)
                         
-                Label:
+                MDLabel:
 
             GridLayout:
                 rows:4
                 cols:3
-                Label:
+                MDLabel:
                     text: ""
-                Label:
+                MDLabel:
                     text: ""
-                Label:
+                MDLabel:
                     text: ""
-                Label:
+                MDLabel:
                     text: ""
 
                 BoxLayout:
@@ -930,60 +746,47 @@ Builder.load_string("""
                             stroke_width: 1.6
                 MDRaisedButton:
                     font_size: sp(23)
-                    font_name: "font"
                     text:"Register!"
                     on_release:
                         root.manager.current = "registration_screen"
 
-                Label:
+                MDLabel:
                     text: ""
 
 
 <CreateGroupScreen>:
     GridLayout:
         rows: 2
-        ActionBar:
-            pos_hint: {'top':1}
-            background_image: ''
-            background_color: get_color_from_hex(ACTION)
-            ActionView:
-                use_separator: True
-                ActionPrevious:
-                    with_previous: False
-                    app_icon:"left.png"
-                    on_release:
-                        root.manager.current = "Chat"
-                        app.manage_screens("create_group_screen","remove")
+        Toolbar:
+            id: toolbar
+            title: "Create a group"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            left_action_items: [['arrow-left', lambda x: root.on_back_pressed()]]
 
         GridLayout:
             rows: 2
             orientation: 'vertical'
             #padding: [10,50,10,50]
             #spacing: 50
-            canvas.before:
-                Color:
-                    rgba: get_color_from_hex(chat_clr_value)
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
             GridLayout:
                 rows:3
                 cols:1
 
 
-                Label:
+                MDLabel:
                     text: ""
                     text_size: self.size
                     font_size: 28
                     color: 1,0,1,1
-                Label:
+                MDLabel:
                     text: "Create your group"
                     text_size: self.size
                     font_size: sp(27)
-                    font_name: "font"
-                    color: get_color_from_hex("#000000ff")
                     halign: "center"
-                Label:
+                MDLabel:
                     text: ""
                     text_size: self.size
                     font_size: 28
@@ -992,20 +795,16 @@ Builder.load_string("""
                 rows:3
                 cols:3
                 orientation: "vertical"
-                Label:
+                MDLabel:
                 MDTextField:
                     hint_text: "Name"
                     max_text_length: 12
                     id: group_name
                     multiline: False
                     font_size: sp(20)
-                    font_name: "font"
                     write_tab: False
-                    cursor_color: get_color_from_hex("#4885ed")
-                    hint_text_color: get_color_from_hex("#000080")
-                    foreground_color: get_color_from_hex("#000000ff")
-                Label:
-                Label:
+                MDLabel:
+                MDLabel:
                 MDTextField:
                     hint_text: "Description"
                     helper_text: "give it a description"
@@ -1013,24 +812,19 @@ Builder.load_string("""
                     id: group_description
                     multiline: False
                     font_size: sp(20)
-                    font_name: "font"
                     write_tab: False
-                    cursor_color: get_color_from_hex("#4885ed")
-                    hint_text_color: get_color_from_hex("#000080")
-                    foreground_color: get_color_from_hex("#000000ff")
-                Label:
+                MDLabel:
 
-                Label:
+                MDLabel:
                 MDRaisedButton:
                     #text_size: self.size
                     font_size: sp(20)
-                    font_name: "font"
                     text:"Create"
                     on_release:
                         #prg_spin.start_spinning()
                         Clock.schedule_once(lambda dt: root.create_group(group_name.text, group_description.text), 1.5)
                         
-                Label:
+                MDLabel:
 
 
 <ShareImage>:
@@ -1039,12 +833,7 @@ Builder.load_string("""
         cols:1
 
         BoxLayout:
-            canvas.before:
-                Color:
-                    rgb: get_color_from_hex("#000000")
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
+            
             FileChooserIconView:
                 id: filechooser
                 path: path_images
@@ -1058,12 +847,6 @@ Builder.load_string("""
             height: 30
             spacing: 10
 
-            canvas:
-                Color:
-                    rgb: get_color_from_hex("#000000")
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
             MDRaisedButton:
                 text: "Send"
                 on_press: root.send_it()
@@ -1072,35 +855,17 @@ Builder.load_string("""
     GridLayout:
         rows:2
 
-        ActionBar:
-            pos_hint: {'top':1}
-            background_image: ''
-            background_color: get_color_from_hex(ACTION)
-            on_previous: nav_draw.toggle_state()
-            ActionView:
-                use_separator: True
-                ActionPrevious:
-                    title: 'Back'
-                    with_previous: False
-                    app_icon:"left.png"
-                    on_release:
-                        root.manager.current = "Chat"
-                ActionButton:
-                    size_hint_x: None
-                    size: self.size
-                    text: "Send Requests"
-                    font_size: sp(18)
-                    font_name: "font"
-                    disabled: True
+        Toolbar:
+            id: toolbar
+            title: "Find friends"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            left_action_items: [['arrow-left', lambda x: root.on_back_pressed()]]
         GridLayout:
             cols: 1
             rows: 0
-            canvas:
-                Color:
-                    rgba: get_color_from_hex(chat_clr_value)
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
             ScrollView:
                 do_scroll_x: False
                 MDList:
@@ -1109,35 +874,17 @@ Builder.load_string("""
     GridLayout:
         rows:2
 
-        ActionBar:
-            pos_hint: {'top':1}
-            background_image: ''
-            background_color: get_color_from_hex(ACTION)
-            on_previous: nav_draw.toggle_state()
-            ActionView:
-                use_separator: True
-                ActionPrevious:
-                    title: 'Back'
-                    with_previous: False
-                    app_icon:"left.png"
-                    on_release:
-                        root.manager.current = "Chat"
-                ActionButton:
-                    size_hint_x: None
-                    size: self.size
-                    text: "Friend Requests"
-                    font_size: sp(18)
-                    font_name: "font"
-                    disabled: True
+        Toolbar:
+            id: toolbar
+            title: "Friend requests"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            left_action_items: [['arrow-left', lambda x: root.on_back_pressed()]]
         GridLayout:
             cols: 1
             rows: 0
-            canvas:
-                Color:
-                    rgba: get_color_from_hex(chat_clr_value)
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
             ScrollView:
                 do_scroll_x: False
                 MDList:
@@ -1147,35 +894,17 @@ Builder.load_string("""
     GridLayout:
         rows:2
 
-        ActionBar:
-            pos_hint: {'top':1}
-            background_image: ''
-            background_color: get_color_from_hex(ACTION)
-            on_previous: nav_draw.toggle_state()
-            ActionView:
-                use_separator: True
-                ActionPrevious:
-                    title: 'Back'
-                    with_previous: False
-                    app_icon:"left.png"
-                    on_release:
-                        root.manager.current = "Chat"
-                ActionButton:
-                    size_hint_x: None
-                    size: self.size
-                    text: "Friends"
-                    font_size: sp(18)
-                    font_name: "font"
-                    disabled: True
+        Toolbar:
+            id: toolbar
+            title: "Friends list"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            left_action_items: [['arrow-left', lambda x: root.on_back_pressed()]]
         GridLayout:
             cols: 1
             rows: 0
-            canvas:
-                Color:
-                    rgba: get_color_from_hex(chat_clr_value)
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
             ScrollView:
                 do_scroll_x: False
                 MDList:
@@ -1187,12 +916,6 @@ Builder.load_string("""
         rows: 2
         cols:1
         BoxLayout:
-            canvas.before:
-                Color:
-                    rgb: get_color_from_hex("#000000")
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
             FileChooserIconView:
                 id: filechooser
                 path: path_music
@@ -1202,13 +925,6 @@ Builder.load_string("""
             size_hint_y: None
             height: 30
             spacing: 10
-
-            canvas:
-                Color:
-                    rgb: get_color_from_hex("#000000")
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
 
             MDRaisedButton:
                 text: "Send"
@@ -1231,12 +947,6 @@ Builder.load_string("""
                 text: 'List View'
                 on_press: filechooser.view_mode = 'list'
         BoxLayout:
-            canvas.before:
-                Color:
-                    rgb: get_color_from_hex("#000000")
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
             FileChooser:
                 id: filechooser
                 path: path_docs
@@ -1249,13 +959,6 @@ Builder.load_string("""
             size_hint_y: None
             height: 30
             spacing: 10
-
-            canvas:
-                Color:
-                    rgb: get_color_from_hex("#000000")
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
             MDRaisedButton:
                 text: "Share"
                 on_press: root.send_it()
@@ -1265,36 +968,17 @@ Builder.load_string("""
     GridLayout:
         rows:2
 
-        ActionBar:
-            pos_hint: {'top':1}
-            background_image: ''
-            background_color: get_color_from_hex(ACTION)
-            on_previous: nav_draw.toggle_state()
-            ActionView:
-                use_separator: True
-                ActionPrevious:
-                    title: 'Back'
-                    with_previous: False
-                    app_icon:"left.png"
-                    on_release:
-                        root.manager.current = "group_convo"
-
-                ActionButton:
-                    size_hint_x: None
-                    size: self.size
-                    text: "Advanced"
-                    font_size: sp(15)
-                    font_name: "font"
-                    disabled: True
+        Toolbar:
+            id: toolbar
+            title: "Extra bits"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            left_action_items: [['arrow-left', lambda x: root.on_back_pressed()]]
         GridLayout:
             cols: 1
             rows: 0
-            canvas:
-                Color:
-                    rgba: get_color_from_hex(chat_clr_value)
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
             ScrollView:
                 do_scroll_x: False
                 MDList:
@@ -1305,12 +989,6 @@ Builder.load_string("""
     GridLayout:
         cols: 1
         rows: 0
-        canvas:
-            Color:
-                rgba: get_color_from_hex(chat_clr_value)
-            Rectangle:
-                pos: self.pos
-                size: self.size
         ScrollView:
             do_scroll_x: False
             MDList:
@@ -1321,12 +999,6 @@ Builder.load_string("""
     GridLayout:
         cols: 1
         rows: 0
-        canvas:
-            Color:
-                rgba: get_color_from_hex(chat_clr_value)
-            Rectangle:
-                pos: self.pos
-                size: self.size
         ScrollView:
             do_scroll_x: False
             MDList:
@@ -1344,38 +1016,20 @@ Builder.load_string("""
 <Status>:
     GridLayout:
         rows: 2
-        ActionBar:
-            pos_hint: {'top':1}
-            background_image: ''
-            background_color: get_color_from_hex(ACTION)
-            on_previous: nav_draw.toggle_state()
-            ActionView:
-                use_separator: True
-                ActionPrevious:
-                    title: 'Back'
-                    with_previous: False
-                    app_icon:"left.png"
-                    on_release:
-                        root.manager.current = "Chat"
-                ActionButton:
-                    size_hint_x: None
-                    size: self.size
-                    text: "Set Status"
-                    font_size: sp(18)
-                    font_name: "font"
-                    disabled: True
+        Toolbar:
+            id: toolbar
+            title: "New status"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            left_action_items: [['arrow-left', lambda x: root.on_back_pressed()]]
 
         GridLayout:
             rows: 2
             orientation: 'vertical'
             padding: [10,50,10,50]
             #spacing: 50
-            canvas.before:
-                Color:
-                    rgba: get_color_from_hex(chat_clr_value)
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
             GridLayout:
                 cols:1
 
@@ -1392,18 +1046,13 @@ Builder.load_string("""
                     id: txt_input
                     multiline: False
                     font_size: sp(17)
-                    font_name: "font"
-                    hint_text: "Caption to picture(optional)"
+                    hint_text: "Caption (optional)"
                     write_tab: False
-                    cursor_color: get_color_from_hex("#4885ed")
-                    hint_text_color: get_color_from_hex("#000080")
-                    foreground_color: get_color_from_hex("#000000ff")
-                Label:
+                MDLabel:
                     text: ""
                 MDRaisedButton:
                     id: btn_set_pic
                     font_size: sp(17)
-                    font_name: "font"
                     text: "Select status picture"
                     on_release:
                         root.select_pic(txt_input.text)
@@ -1412,36 +1061,18 @@ Builder.load_string("""
     GridLayout:
         rows:2
 
-        ActionBar:
-            pos_hint: {'top':1}
-            background_image: ''
-            background_color: get_color_from_hex(ACTION)
-            on_previous: nav_draw.toggle_state()
-            ActionView:
-                use_separator: True
-                ActionPrevious:
-                    title: 'Back'
-                    with_previous: False
-                    app_icon:"left.png"
-                    on_release:
-                        app.manage_screens("display_status","remove")
-                        root.manager.current = "Chat"
-                ActionButton:
-                    size_hint_x: None
-                    size: self.size
-                    text: "Status"
-                    font_size: sp(18)
-                    font_name: "font"
-                    disabled: True
+        Toolbar:
+            id: toolbar
+            title: "Status"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            left_action_items: [['arrow-left', lambda x: root.on_back_pressed()]]
         GridLayout:
             cols: 1
             rows: 0
-            canvas:
-                Color:
-                    rgba: get_color_from_hex(chat_clr_value)
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
+            
             ScrollView:
                 do_scroll_x: False
                 MDList:
@@ -1470,7 +1101,6 @@ Builder.load_string("""
                     size: self.size
                     text: "Save"
                     font_size: sp(18)
-                    font_name: "font"
                     on_release:
                         root.save_status()
 
@@ -1479,12 +1109,6 @@ Builder.load_string("""
             orientation: 'vertical'
             padding: [10,50,10,50]
             #spacing: 50
-            canvas.before:
-                Color:
-                    rgba: (0.746,0.8,0.86,1)
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
             GridLayout:
                 cols:1
 
@@ -1499,11 +1123,10 @@ Builder.load_string("""
                 rows:1
                 cols:1
                 orientation: "vertical"
-                Label:
+                MDLabel:
                     text: root.txt_stat
                     text_size: self.size
                     font_size: sp(17)
-                    font_name: "font"
                     color: get_color_from_hex("#000000ff")
                     halign: "center"
             BoxLayout:
@@ -1515,7 +1138,6 @@ Builder.load_string("""
                     hint_text: "comment"
                     multiline: False
                     valign: 'bottom'
-                    font_name: "font"
                     on_text_validate: root.send_status_comment()
 
 <Profile_Pic>:
@@ -1524,12 +1146,6 @@ Builder.load_string("""
         cols:1
 
         BoxLayout:
-            canvas.before:
-                Color:
-                    rgb: get_color_from_hex("#000000")
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
             FileChooserIconView:
                 id: filechooser
                 path: path_images
@@ -1540,12 +1156,6 @@ Builder.load_string("""
             height: 30
             spacing: 10
 
-            canvas:
-                Color:
-                    rgb: get_color_from_hex("#000000")
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
             MDRaisedButton:
                 text: "Set"
                 on_press: root.send_it()
@@ -1555,374 +1165,110 @@ Builder.load_string("""
                     root.manager.current = "Chat"
                     app.manage_screens("profile_Pic","remove")
 
+
 <Conversation>:
 
-    NavigationDrawer:
-        id: nav_draw
-        GridLayout:
+    GridLayout:
+        rows: 3
+        Toolbar:
+            id: toolbar
+            title: "Private Chat"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            right_action_items:
+                [['dots-vertical', lambda x: root.show_bottom_sheet()]]
 
-            #orientation: "vertical"
-            #spacing: 10
+
+        GridLayout:
             cols: 1
+            rows: 0
+            ScrollView:
+                do_scroll_x: False
+                effect_cls: OpacityScrollEffect
+                MDList:
+                    id: mld
 
-            canvas:
-                Color:
-                    rgba: get_color_from_hex(NAV_COLOR)
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
+        BoxLayout:
+            size_hint_y: None
+            height: 40
+            spacing: 20
 
-            MDList:
-                OneLineAvatarListItem:
-                    id: send_pic
-                    text: "Share Picture"
-                    text_size: self.size
-                    font_name: "font"
-                    #disabled: True
-                    on_release:
-                        nav_draw.toggle_state()
-                        root.decide_share_image()
-                    AvatarSampleWidget:
-                        source: "img/cam_stat.png"
-            MDList:
-                OneLineAvatarListItem:
-                    id: send_aud
-                    text: "Share Audio"
-                    text_size: self.size
-                    font_name: "font"
-                    #disabled: True
-                    on_release:
-                        app.manage_screens("for_selecting_audio","add")
-                        root.manager.current = "for_selecting_audio"
-                        nav_draw.toggle_state()
-                    AvatarSampleWidget:
-                        source: "img/aud_img.png"
-
-            MDList:
-                OneLineAvatarListItem:
-                    id: send_docs
-                    text: "Share Document"
-                    text_size: self.size
-                    font_name: "font"
-                    #disabled: True
-                    on_release:
-                        app.manage_screens("for_selecting_docs","add")
-                        root.manager.current = "for_selecting_docs"
-                        nav_draw.toggle_state()
-                    AvatarSampleWidget:
-                        source: "img/file_img.png"
-
-
-        GridLayout:
-            rows: 3
-            ActionBar:
-                pos_hint: {'top':1}
-                background_image: ''
-                background_color: get_color_from_hex(ACTION)
-                on_previous: nav_draw.toggle_state()
-                ActionView:
-                    use_separator: True
-                    ActionPrevious:
-                        with_previous: False
-                        app_icon:"img/sort.png"
-                        on_release:nav_draw.toggle_state()
-                    ActionButton:
-                        id: last_seen_stat
-                        size_hint_x: None
-                        size: self.size
-                        text: ""
-                        font_size: sp(11)
-                        font_name: "font"
-                        disabled: True
-                    ActionButton:
-                        id: their_name_just
-                        size_hint_x: None
-                        size: self.size
-                        text: ""
-                        font_size: sp(18)
-                        font_name: "font"
-                        disabled: True
-                    ActionOverflow:
-                        ActionButton:
-                            text: "Refresh"
-                            font_name: "font"
-                            on_release: root.refresh_msgs()
-                        ActionButton:
-                            id: clears
-                            size_hint_x: None
-                            size: self.size
-                            pos_hint:{'right': 1, 'top': 1}
-                            on_release: root.clear_log()
-                            font_size: sp(18)
-                            font_name: "font"
-                            text: "Clear"
-                        ActionButton:
-                            text: "Delete Logs"
-                            font_name: "font"
-                            on_release: root.delete_logs()
-                        ActionButton:
-                            text: "Back"
-                            font_name: "font"
-                            on_release:
-                                app.manage_screens("names_for_friends_accept","add")
-                                root.manager.current = "names_for_friends_accept"
-
-
-            GridLayout:
-                cols: 1
-                rows: 0
-                canvas:
-                    Color:
-                        rgba: get_color_from_hex(chat_clr_value)
-                    Rectangle:
-                        pos: self.pos
-                        size: self.size
-                ScrollView:
-                    do_scroll_x: False
-                    effect_cls: OpacityScrollEffect
-                    MDList:
-                        id: mld
-
-            BoxLayout:
-                size_hint_y: None
-                height: 40
-                spacing: 20
-
-                canvas:
-                    Color:
-                        rgba: get_color_from_hex(chat_clr_value)
-                    Rectangle:
-                        pos: self.pos
-                        size: self.size
-                MDTextField:
-                    id: message
-                    #disabled: True
-                    hint_text: "Type your message"
-                    multiline: False
-                    valign: 'bottom'
-                    on_text_validate: root.send_msg()
-                    font_name: "font"
+            MDTextField:
+                id: message
+                #disabled: True
+                hint_text: "Type your message"
+                multiline: False
+                valign: 'bottom'
+                on_text_validate: root.send_msg()
 
 <GroupConversation>:
+    GridLayout:
+        rows: 3
+        Toolbar:
+            id: toolbar
+            title: "Group Chat"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            right_action_items:
+                [['dots-vertical', lambda x: root.show_bottom_sheet()]]
 
-    NavigationDrawer:
-        id: nav_draw
         GridLayout:
-
-            #orientation: "vertical"
-            #spacing: 10
             cols: 1
+            rows: 0
+            ScrollView:
+                do_scroll_x: False
+                effect_cls: OpacityScrollEffect
+                MDList:
+                    id: mld
 
-            canvas:
-                Color:
-                    rgba: get_color_from_hex(NAV_COLOR)
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
+        BoxLayout:
+            size_hint_y: None
+            height: 40
+            spacing: 20
 
-            MDList:
-                OneLineAvatarListItem:
-                    id: send_pic
-                    text: "Share Picture"
-                    text_size: self.size
-                    font_name: "font"
-                    #disabled: True
-                    on_release:
-                        nav_draw.toggle_state()
-                        root.decide_share_image()
-                    AvatarSampleWidget:
-                        source: "img/cam_stat.png"
-            MDList:
-                OneLineAvatarListItem:
-                    id: send_aud
-                    text: "Share Audio"
-                    text_size: self.size
-                    font_name: "font"
-                    #disabled: True
-                    on_release:
-                        app.manage_screens("for_selecting_audio","add")
-                        root.manager.current = "for_selecting_audio"
-                        nav_draw.toggle_state()
-                    AvatarSampleWidget:
-                        source: "img/aud_img.png"
-
-            MDList:
-                OneLineAvatarListItem:
-                    id: send_docs
-                    text: "Share Document"
-                    text_size: self.size
-                    font_name: "font"
-                    #disabled: True
-                    on_release:
-                        app.manage_screens("for_selecting_docs","add")
-                        root.manager.current = "for_selecting_docs"
-                        nav_draw.toggle_state()
-                    AvatarSampleWidget:
-                        source: "img/file_img.png"
-            
-            MDList:
-                OneLineAvatarListItem:
-                    id: advanced
-                    text: "Advanced"
-                    text_size: self.size
-                    font_name: "font"
-                    #disabled: True
-                    on_release:
-                        app.manage_screens("advanced_screen","add")
-                        root.manager.current = "advanced_screen"
-                        nav_draw.toggle_state()
-                    AvatarSampleWidget:
-                        source: "img/settings.png"
-
-
-        GridLayout:
-            rows: 3
-            ActionBar:
-                pos_hint: {'top':1}
-                background_image: ''
-                background_color: get_color_from_hex(ACTION)
-                on_previous: nav_draw.toggle_state()
-                ActionView:
-                    use_separator: True
-                    ActionPrevious:
-                        with_previous: False
-                        app_icon:"img/sort.png"
-                        on_release:nav_draw.toggle_state()
-                    
-                    ActionButton:
-                        id: group_name
-                        size_hint_x: None
-                        size: self.size
-                        text: ""
-                        font_size: sp(18)
-                        font_name: "font"
-                        disabled: True
-                    ActionOverflow:
-                        ActionButton:
-                            text: "Refresh"
-                            font_name: "font"
-                            on_release: root.refresh_msgs()
-                        ActionButton:
-                            id: clears
-                            size_hint_x: None
-                            size: self.size
-                            pos_hint:{'right': 1, 'top': 1}
-                            on_release: root.clear_log()
-                            font_size: sp(18)
-                            font_name: "font"
-                            text: "Clear"
-                        ActionButton:
-                            text: "Back"
-                            font_name: "font"
-                            on_release:
-                                app.manage_screens("for_selecting","remove")
-                                app.manage_screens("for_selecting_audio","remove")
-                                app.manage_screens("for_selecting_docs","remove")
-                                root.manager.current = "Chat"
-
-
-            GridLayout:
-                cols: 1
-                rows: 0
-                canvas:
-                    Color:
-                        rgba: get_color_from_hex(chat_clr_value)
-                    Rectangle:
-                        pos: self.pos
-                        size: self.size
-                ScrollView:
-                    do_scroll_x: False
-                    effect_cls: OpacityScrollEffect
-                    MDList:
-                        id: mld
-
-            BoxLayout:
-                size_hint_y: None
-                height: 40
-                spacing: 20
-
-                canvas:
-                    Color:
-                        rgba: get_color_from_hex(chat_clr_value)
-                    Rectangle:
-                        pos: self.pos
-                        size: self.size
-                MDTextField:
-                    id: message
-                    #disabled: True
-                    hint_text: "Type your message"
-                    multiline: False
-                    valign: 'bottom'
-                    on_text_validate: root.send_msg()
-                    font_name: "font"
+            MDTextField:
+                id: message
+                #disabled: True
+                hint_text: "Type your message"
+                multiline: False
+                valign: 'bottom'
+                on_text_validate: root.send_msg()
 
 <GroupMembers>:
     GridLayout:
         rows:2
 
-        ActionBar:
-            pos_hint: {'top':1}
-            background_image: ''
-            background_color: get_color_from_hex(ACTION)
-            on_previous: nav_draw.toggle_state()
-            ActionView:
-                use_separator: True
-                ActionPrevious:
-                    title: 'Back'
-                    with_previous: False
-                    app_icon:"left.png"
-                    on_release:
-                        root.manager.current = "advanced_screen"
-                ActionButton:
-                    size_hint_x: None
-                    size: self.size
-                    text: "Members"
-                    font_size: sp(18)
-                    font_name: "font"
-                    disabled: True
+        Toolbar:
+            id: toolbar
+            title: "Group members"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            left_action_items: [['arrow-left', lambda x: root.on_back_pressed()]]
         GridLayout:
             id: ml
             cols: 1
-            canvas:
-                Color:
-                    rgba: get_color_from_hex(chat_clr_value)
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
 
 <GetFriendsAddGroup>:
     GridLayout:
         rows:2
 
-        ActionBar:
-            pos_hint: {'top':1}
-            background_image: ''
-            background_color: get_color_from_hex(ACTION)
-            on_previous: nav_draw.toggle_state()
-            ActionView:
-                use_separator: True
-                ActionPrevious:
-                    title: 'Back'
-                    with_previous: False
-                    app_icon:"left.png"
-                    on_release:
-                        root.manager.current = "advanced_screen"
-                ActionButton:
-                    size_hint_x: None
-                    size: self.size
-                    text: "Friends"
-                    font_size: sp(18)
-                    font_name: "font"
-                    disabled: True
+        Toolbar:
+            id: toolbar
+            title: "Add friend to group"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            left_action_items: [['arrow-left', lambda x: root.on_back_pressed()]]
         GridLayout:
             cols: 1
             rows: 0
-            canvas:
-                Color:
-                    rgba: get_color_from_hex(chat_clr_value)
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
             ScrollView:
                 do_scroll_x: False
                 MDList:
@@ -1932,36 +1278,17 @@ Builder.load_string("""
     GridLayout:
         rows:2
 
-        ActionBar:
-            pos_hint: {'top':1}
-            background_image: ''
-            background_color: get_color_from_hex(ACTION)
-            on_previous: nav_draw.toggle_state()
-            ActionView:
-                use_separator: True
-                ActionPrevious:
-                    title: ''
-                    with_previous: False
-                    app_icon:"left.png"
-                    on_release:
-                        app.manage_screens("display_status", "add")
-                        root.manager.current = "display_status"
-                ActionButton:
-                    size_hint_x: None
-                    size: self.size
-                    text: "comments"
-                    font_size: sp(17)
-                    font_name: "font"
-                    disabled: True
+        Toolbar:
+            id: toolbar
+            title: "Status comments"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            left_action_items: [['arrow-left', lambda x: root.on_back_pressed()]]
         GridLayout:
             cols: 1
             rows: 0
-            canvas:
-                Color:
-                    rgba: get_color_from_hex(chat_clr_value)
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
             ScrollView:
                 do_scroll_x: False
                 MDList:
@@ -1988,22 +1315,22 @@ class AdvancedScreen(Screen):
             "group information": "img/info.png"
 
         }
-        a = List.TwoLineAvatarListItem(
+        a = TwoLineAvatarListItem(
             text=long_info, secondary_text=short_info, font_style="Body1",
             on_release=lambda *args: self.open_more(short_info))
 
-        a.add_widget(List.AvatarSampleWidget(source=img_to_use[short_info]))
+        a.add_widget(AvatarSampleWidget(source=img_to_use[short_info]))
         self.ml.add_widget(a)
 
     def open_more(self, short_info):
         if short_info == "view members":
             # print "changing to view members screen"  # you can remove/make admin there
             Tinkle().manage_screens("group_members", "add")
-            sm.current = "group_members"
+            Tinkle().change_screen("group_members")
         elif short_info == "add friend":
             #print "changing to add friend screen"
             Tinkle().manage_screens("names_friends_group", "add")
-            sm.current = "names_friends_group"
+            Tinkle().change_screen("names_friends_group")
 
         elif short_info == "group information":
             #print "changing to group information screen"
@@ -2072,7 +1399,7 @@ class GroupMembers(Screen):
 
         txt = "1. Make admin\n2. Remove admin\n3. Remove from group"
 
-        content = MDLabel(font_style='Body1',
+        content = MDLabel(font_style='Subhead',
                           text=txt,
                           size_hint_y=None,
                           valign='top')
@@ -2138,7 +1465,7 @@ class GetFriendsAddGroup(Screen):
         super(GetFriendsAddGroup, self).__init__(**kwargs)
 
     def on_back_pressed(self, *args):
-        sm.current = "advanced_screen"
+        Tinkle().change_screen("advanced_screen")
 
     def on_menu_pressed(self, *args):
         pass
@@ -2166,21 +1493,19 @@ class GetFriendsAddGroup(Screen):
         s.send(json.dumps(template))
 
     def add_one_line(self, data):
-        self.ldml.add_widget(List.OneLineListItem(text=data,
-                                                  markup=True,
-                                                  text_size=(self.width, None),
-                                                  size_hint_y=None,
-                                                  font_name="font",
-                                                  font_size=(self.height / 20),
-                                                  on_release=partial(self.change_to_img, data)))  # data is the clients' name
+        self.ldml.add_widget(OneLineListItem(text=data,
+                                             markup=True,
+                                             text_size=(self.width, None),
+                                             size_hint_y=None,
+                                             font_size=(self.height / 20),
+                                             on_release=partial(self.change_to_img, data)))  # data is the clients' name
 
     def change_to_img(self, img_client, *args):
         global receiver_name
-        #img_client = sep_name_state(img_client)
         member_name = img_client
         txt = "Do you want to add "+member_name+"?"
 
-        content = MDLabel(font_style='Body1',
+        content = MDLabel(font_style='Subhead',
                           text=txt,
                           size_hint_y=None,
                           valign='top')
@@ -2206,17 +1531,18 @@ class GetFriendsAddGroup(Screen):
             template["group_id"] = current_group_id
             s.send(json.dumps(template))
             self.dialog.dismiss()
-            sm.current = "advanced_screen"
+            Tinkle().change_screen("advanced_screen")
         except:
             print(traceback.format_exc())
 
 
 class SignInScreen(Screen):
+
     def __init__(self, **kwargs):
         super(SignInScreen, self).__init__(**kwargs)
         self.alias = self.ids["alias"]
-        self.password_field = self.ids["password_field"]
         self.prg_spin = self.ids["prg_spin"]
+        self.bs_menu_1 = None
         if os.path.isfile(client_file):
             with open(client_file, "rb") as f:
                 temp_string = f.read()
@@ -2226,10 +1552,7 @@ class SignInScreen(Screen):
         Tinkle().manage_screens("dump_screen", "remove")
 
     def _signin(self):
-        if len(self.password_field.text) == 0:
-            temp_pw = ""
-        else:
-            temp_pw = self.password_field.text
+        temp_pw = ""
         result = write_name(self.alias.text, False, temp_pw)
         if result[0] == True:
             self.prg_spin.stop_spinning()
@@ -2246,18 +1569,21 @@ class SignInScreen(Screen):
             threading.Thread(target=global_notify, args=(
                 "unable to connect",)).start()
 
+    def show_bottom_sheet(self):
+        if not self.bs_menu_1:
+            self.bs_menu_1 = MDListBottomSheet()
+            self.bs_menu_1.add_item(
+                "Recover account from backup file",
+                lambda x: self.recover_backup())
+
+        self.bs_menu_1.open()
+
     def export_key(self):
-        # take screenshot when exception?
-        # try:
-        #     Window.screenshot(name="screenshot_kivy.png")
-        # except:
-        #     print(traceback.format_exc())
 
         try:
             shutil.copy2(priv, home)
             threading.Thread(target=global_notify, args=(
-                "Saved: " + os.path.join(home,priv),)).start()
-            # self.display_password(get_password())
+                "Saved: " + os.path.join(home, priv),)).start()
         except Exception as e:
             threading.Thread(target=global_notify, args=(
                 "Failed, check permissions",)).start()
@@ -2289,7 +1615,6 @@ class SignInScreen(Screen):
                 _n, _p = data.split("\n")
                 self.write_new_data(_n, _p)
                 self.alias.text = _n
-                self.password_field.text = _p
         else:
             threading.Thread(target=global_notify, args=(
                 "Backup file not found",)).start()
@@ -2302,7 +1627,7 @@ class SignInScreen(Screen):
         box.add_widget(MDRaisedButton(
             text="dismiss", on_release=lambda *args: popup.dismiss()))
 
-        popup = Popup(title="your password", content=box)
+        popup = Popup(title="your key", content=box)
         popup.open()
 
 
@@ -2314,7 +1639,7 @@ class Registration(Screen):
         self.prg_spin = self.ids["prg_spin"]
 
     def on_back_pressed(self, *args):
-        sm.current = "signin_screen"
+        Tinkle().change_screen("signin_screen")
 
     def on_menu_pressed(self, *args):
         pass
@@ -2466,7 +1791,7 @@ class CreateGroupScreen(Screen):
         super(CreateGroupScreen, self).__init__(**kwargs)
 
     def on_back_pressed(self, *args):
-        sm.current = "Chat"
+        Tinkle().change_screen("Chat")
         Tinkle().manage_screens("create_group_screen", "remove")
 
     def on_menu_pressed(self, *args):
@@ -2488,7 +1813,7 @@ class CreateGroupScreen(Screen):
                 template["group_desc"] = group_description
                 threading.Thread(target=self.send_data_in_thread,
                                  args=(s, template)).start()
-                sm.current = "Chat"
+                Tinkle().change_screen("Chat")
                 Tinkle().manage_screens("create_group_screen", "remove")
             except:
                 print(traceback.format_exc())
@@ -2518,7 +1843,7 @@ class GetNamesForStatusScreen(Screen):
         super(GetNamesForStatusScreen, self).__init__(**kwargs)
 
     def on_back_pressed(self, *args):
-        sm.current = "Chat"
+        Tinkle().change_screen("Chat")
         Tinkle().manage_screens("display_status", "remove")
 
     def on_menu_pressed(self, *args):
@@ -2547,16 +1872,14 @@ class GetNamesForStatusScreen(Screen):
         s.send(json.dumps(template))
 
     def add_one_line(self, data):
-        self.ldml.add_widget(List.OneLineListItem(text=data,
-                                                  markup=True,
-                                                  text_size=(self.width, None),
-                                                  size_hint_y=None,
-                                                  font_name="font",
-                                                  font_size=(self.height / 20),
-                                                  on_press=lambda *args: self.change_to_doc(data)))  # data is the clients' name
+        self.ldml.add_widget(OneLineListItem(text=data,
+                                             markup=True,
+                                             text_size=(self.width, None),
+                                             size_hint_y=None,
+                                             font_size=(self.height / 20),
+                                             on_press=lambda *args: self.change_to_doc(data)))  # data is the clients' name
 
     def change_to_doc(self, status_client):
-        #status_client = sep_name_state(status_client)
         with open(status_file, "wb") as f:
             f.write(status_client)
         Tinkle().manage_screens("display_status", "add")
@@ -2581,7 +1904,7 @@ class GetNamesForFindFriendsScreen(Screen):
         super(GetNamesForFindFriendsScreen, self).__init__(**kwargs)
 
     def on_back_pressed(self, *args):
-        sm.current = "Chat"
+        Tinkle().change_screen("Chat")
 
     def on_menu_pressed(self, *args):
         pass
@@ -2607,13 +1930,12 @@ class GetNamesForFindFriendsScreen(Screen):
         s.send(json.dumps(template))
 
     def add_one_line(self, data):
-        self.ldml.add_widget(List.OneLineListItem(text=data,
-                                                  markup=True,
-                                                  text_size=(self.width, None),
-                                                  size_hint_y=None,
-                                                  font_name="font",
-                                                  font_size=(self.height / 20),
-                                                  on_release=lambda *args: self.change_to_img(data)))  # data is the clients' name
+        self.ldml.add_widget(OneLineListItem(text=data,
+                                             markup=True,
+                                             text_size=(self.width, None),
+                                             size_hint_y=None,
+                                             font_size=(self.height / 20),
+                                             on_release=lambda *args: self.change_to_img(data)))  # data is the clients' name
 
     def change_to_img(self, img_client):
         threading.Thread(target=self.do_sending, args=(img_client,)).start()
@@ -2646,7 +1968,7 @@ class GetNamesForFriendRequestsScreen(Screen):
         super(GetNamesForFriendRequestsScreen, self).__init__(**kwargs)
 
     def on_back_pressed(self, *args):
-        sm.current = "Chat"
+        Tinkle().change_screen("Chat")
 
     def on_menu_pressed(self, *args):
         pass
@@ -2682,18 +2004,17 @@ class GetNamesForFriendRequestsScreen(Screen):
         s.send(json.dumps(template))
 
     def add_one_line(self, data):
-        self.ldml.add_widget(List.OneLineListItem(text=data,
-                                                  markup=True,
-                                                  text_size=(self.width, None),
-                                                  size_hint_y=None,
-                                                  font_name="font",
-                                                  font_size=(self.height / 20),
-                                                  on_press=lambda *args: self.change_to_img(data)))  # data is the clients' name
+        self.ldml.add_widget(OneLineListItem(text=data,
+                                             markup=True,
+                                             text_size=(self.width, None),
+                                             size_hint_y=None,
+                                             font_size=(self.height / 20),
+                                             on_press=lambda *args: self.change_to_img(data)))  # data is the clients' name
 
     def change_to_img(self, img_client):
 
         about_text = "Would you like to accept "+img_client+"'s friend request?"
-        content = MDLabel(font_style='Body1',
+        content = MDLabel(font_style='Subhead',
                           text=about_text,
                           size_hint_y=None,
                           valign='top')
@@ -2744,7 +2065,7 @@ class GetNamesForCurrentFriendsScreen(Screen):
         super(GetNamesForCurrentFriendsScreen, self).__init__(**kwargs)
 
     def on_back_pressed(self, *args):
-        sm.current = "Chat"
+        Tinkle().change_screen("Chat")
 
     def on_menu_pressed(self, *args):
         pass
@@ -2780,26 +2101,18 @@ class GetNamesForCurrentFriendsScreen(Screen):
         s.send(json.dumps(template))
 
     def add_one_line(self, data):
-        self.ldml.add_widget(List.OneLineListItem(text=data,
-                                                  markup=True,
-                                                  text_size=(self.width, None),
-                                                  size_hint_y=None,
-                                                  font_name="font",
-                                                  font_size=(self.height / 20),
-                                                  on_press=lambda *args: self.change_to_img(data)))  # data is the clients' name
+        self.ldml.add_widget(OneLineListItem(text=data,
+                                             markup=True,
+                                             text_size=(self.width, None),
+                                             size_hint_y=None,
+                                             font_size=(self.height / 20),
+                                             on_press=lambda *args: self.change_to_img(data)))  # data is the clients' name
 
     def change_to_img(self, img_client):
         global receiver_name
-        #img_client = sep_name_state(img_client)
         receiver_name = img_client
         Tinkle().manage_screens("convo", "add")
-        sm.current = "convo"
-
-# _prepare_group_info(data["name"],
-#                         data["creator"],
-#                         data["admins"],
-#                         data["creation_date"],
-#                         data["description"])
+        Tinkle().change_screen("convo")
 
 
 class PopGroupInfo(Popup):
@@ -2820,12 +2133,11 @@ class PopGroupInfo(Popup):
                 self.add_one_line("Number of members "+str(v))
 
     def add_one_line(self, data):
-        self.ml.add_widget(List.OneLineListItem(text=data,
-                                                markup=True,
-                                                text_size=(self.width, None),
-                                                size_hint_y=None,
-                                                font_name="font",
-                                                font_size=(self.height / 20)))  # data is the clients' name
+        self.ml.add_widget(OneLineListItem(text=data,
+                                           markup=True,
+                                           text_size=(self.width, None),
+                                           size_hint_y=None,
+                                           font_size=(self.height / 20)))  # data is the clients' name
 
 
 class PopGetGroups(Popup):
@@ -2840,14 +2152,13 @@ class PopGetGroups(Popup):
 
     def add_two_line(self, group_name, group_description, group_id):
         msg_to_add = group_name+": " + group_description
-        a = List.TwoLineListItem(text=msg_to_add,
-                                 secondary_text=group_id,
-                                 markup=True,
-                                 text_size=(self.width, None),
-                                 size_hint_y=None,
-                                 font_name="font",
-                                 font_style="Body1",
-                                 on_release=partial(self.change_to_group_chat, group_name, group_description, group_id))
+        a = TwoLineListItem(text=msg_to_add,
+                            secondary_text=group_id,
+                            markup=True,
+                            text_size=(self.width, None),
+                            size_hint_y=None,
+                            font_style="Body1",
+                            on_release=partial(self.change_to_group_chat, group_name, group_description, group_id))
         self.ml.add_widget(a)
 
     def change_to_group_chat(self, g_name, g_description, g_id, *args):
@@ -2857,7 +2168,7 @@ class PopGetGroups(Popup):
         current_group_desc = g_description
         Tinkle().manage_screens("group_convo", "add")
         self.close_popup()
-        sm.current = "group_convo"
+        Tinkle().change_screen("group_convo")
 
     def close_popup(self):
         self.dismiss()
@@ -2869,6 +2180,15 @@ class PopGetGroups(Popup):
 class Conversation(Screen):
     global s
 
+    def __init__(self, **kwargs):
+        self.register_event_type('on_back_pressed')
+        self.register_event_type('on_menu_pressed')
+        super(Conversation, self).__init__(**kwargs)
+        self.bs_menu_1 = None
+        self.message = self.ids["message"]
+        self.mld = self.ids["mld"]
+        self.prev_msg = ""
+
     def initial_conditions(self):
         try:
             self.soc = socket.socket()
@@ -2879,7 +2199,6 @@ class Conversation(Screen):
                 "ls": str(time.ctime())
             }
             self.soc.send(json.dumps(template))
-            threading.Thread(target=self.ddad).start()
         except Exception as e:
             print(e)
 
@@ -2887,99 +2206,32 @@ class Conversation(Screen):
         self.clear_log()
         threading.Thread(target=self.insert_data).start()
 
-    def set_last_seen(self, *args):
-        try:
-            template = {
-                "type": "set_last_seen",
-                        "from": A().get_the_name(),
-                        "ls": str(time.ctime()),
-                        "key": get_password()
-            }
-            self.soc.send(json.dumps(template))
-        except Exception as e:
-            print(e)
-
-    def set_type_stat(self, *args):
-        try:
-            if IS_TYPING == True:
-
-                template = {
-                    "type": "set_typing",
-                            "from": A().get_the_name(),
-                            "typing": "Typing",
-                            "key": get_password()
-                }
-                self.soc.send(json.dumps(template))
-            elif IS_TYPING == False:
-                template = {
-                    "type": "set_typing",
-                            "from": A().get_the_name(),
-                            "typing": "",
-                            "key": get_password()
-                }
-                self.soc.send(json.dumps(template))
-        except Exception as e:
-            print(e)
-
-    def get_conditions(self, *args):
-        try:
-            template = {
-                "type": "get_conditions",
-                        "user_fetch": receiver_name
-            }
-            self.soc.send(json.dumps(template))
-            new_conditions = json.loads(self.soc.recv(1024))
-            self.last_seen_stat.text = str(new_conditions["ls"])
-            #self.type_stat.text = new_conditions["typing"]
-        except Exception as e:
-            print(e)
-
-    def ddad(self):
-        self.event3 = Clock.schedule_interval(self.get_conditions, 20)
-        self.event2 = Clock.schedule_interval(self.set_last_seen, 30)
-        #self.event4 = Clock.schedule_interval(self.set_type_stat, 5)
-
-    def __init__(self, **kwargs):
-        self.register_event_type('on_back_pressed')
-        self.register_event_type('on_menu_pressed')
-        super(Conversation, self).__init__(**kwargs)
-        self.message = self.ids["message"]
-        self.last_seen_stat = self.ids["last_seen_stat"]
-        #self.type_stat = self.ids["type_stat"]
-        self.clears = self.ids["clears"]
-        self.mld = self.ids["mld"]
-        self.nav_draw = self.ids["nav_draw"]
-        self.their_name_just = self.ids["their_name_just"]
-        self.prev_msg = ""
-
     def on_back_pressed(self, *args):
         Tinkle().manage_screens("names_for_friends_accept", "add")
-        sm.current = "names_for_friends_accept"
+        Tinkle().change_screen("names_for_friends_accept")
 
     def on_menu_pressed(self, *args):
         pass
 
     def add_two_line(self, from_who, msg_to_add, prof_img):
-        a = List.TwoLineAvatarListItem(text=msg_to_add,
-                                       secondary_text=from_who,
-                                       markup=True,
-                                       text_size=(self.width, None),
-                                       size_hint_y=None,
-                                       font_name="font",
-                                       font_style="Body1")
-        a.add_widget(List.AvatarSampleWidget(source=prof_img))
+        a = TwoLineAvatarListItem(text=msg_to_add,
+                                  secondary_text=from_who,
+                                  markup=True,
+                                  text_size=(self.width, None),
+                                  size_hint_y=None,
+                                  font_style="Body1")
+        a.add_widget(AvatarSampleWidget(source=prof_img))
         self.mld.add_widget(a)
 
     def add_three_line(self, from_who, msg_to_add, prof_img):
-        a = List.ThreeLineAvatarListItem(text=msg_to_add[:70] + "...",
-                                         secondary_text=from_who,
-                                         markup=True,
-                                         text_size=(self.width, None),
-                                         size_hint_y=None,
-                                         font_name="font",
-                                         font_style="Body1",
-                                         on_release=lambda *args: self.out_quick(from_who, msg_to_add))
-        a.add_widget(List.AvatarSampleWidget(source=prof_img))
+        a = ThreeLineAvatarListItem(text=msg_to_add[:70] + "...",
+                                    secondary_text=from_who,
+                                    markup=True,
+                                    text_size=(self.width, None),
+                                    size_hint_y=None,
+                                    font_style="Body1",
+                                    on_release=lambda *args: self.out_quick(from_who, msg_to_add))
+        a.add_widget(AvatarSampleWidget(source=prof_img))
         self.mld.add_widget(a)
 
     def clear_log(self):
@@ -2993,7 +2245,6 @@ class Conversation(Screen):
 
     def insert_data(self):
         global receiver_name, new_data_to_add
-        self.their_name_just.text = receiver_name
         self.full_path = os.path.join(chats_directory, receiver_name)
         if check_if_exist(self.full_path) == False:
             create_file(self.full_path)
@@ -3052,12 +2303,48 @@ class Conversation(Screen):
                 "Unable to send message",)).start()
             print(traceback.format_exc())
 
+    def show_bottom_sheet(self):
+        if not self.bs_menu_1:
+            self.bs_menu_1 = MDListBottomSheet()
+            self.bs_menu_1.add_item(
+                "Share image",
+                lambda x: self.decide_share_image())
+            self.bs_menu_1.add_item(
+                "Share audio",
+                lambda x: self.callback_for_menu_items(
+                    "for_selecting_audio"))
+            self.bs_menu_1.add_item(
+                "Share file",
+                lambda x: self.callback_for_menu_items(
+                    "for_selecting_docs"))
+            self.bs_menu_1.add_item(
+                "Refresh",
+                lambda x: self.refresh_msgs())
+            self.bs_menu_1.add_item(
+                "Clear chat",
+                lambda x: self.clear_log())
+            self.bs_menu_1.add_item(
+                "Delete chat",
+                lambda x: self.delete_logs())
+            self.bs_menu_1.add_item(
+                "Back",
+                lambda x: self.callback_for_menu_items(
+                    "names_for_friends_accept"))
+        self.bs_menu_1.open()
+
+    def callback_for_menu_items(self, scn):
+        try:
+            Tinkle().manage_screens(scn, "add")
+            Tinkle().change_screen(scn)
+        except:
+            print(traceback.format_exc())
+
     def decide_share_image(self):
         if isAndroid() == True:
             self.android_share_image()
         else:
             Tinkle().manage_screens("for_selecting", "add")
-            sm.current = "for_selecting"
+            Tinkle().change_screen("for_selecting")
 
     def android_share_image(self):
         try:
@@ -3077,11 +2364,12 @@ class Conversation(Screen):
         if path != None:
             bx = GridLayout(rows=2, cols=1)
             bx.add_widget(Image(source=path))
-            btns_layout = GridLayout(rows=1, cols=2, size_hint_y=None, height=60)
-            btns_layout.add_widget(Button(size_hint_y=None,height=self.parent.height * 0.111,
-                                 text="Cancel", on_release=self.can))
-            btns_layout.add_widget(Button(size_hint_y=None,height=self.parent.height * 0.111,
-                                 text="Send", on_release=partial(self.pro, path)))
+            btns_layout = GridLayout(
+                rows=1, cols=2, size_hint_y=None, height=60)
+            btns_layout.add_widget(MDRaisedButton(size_hint_y=None, height=self.parent.height * 0.111,
+                                                  text="Cancel", on_release=self.can))
+            btns_layout.add_widget(MDRaisedButton(size_hint_y=None, height=self.parent.height * 0.111,
+                                                  text="Send", on_release=partial(self.pro, path)))
             bx.add_widget(btns_layout)
             self.bagPop = Popup(title="Back to cancel",
                                 content=bx)
@@ -3191,11 +2479,9 @@ class GroupConversation(Screen):
         self.register_event_type('on_menu_pressed')
         super(GroupConversation, self).__init__(**kwargs)
         self.message = self.ids["message"]
-        self.clears = self.ids["clears"]
         self.mld = self.ids["mld"]
-        self.nav_draw = self.ids["nav_draw"]
-        self.group_name = self.ids["group_name"]
         self.prev_msg = ""
+        self.bs_menu_1 = None
 
     def on_enter(self):
         global IS_GROUP_MEDIA
@@ -3209,37 +2495,36 @@ class GroupConversation(Screen):
         threading.Thread(target=self.insert_data).start()
 
     def on_back_pressed(self, *args):
-        sm.current = "Chat"
+        Tinkle().change_screen("Chat")
 
     def on_menu_pressed(self, *args):
         pass
 
     def add_two_line(self, from_who, msg_to_add, prof_img):
-        a = List.TwoLineAvatarListItem(text=msg_to_add,
-                                       secondary_text=from_who,
-                                       markup=True,
-                                       text_size=(self.width, None),
-                                       size_hint_y=None,
-                                       font_name="font",
-                                       font_style="Body1")
-        a.add_widget(List.AvatarSampleWidget(source=prof_img))
+        a = TwoLineAvatarListItem(text=msg_to_add,
+                                  secondary_text=from_who,
+                                  markup=True,
+                                  text_size=(self.width, None),
+                                  size_hint_y=None,
+                                  font_style="Body1")
+        a.add_widget(AvatarSampleWidget(source=prof_img))
         self.mld.add_widget(a)
 
     def add_three_line(self, from_who, msg_to_add, prof_img):
-        a = List.ThreeLineAvatarListItem(text=msg_to_add[:70] + "...",
-                                         secondary_text=from_who,
-                                         markup=True,
-                                         text_size=(self.width, None),
-                                         size_hint_y=None,
-                                         font_name="font",
-                                         font_style="Body1",
-                                         on_release=lambda *args: self.out_quick(from_who, msg_to_add))
-        a.add_widget(List.AvatarSampleWidget(source=prof_img))
+        a = ThreeLineAvatarListItem(text=msg_to_add[:70] + "...",
+                                    secondary_text=from_who,
+                                    markup=True,
+                                    text_size=(self.width, None),
+                                    size_hint_y=None,
+                                    font_style="Body1",
+                                    on_release=lambda *args: self.out_quick(from_who, msg_to_add))
+        a.add_widget(AvatarSampleWidget(source=prof_img))
         self.mld.add_widget(a)
 
     def clear_log(self):
         self.ids.mld.clear_widgets()
 
+    # group texts not saved yet so won't work
     def delete_logs(self):
         try:
             os.remove(self.full_path)
@@ -3247,8 +2532,6 @@ class GroupConversation(Screen):
             print(e)
 
     def insert_data(self):
-        global group_name, new_data_to_add_group
-        self.group_name.text = group_name
         self.event = Clock.schedule_interval(self.handle_msg1, MSG_CHECK_DELAY)
 
     def handle_msg1(self, *args):
@@ -3287,12 +2570,49 @@ class GroupConversation(Screen):
             threading.Thread(target=global_notify, args=(
                 "Unable to send message",)).start()
 
+    def show_bottom_sheet(self):
+        if not self.bs_menu_1:
+            self.bs_menu_1 = MDListBottomSheet()
+            self.bs_menu_1.add_item(
+                "Share image",
+                lambda x: self.decide_share_image())
+            self.bs_menu_1.add_item(
+                "Share audio",
+                lambda x: self.callback_for_menu_items(
+                    "for_selecting_audio"))
+            self.bs_menu_1.add_item(
+                "Share file",
+                lambda x: self.callback_for_menu_items(
+                    "for_selecting_docs"))
+            self.bs_menu_1.add_item(
+                "Extra bits",
+                lambda x: self.callback_for_menu_items(
+                    "advanced_screen"))
+            self.bs_menu_1.add_item(
+                "Refresh",
+                lambda x: self.refresh_msgs())
+            self.bs_menu_1.add_item(
+                "Clear chat",
+                lambda x: self.clear_log())
+            self.bs_menu_1.add_item(
+                "Back",
+                lambda x: self.callback_for_menu_items(
+                    "Chat"))
+        self.bs_menu_1.open()
+
+    def callback_for_menu_items(self, scn):
+        try:
+            Tinkle().manage_screens(scn, "add")
+            Tinkle().change_screen(scn)
+        except:
+            print(traceback.format_exc())
+
     def decide_share_image(self):
         if isAndroid() == True:
             self.android_share_image()
         else:
             Tinkle().manage_screens("for_selecting", "add")
-            sm.current = "for_selecting"
+            Tinkle().change_screen("for_selecting")
 
     def android_share_image(self):
         try:
@@ -3312,11 +2632,12 @@ class GroupConversation(Screen):
         if path != None:
             bx = GridLayout(rows=2, cols=1)
             bx.add_widget(Image(source=path))
-            btns_layout = GridLayout(rows=1, cols=2, size_hint_y=None, height=60)
-            btns_layout.add_widget(Button(size_hint_y=None,height=self.parent.height * 0.111,
-                                 text="Cancel", on_release=self.can))
-            btns_layout.add_widget(Button(size_hint_y=None,height=self.parent.height * 0.111,
-                                 text="Send", on_release=partial(self.pro, path)))
+            btns_layout = GridLayout(
+                rows=1, cols=2, size_hint_y=None, height=60)
+            btns_layout.add_widget(MDRaisedButton(size_hint_y=None, height=self.parent.height * 0.111,
+                                                  text="Cancel", on_release=self.can))
+            btns_layout.add_widget(MDRaisedButton(size_hint_y=None, height=self.parent.height * 0.111,
+                                                  text="Send", on_release=partial(self.pro, path)))
             bx.add_widget(btns_layout)
             self.bagPop = Popup(title="Back to cancel",
                                 content=bx)
@@ -3409,6 +2730,10 @@ class GroupConversation(Screen):
         #Tinkle().manage_screens("advanced_screen", "remove")
         Tinkle().manage_screens("group_members", "remove")
         Tinkle().manage_screens("names_friends_group", "remove")
+        try:
+            self.event.cancel()
+        except:
+            pass
 
         # self.ids.mld.clear_widgets()
 
@@ -3452,7 +2777,7 @@ class Status(Screen):
         self.btn_set_pic = self.ids["btn_set_pic"]
 
     def on_back_pressed(self, *args):
-        sm.current = "Chat"
+        Tinkle().change_screen("Chat")
 
     def on_menu_pressed(self, *args):
         pass
@@ -3479,10 +2804,10 @@ class Status(Screen):
             # Confirming
             bx = BoxLayout()
             bx.add_widget(Image(source=path))
-            bx.add_widget(Button(size_hint=(0.1, 0.1),
-                                 text="cancel", on_release=self.can))
-            bx.add_widget(Button(size_hint=(0.1, 0.1),
-                                 text="send", on_release=self.pro))
+            bx.add_widget(MDRaisedButton(size_hint=(0.1, 0.1),
+                                         text="cancel", on_release=self.can))
+            bx.add_widget(MDRaisedButton(size_hint=(0.1, 0.1),
+                                         text="send", on_release=self.pro))
             self.bagPop = Popup(title="Press back to close",
                                 content=bx)
 
@@ -3534,7 +2859,7 @@ class Status(Screen):
         if isAndroid() == True:
             pass
         else:
-            sm.current = "Chat"
+            Tinkle().change_screen("Chat")
 
     def remove_file(self, filename):
         try:
@@ -3563,7 +2888,7 @@ class DisplayStatus(Screen):
 
     def on_back_pressed(self, *args):
         Tinkle().manage_screens("names_for_status", "add")
-        sm.current = "names_for_status"
+        Tinkle().change_screen("names_for_status")
         Tinkle().manage_screens("display_status", "remove")
 
     def on_menu_pressed(self, *args):
@@ -3572,7 +2897,7 @@ class DisplayStatus(Screen):
     def calling(self, *args):
         Tinkle().manage_screens("view_status_comments", "add")
         # open replies screen
-        sm.current = "view_status_comments"
+        Tinkle().change_screen("view_status_comments")
 
     def send_status_comment(self):
         try:
@@ -3605,7 +2930,7 @@ class DisplayStatus(Screen):
             self.the_target_name = f.read()
         if self.the_target_name == A().get_the_name():
             self.reps_button = ActionButton(
-                size_hint_x=None, size=self.size, text="replies", font_size=sp(18), font_name="font")
+                size_hint_x=None, size=self.size, text="replies", font_size=sp(18))
             self.reps_button.bind(on_release=self.calling)
             self.act_view.add_widget(self.reps_button)
         template["type"] = "status_get"
@@ -3672,7 +2997,7 @@ class StatusComments(Screen):
 
     def on_back_pressed(self, *args):
         Tinkle().manage_screens("status_comment", "remove")
-        sm.current = "display_status"
+        Tinkle().change_screen("display_status")
 
     def on_menu_pressed(self, *args):
         pass
@@ -3694,26 +3019,24 @@ class StatusComments(Screen):
             self.add_two_line(the_name, the_message, prof_img)
 
     def add_two_line(self, from_who, msg_to_add, prof_img):
-        a = List.TwoLineAvatarListItem(text=msg_to_add,
-                                       secondary_text=from_who,
-                                       markup=True,
-                                       text_size=(self.width, None),
-                                       size_hint_y=None,
-                                       font_name="font",
-                                       font_style="Body1")
-        a.add_widget(List.AvatarSampleWidget(source=prof_img))
+        a = TwoLineAvatarListItem(text=msg_to_add,
+                                  secondary_text=from_who,
+                                  markup=True,
+                                  text_size=(self.width, None),
+                                  size_hint_y=None,
+                                  font_style="Body1")
+        a.add_widget(AvatarSampleWidget(source=prof_img))
         self.ml.add_widget(a)
 
     def add_three_line(self, from_who, msg_to_add, prof_img):
-        a = List.ThreeLineAvatarListItem(text=msg_to_add[:38] + "...",
-                                         secondary_text=from_who,
-                                         markup=True,
-                                         text_size=(self.width, None),
-                                         size_hint_y=None,
-                                         font_name="font",
-                                         font_style="Body1",
-                                         on_press=lambda *args: self.out_quick(from_who, msg_to_add))
-        a.add_widget(List.AvatarSampleWidget(source=prof_img))
+        a = ThreeLineAvatarListItem(text=msg_to_add[:38] + "...",
+                                    secondary_text=from_who,
+                                    markup=True,
+                                    text_size=(self.width, None),
+                                    size_hint_y=None,
+                                    font_style="Body1",
+                                    on_press=lambda *args: self.out_quick(from_who, msg_to_add))
+        a.add_widget(AvatarSampleWidget(source=prof_img))
         self.ml.add_widget(a)
 
     def on_leave(self):
@@ -3728,10 +3051,66 @@ class Chat(Screen):
     def __init__(self, **kwargs):
         super(Chat, self).__init__(**kwargs)
         self.message = self.ids["message"]
-        self.clears = self.ids["clears"]
         self.ml = self.ids["ml"]
-        self.nav_draw = self.ids["nav_draw"]
-        self.your_name_just = self.ids["your_name_just"]
+        self.bs_menu_1 = None
+        self.bs_menu_2 = None
+
+    def callback_for_menu_items(self, sc):
+        if sc == "profile_Pic":
+            if isAndroid() == True:
+                pass
+            else:
+                Tinkle().manage_screens(sc, "add")
+                Tinkle().change_screen(sc)
+        else:
+            Tinkle().manage_screens(sc, "add")
+            Tinkle().change_screen(sc)
+
+    def show_bottom_sheet(self):
+        if not self.bs_menu_1:
+            self.bs_menu_1 = MDListBottomSheet()
+            self.bs_menu_1.add_item(
+                "Friends",
+                lambda x: self.callback_for_menu_items(
+                    "names_for_friends_accept"))
+            self.bs_menu_1.add_item(
+                "Find Friends",
+                lambda x: self.callback_for_menu_items(
+                    "names_for_find_friends"))
+            self.bs_menu_1.add_item(
+                "Refresh",
+                lambda x: self.refresh_msgs())
+            self.bs_menu_1.add_item(
+                "Clear chat",
+                lambda x: self.clear_log())
+            self.bs_menu_1.add_item(
+                "Delete chat",
+                lambda x: self.delete_logs())
+        self.bs_menu_1.open()
+
+    def show_bottom_sheet_chat(self):
+        if not self.bs_menu_2:
+            self.bs_menu_2 = MDListBottomSheet()
+            self.bs_menu_2.add_item(
+                "Groups",
+                lambda x: self.get_groups_list())
+
+            self.bs_menu_2.add_item(
+                "Refresh",
+                lambda x: self.refresh_msgs())
+            self.bs_menu_2.add_item(
+                "Clear chat",
+                lambda x: self.clear_log())
+            self.bs_menu_2.add_item(
+                "Settings",
+                lambda x: Tinkle().open_settings())
+            self.bs_menu_2.add_item(
+                "Options",
+                lambda x: self.show_more_options())
+            self.bs_menu_2.add_item(
+                "Tinkle",
+                lambda x: self.show_about())
+        self.bs_menu_2.open()
 
     def get_groups_list(self):
         template = {}
@@ -3739,55 +3118,51 @@ class Chat(Screen):
         s.send(json.dumps(template))
 
     def add_one_line(self, data):
-        self.ml.add_widget(List.OneLineListItem(text=data,
-                                                markup=True,
-                                                text_size=(self.width, None),
-                                                size_hint_y=None,
-                                                font_name="font",
-                                                font_style="Body1"))
+        self.ml.add_widget(OneLineListItem(text=data,
+                                           markup=True,
+                                           text_size=(self.width, None),
+                                           size_hint_y=None,
+                                           font_style="Body1"))
 
     def add_one_line_special(self, data, from_who):
-        self.ml.add_widget(List.OneLineListItem(text=data,
-                                                markup=True,
-                                                text_size=(self.width, None),
-                                                size_hint_y=None,
-                                                font_name="font",
-                                                on_release=lambda *args: self.change_convo(
-                                                    from_who),
-                                                font_style="Body1"))
+        self.ml.add_widget(OneLineListItem(text=data,
+                                           markup=True,
+                                           text_size=(self.width, None),
+                                           size_hint_y=None,
+                                           on_release=lambda *args: self.change_convo(
+                                               from_who),
+                                           font_style="Body1"))
 
     def change_convo(self, name_from):
         global receiver_name
         receiver_name = name_from
         Tinkle().manage_screens("convo", "add")
-        sm.current = "convo"
+        Tinkle().change_screen("convo")
 
     def add_two_line(self, from_who, msg_to_add, prof_img):
-        a = List.TwoLineAvatarListItem(text=msg_to_add,
-                                       secondary_text=from_who,
-                                       markup=True,
-                                       text_size=(self.width, None),
-                                       size_hint_y=None,
-                                       font_name="font",
-                                       font_style="Body1")
-        a.add_widget(List.AvatarSampleWidget(source=prof_img))
+        a = TwoLineAvatarListItem(text=msg_to_add,
+                                  secondary_text=from_who,
+                                  markup=True,
+                                  text_size=(self.width, None),
+                                  size_hint_y=None,
+                                  font_style="Body1")
+        a.add_widget(AvatarSampleWidget(source=prof_img))
         self.ml.add_widget(a)
 
     def add_three_line(self, from_who, msg_to_add, prof_img):
-        a = List.ThreeLineAvatarListItem(text=msg_to_add[:70] + "...",
-                                         secondary_text=from_who,
-                                         markup=True,
-                                         text_size=(self.width, None),
-                                         size_hint_y=None,
-                                         font_name="font",
-                                         font_style="Body1",
-                                         on_press=lambda *args: self.out_quick(from_who, msg_to_add))
-        a.add_widget(List.AvatarSampleWidget(source=prof_img))
+        a = ThreeLineAvatarListItem(text=msg_to_add[:70] + "...",
+                                    secondary_text=from_who,
+                                    markup=True,
+                                    text_size=(self.width, None),
+                                    size_hint_y=None,
+                                    font_style="Body1",
+                                    on_press=lambda *args: self.out_quick(from_who, msg_to_add))
+        a.add_widget(AvatarSampleWidget(source=prof_img))
         self.ml.add_widget(a)
 
     def show_about(self):
-        about_text = "Made with love from my room ;-)\nAppreciate the support from: ktptechnam.net\nTinkle wouldn't be where it is today without them."
-        content = MDLabel(font_style='Body1',
+        about_text = "Made with love from my room ;-)\nSend reports, issues or improvements to:\n[insertemail]@gmail.com OR +26481XXXX"
+        content = MDLabel(font_style='Subhead',
                           text=about_text,
                           size_hint_y=None,
                           valign='top')
@@ -3822,8 +3197,6 @@ class Chat(Screen):
         popup.open()
 
     def download_file_arbi(self, url, media_type=""):
-        #(Android) request permissions if not granted
-        #not working
         if 1 == 0:  # isAndroid() == True:
             import permission_helper
             perms = ["android.permission.READ_EXTERNAL_STORAGE",
@@ -3971,7 +3344,7 @@ class Chat(Screen):
     def show_more_options(self, *args):
 
         txt = "1. Delete messages\n2. Create Group\n3. Create backup"
-        content = MDLabel(font_style='Body1',
+        content = MDLabel(font_style='Subhead',
                           text=txt,
                           size_hint_y=None,
                           valign='top')
@@ -3995,7 +3368,7 @@ class Chat(Screen):
     def change_to_create_group(self, *args):
         Tinkle().manage_screens("create_group_screen", "add")
         self.dialog.dismiss()
-        sm.current = "create_group_screen"
+        Tinkle().change_screen("create_group_screen")
 
     def call_change_profile_pic(self, *args):
         threading.Thread(target=ChangeProPic().get_rolling).start()
@@ -4017,7 +3390,7 @@ class Chat(Screen):
 
         while True:  # Here is msgg function loop
             try:
-                data = s.recv(1024)
+                data = s.recv(1024)  # FF1102
                 data = json.loads(data)
                 type_msg = data["type"]
                 try:
@@ -4050,7 +3423,8 @@ class Chat(Screen):
                                 data = ""
 
                             else:
-                                create_file(os.path.join(chats_directory, data["from"]))
+                                create_file(os.path.join(
+                                    chats_directory, data["from"]))
                                 # append to file
                                 append_to_file(data["from"], data)
                                 self.add_one_line(
@@ -4067,7 +3441,7 @@ class Chat(Screen):
                     except Exception as e:
                         print("Cannot play ring:", e)
                 if type_msg == "group_message":
-                    try:
+                    try:  # if screen is private pass to convo else write to file
                         if sm.current == "group_convo" and data["group_identifier"] == current_group_id or data["from"] == A().get_the_name():
                             #append_to_file(receiver_name, data)
                             new_data_to_add_group = data
@@ -4183,6 +3557,9 @@ class Chat(Screen):
                     showed_it = True
                     print(traceback.format_exc())
 
+    # def on_enter(self):
+    #     self.add_two_line("From","this is my text","http://127.0.0.1/display/default.png")
+
     def on_enter(self):
         global chat_was_on
 
@@ -4207,7 +3584,6 @@ class Chat(Screen):
                 initial = json.loads(initial)
                 self.add_two_line(
                     initial["from"], initial["greeting"], initial["img_link"])
-                self.your_name_just.text = name
                 threading.Thread(target=global_notify, args=(
                     "Keep Calm and Tinkle on...",)).start()
 
@@ -4241,7 +3617,6 @@ class Chat(Screen):
         s.send(json.dumps(template))
 
 
-
 # Name: for_selecting
 class ShareImage(BoxLayout, Screen):
     # only called on desktop
@@ -4255,9 +3630,9 @@ class ShareImage(BoxLayout, Screen):
 
     def on_back_pressed(self, *args):
         if IS_GROUP_MEDIA == True:
-            sm.current = "group_convo"
+            Tinkle().change_screen("group_convo")
         else:
-            sm.current = "convo"
+            Tinkle().change_screen("convo")
 
     def on_menu_pressed(self, *args):
         pass
@@ -4355,17 +3730,17 @@ class ShareImage(BoxLayout, Screen):
                         threading.Thread(target=global_notify, args=(
                             "Upload complete, used cache",)).start()
                     if IS_GROUP_MEDIA == True:
-                        sm.current = "group_convo"
+                        Tinkle().change_screen("group_convo")
                         IS_GROUP_MEDIA = False
                     else:
-                        sm.current = "convo"
+                        Tinkle().change_screen("convo")
 
             except BaseException as e:
                 print(traceback.format_exc())
                 threading.Thread(target=global_notify,
                                  args=("Unable to send",)).start()
                 IS_GROUP_MEDIA = False
-                sm.current = "Chat"
+                Tinkle().change_screen("Chat")
 
     def on_leave(self):
         Tinkle().manage_screens("for_selecting", "remove")
@@ -4383,9 +3758,9 @@ class ShareAudio(BoxLayout, Screen):
 
     def on_back_pressed(self, *args):
         if IS_GROUP_MEDIA == True:
-            sm.current = "group_convo"
+            Tinkle().change_screen("group_convo")
         else:
-            sm.current = "convo"
+            Tinkle().change_screen("convo")
 
     def on_menu_pressed(self, *args):
         pass
@@ -4493,16 +3868,16 @@ class ShareAudio(BoxLayout, Screen):
                         threading.Thread(target=global_notify, args=(
                             "Upload complete, used cache",)).start()
                     if IS_GROUP_MEDIA == True:
-                        sm.current = "group_convo"
+                        Tinkle().change_screen("group_convo")
                         IS_GROUP_MEDIA = False
                     else:
-                        sm.current = "convo"
+                        Tinkle().change_screen("convo")
 
             except BaseException as e:
                 threading.Thread(target=global_notify,
                                  args=("Unable to send",)).start()
                 IS_GROUP_MEDIA = False
-                sm.current = "Chat"
+                Tinkle().change_screen("Chat")
 
     def on_leave(self):
         Tinkle().manage_screens("for_selecting_audio", "remove")
@@ -4520,9 +3895,9 @@ class ShareDocument(BoxLayout, Screen):
 
     def on_back_pressed(self, *args):
         if IS_GROUP_MEDIA == True:
-            sm.current = "group_convo"
+            Tinkle().change_screen("group_convo")
         else:
-            sm.current = "convo"
+            Tinkle().change_screen("convo")
 
     def on_menu_pressed(self, *args):
         pass
@@ -4615,17 +3990,17 @@ class ShareDocument(BoxLayout, Screen):
                         threading.Thread(target=global_notify, args=(
                             "Upload complete, used cache",)).start()
                     if IS_GROUP_MEDIA == True:
-                        sm.current = "group_convo"
+                        Tinkle().change_screen("group_convo")
                         IS_GROUP_MEDIA = False
                     else:
-                        sm.current = "convo"
+                        Tinkle().change_screen("convo")
 
             except BaseException as e:
                 print(e)
                 threading.Thread(target=global_notify,
                                  args=("Unable to send",)).start()
                 IS_GROUP_MEDIA = False
-                sm.current = "Chat"
+                Tinkle().change_screen("Chat")
 
     def on_leave(self):
         Tinkle().manage_screens("for_selecting_docs", "remove")
@@ -4651,11 +4026,12 @@ class ChangeProPic:
         if path != None:
             bx = GridLayout(rows=2, cols=1)
             bx.add_widget(Image(source=path))
-            btns_layout = GridLayout(rows=1, cols=2, size_hint_y=None, height=60)
-            btns_layout.add_widget(Button(size_hint_y=None,height=self.parent.height * 0.111,
-                                 text="Cancel", on_release=self.can))
-            btns_layout.add_widget(Button(size_hint_y=None,height=self.parent.height * 0.111,
-                                 text="Send", on_release=partial(self.pro, path)))
+            btns_layout = GridLayout(
+                rows=1, cols=2, size_hint_y=None, height=60)
+            btns_layout.add_widget(MDRaisedButton(size_hint_y=None, height=self.parent.height * 0.111,
+                                                  text="Cancel", on_release=self.can))
+            btns_layout.add_widget(MDRaisedButton(size_hint_y=None, height=self.parent.height * 0.111,
+                                                  text="Send", on_release=partial(self.pro, path)))
             bx.add_widget(btns_layout)
             self.bagPop = Popup(title="Back to cancel",
                                 content=bx)
@@ -4768,7 +4144,7 @@ class Profile_Pic(BoxLayout, Screen):
         super(Profile_Pic, self).__init__(**kwargs)
 
     def on_back_pressed(self, *args):
-        sm.current = "Chat"
+        Tinkle().change_screen("Chat")
 
     def on_menu_pressed(self, *args):
         pass
@@ -4873,8 +4249,19 @@ class Profile_Pic(BoxLayout, Screen):
 
 
 class Tinkle(App):
-
+    global sm
+    theme_cls = ThemeManager()
+    theme_cls.primary_palette = 'DeepOrange'
+    theme_cls.theme_style = "Dark"
+    sm = ScreenManager()
     # dynamically add/remove screens to consume less memory
+
+    def change_screen(self, screen_name):
+        if sm.has_screen(screen_name):
+            sm.current = screen_name
+        else:
+            print("Screen [" + screen_name+"] does not exist.")
+
     def manage_screens(self, screen_name, action):
         scns = {
             "dump_screen": DumpScreen,
@@ -4897,7 +4284,6 @@ class Tinkle(App):
             "group_members": GroupMembers,
             "names_friends_group": GetFriendsAddGroup
         }
-        global sm
         try:
 
             if action == "remove":
@@ -4909,17 +4295,22 @@ class Tinkle(App):
                     print("Screen ["+screen_name+"] already exists")
                 else:
                     sm.add_widget(scns[screen_name](name=screen_name))
+                    print(screen_name+" added")
                     #print("Screen ["+screen_name+"] added")
         except:
             print(traceback.format_exc())
             print("Traceback ^.^")
+
+    def change_screen(self, sc):
+        # centralize screen changing
+        sm.current = sc
 
     def decide_change_dp(self):
         if isAndroid() == True:
             ChangeProPic().get_rolling()
         else:
             self.manage_screens("profile_Pic", "add")
-            sm.current = "profile_Pic"
+            Tinkle().change_screen("profile_Pic")
 
     def on_pause(self):
         return True
@@ -4946,9 +4337,19 @@ class Tinkle(App):
         p.open()
 
     def build(self):
+        global sm
         # Your build code here...
         # add this line right before "return"
         self.bind(on_start=self.post_build_init)
+        if isAndroid() == True:
+            from moretransitions import BlurTransition
+            sm = ScreenManager(transition=BlurTransition())
+        else:
+            from moretransitions import TileTransition
+            sm = ScreenManager(transition=TileTransition())
+        # sm.add_widget(Chat(name="Chat"))
+        sm.add_widget(SignInScreen(name="signin_screen"))
+        sm.add_widget(Registration(name="registration_screen"))
         return sm
 
     def post_build_init(self, ev):
@@ -4996,22 +4397,6 @@ def resourcePath():  # To compile to exe
 
     return os.path.join(os.path.abspath("."))
 
-
-if isAndroid() == True:
-    from moretransitions import BlurTransition
-    sm = ScreenManager(transition=BlurTransition())
-else:
-    from moretransitions import TileTransition
-    sm = ScreenManager(transition=TileTransition())
-
-# three screens only to reduce memory usage
-# load others later dynamically -> Tinkle().manage_screens("screen_name","add/remove") from Python
-#                           or app.manage_screens("screen_name","add/remove") from KV
-
-sm.add_widget(DumpScreen(name="dump_screen")) # more like loading screen
-sm.add_widget(SignInScreen(name="signin_screen"))
-sm.add_widget(Registration(name="registration_screen"))
-sm.current = "signin_screen"  # changing the default (signin_screen)
 
 if __name__ == "__main__":
     resource_add_path(resourcePath())
