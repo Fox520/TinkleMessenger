@@ -11,7 +11,7 @@ https://youtu.be/JlSIrbnHPRw
 
 ## Registration
 ![registration](screenshots/client/registration.png?raw=true "Registration")
-## Side menu
-![side menu](screenshots/client/side_menu.png?raw=true "Side menu")
+## Side panel
+![side panel](screenshots/client/side_panel.png?raw=true "Side panel")
 ## Status
 ![status](screenshots/client/status.png?raw=true "Status")
