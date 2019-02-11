@@ -1308,6 +1308,13 @@ class AdvancedScreen(Screen):
         self.add_two_line(
             "group information", "show group information e.g. group creation date, admins etc.")
 
+    def on_back_pressed(self, *args):
+        Tinkle().change_screen("group_convo")
+        Tinkle().manage_screens("advanced_screen", "remove")
+
+    def on_menu_pressed(self, *args):
+        pass
+
     def add_two_line(self, short_info, long_info):
         img_to_use = {
             "view members": "img/group.png",
@@ -1353,6 +1360,13 @@ class GroupMembers(Screen):
     def __init__(self, **kwargs):
         super(GroupMembers, self).__init__(**kwargs)
         self.ml = self.ids["ml"]
+
+    def on_back_pressed(self, *args):
+        Tinkle().change_screen("advanced_screen")
+        Tinkle().manage_screens("group_members", "remove")
+
+    def on_menu_pressed(self, *args):
+        pass
 
     def send_background(self):
         template = {
