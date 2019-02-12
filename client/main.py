@@ -3572,7 +3572,7 @@ class Tinkle(App):
         sm.current = sc
 
     def decide_change_dp(self):
-        #if android: use gallery
+        # if android: use gallery
         if isAndroid() == True:
             ChangeProPic().get_rolling()
         else:
@@ -3615,7 +3615,7 @@ class Tinkle(App):
         else:
             from moretransitions import TileTransition
             sm = ScreenManager(transition=TileTransition())
-       
+
         sm.add_widget(SignInScreen(name="signin_screen"))
         sm.add_widget(Registration(name="registration_screen"))
         return sm
