@@ -1,0 +1,24 @@
+<Profile_Pic>:
+    GridLayout:
+        rows: 2
+        cols:1
+
+        BoxLayout:
+            FileChooserIconView:
+                id: filechooser
+                path: path_images
+                filters: fil_avail_img_ext
+                on_selection: root.select(filechooser.selection)
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            spacing: 10
+
+            MDRaisedButton:
+                text: "Set"
+                on_press: root.send_it()
+            MDRaisedButton:
+                text: "Cancel"
+                on_press:
+                    root.manager.current = "Chat"
+                    app.manage_screens("profile_Pic","remove")

@@ -1,0 +1,36 @@
+<Conversation>:
+
+    GridLayout:
+        rows: 3
+        Toolbar:
+            id: toolbar
+            title: "Private Chat"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            right_action_items:
+                [['dots-vertical', lambda x: root.show_bottom_sheet()]]
+
+
+        GridLayout:
+            cols: 1
+            rows: 0
+            ScrollView:
+                do_scroll_x: False
+                effect_cls: OpacityScrollEffect
+                MDList:
+                    id: mld
+
+        BoxLayout:
+            size_hint_y: None
+            height: 40
+            spacing: 20
+
+            MDTextField:
+                id: message
+                #disabled: True
+                hint_text: "Type your message"
+                multiline: False
+                valign: 'bottom'
+                on_text_validate: root.send_msg()

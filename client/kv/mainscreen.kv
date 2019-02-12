@@ -1,0 +1,43 @@
+<Chat>:
+    NavigationLayout:
+        id: nav_draw
+        MainNavigationDrawer:
+            id: nothing
+        GridLayout:
+            rows: 3
+            Toolbar:
+                id: toolbar
+                title: "Tinkle"
+                md_bg_color: app.theme_cls.primary_color
+                background_palette: 'Primary'
+                background_hue: '500'
+                elevation: 10
+                left_action_items:
+                    [['menu', lambda x: nav_draw.toggle_nav_drawer()]]
+                right_action_items:
+                    [['blur', lambda x: root.show_bottom_sheet_chat()],['dots-vertical', lambda x: root.show_bottom_sheet()]]
+
+            GridLayout:
+                cols: 1
+                rows: 0
+                spacing: 5
+                padding: 10
+                ScrollView:
+                    do_scroll_x: False
+                    effect_cls: OpacityScrollEffect
+                    scroll_y:0
+                    MDList:
+                        id: ml
+
+            BoxLayout:
+                size_hint_y: None
+                height: 40
+                spacing: 20
+
+                MDTextField:
+                    id: message
+                    #disabled: True
+                    hint_text: "Type your message"
+                    multiline: False
+                    valign: 'bottom'
+                    on_text_validate: root.send_msg()

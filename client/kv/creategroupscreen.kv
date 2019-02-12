@@ -1,0 +1,71 @@
+<CreateGroupScreen>:
+    GridLayout:
+        rows: 2
+        Toolbar:
+            id: toolbar
+            title: "Create a group"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            left_action_items: [['arrow-left', lambda x: root.on_back_pressed()]]
+
+        GridLayout:
+            rows: 2
+            orientation: 'vertical'
+            #padding: [10,50,10,50]
+            #spacing: 50
+            GridLayout:
+                rows:3
+                cols:1
+
+
+                MDLabel:
+                    text: ""
+                    text_size: self.size
+                    font_size: 28
+                    color: 1,0,1,1
+                MDLabel:
+                    text: "Create your group"
+                    text_size: self.size
+                    font_size: sp(27)
+                    halign: "center"
+                MDLabel:
+                    text: ""
+                    text_size: self.size
+                    font_size: 28
+                    color: 1,0,1,1
+            GridLayout:
+                rows:3
+                cols:3
+                orientation: "vertical"
+                MDLabel:
+                MDTextField:
+                    hint_text: "Name"
+                    max_text_length: 12
+                    id: group_name
+                    multiline: False
+                    font_size: sp(20)
+                    write_tab: False
+                MDLabel:
+                MDLabel:
+                MDTextField:
+                    hint_text: "Description"
+                    helper_text: "give it a description"
+                    helper_text_mode: "on_focus"
+                    id: group_description
+                    multiline: False
+                    font_size: sp(20)
+                    write_tab: False
+                MDLabel:
+
+                MDLabel:
+                MDRaisedButton:
+                    #text_size: self.size
+                    font_size: sp(20)
+                    text:"Create"
+                    on_release:
+                        #prg_spin.start_spinning()
+                        Clock.schedule_once(lambda dt: root.create_group(group_name.text, group_description.text), 1.5)
+                        
+                MDLabel:

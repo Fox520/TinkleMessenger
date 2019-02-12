@@ -1,0 +1,15 @@
+<GroupMembers>:
+    GridLayout:
+        rows:2
+
+        Toolbar:
+            id: toolbar
+            title: "Group members"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            left_action_items: [['arrow-left', lambda x: root.on_back_pressed()]]
+        GridLayout:
+            id: ml
+            cols: 1

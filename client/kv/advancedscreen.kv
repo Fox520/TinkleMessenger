@@ -1,0 +1,19 @@
+<AdvancedScreen>:
+    GridLayout:
+        rows:2
+
+        Toolbar:
+            id: toolbar
+            title: "Extra bits"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            left_action_items: [['arrow-left', lambda x: root.on_back_pressed()]]
+        GridLayout:
+            cols: 1
+            rows: 0
+            ScrollView:
+                do_scroll_x: False
+                MDList:
+                    id: ml

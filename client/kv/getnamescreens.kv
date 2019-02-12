@@ -1,0 +1,99 @@
+<GetNamesForFindFriendsScreen>:
+    GridLayout:
+        rows:2
+
+        Toolbar:
+            id: toolbar
+            title: "Find friends"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            left_action_items: [['arrow-left', lambda x: root.on_back_pressed()]]
+        GridLayout:
+            cols: 1
+            rows: 0
+            ScrollView:
+                do_scroll_x: False
+                MDList:
+                    id: ldml
+<GetNamesForFriendRequestsScreen>:
+    GridLayout:
+        rows:2
+
+        Toolbar:
+            id: toolbar
+            title: "Friend requests"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            left_action_items: [['arrow-left', lambda x: root.on_back_pressed()]]
+        GridLayout:
+            cols: 1
+            rows: 0
+            ScrollView:
+                do_scroll_x: False
+                MDList:
+                    id: ldml
+
+<GetNamesForCurrentFriendsScreen>:
+    GridLayout:
+        rows:2
+
+        Toolbar:
+            id: toolbar
+            title: "Friends list"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            left_action_items: [['arrow-left', lambda x: root.on_back_pressed()]]
+        GridLayout:
+            cols: 1
+            rows: 0
+            ScrollView:
+                do_scroll_x: False
+                MDList:
+                    id: ldml
+
+<GetNamesForStatusScreen>:
+    GridLayout:
+        rows:2
+
+        Toolbar:
+            id: toolbar
+            title: "Status"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            left_action_items: [['arrow-left', lambda x: root.on_back_pressed()]]
+        GridLayout:
+            cols: 1
+            rows: 0
+            
+            ScrollView:
+                do_scroll_x: False
+                MDList:
+                    id: ldml
+
+<GetFriendsAddGroup>:
+    GridLayout:
+        rows:2
+
+        Toolbar:
+            id: toolbar
+            title: "Add friend to group"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            left_action_items: [['arrow-left', lambda x: root.on_back_pressed()]]
+        GridLayout:
+            cols: 1
+            rows: 0
+            ScrollView:
+                do_scroll_x: False
+                MDList:
+                    id: ldml
