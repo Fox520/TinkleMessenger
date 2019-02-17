@@ -264,7 +264,7 @@ def return_site_web_address():
         return _web_address
     try:
         a = requests.get(WEB_ADDR + "navigation/web_address")
-        p = a.text
+        p = a.text.strip()
         _web_address = p
         return p
     except Exception as e:
@@ -278,7 +278,7 @@ def return_server_address():
     # fetch address from web and write it
     try:
         a = requests.get(WEB_ADDR + "navigation/server_ip")
-        p = a.text
+        p = a.text.strip()
         _server_ip = p
         return p
     except Exception as e:
