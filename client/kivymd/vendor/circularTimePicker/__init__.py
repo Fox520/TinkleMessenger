@@ -647,7 +647,7 @@ class CircularTimePicker(BoxLayout, ThemableBehavior):
                               self.theme_cls.primary_color[1], \
                               self.theme_cls.primary_color[2]
         self.color = self.theme_cls.text_color
-        self.primary_dark = self.theme_cls.primary_dark[0] / 2,\
+        self.primary_dark = self.theme_cls.primary_dark[0] / 2, \
                             self.theme_cls.primary_dark[1] / 2, \
                             self.theme_cls.primary_dark[2] / 2
         self.on_ampm()

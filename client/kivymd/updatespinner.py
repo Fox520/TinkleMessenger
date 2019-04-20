@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
-'''
-updatespinner.py
+"""
+Update Spinner
+==============
 
-Copyright © 2010-2018 HeaTTheatR
+Copyright (c) 2019 Ivanov Yuri
 
 For suggestions and questions:
 <kivydevelopment@gmail.com>
@@ -11,7 +12,8 @@ For suggestions and questions:
 This file is distributed under the terms of the same license,
 as the Kivy framework.
 
-EXAMPLE:
+Example
+-------
 
 from kivy.app import App
 from kivy.lang import Builder
@@ -20,15 +22,16 @@ from kivy.clock import Clock
 
 from kivymd.theming import ThemeManager
 
-Builder.load_string("""
-#:import Toolbar kivymd.toolbar.Toolbar
+Builder.load_string('''
+#:import MDToolbar kivymd.toolbar.MDToolbar
 #:import MDLabel kivymd.label.MDLabel
 #:import MDUpdateSpinner kivymd.updatespinner.MDUpdateSpinner
 
-<ExampleUpdateSpinner@BoxLayout>:
+
+<ExampleUpdateSpinner@BoxLayout>
     orientation: 'vertical'
 
-    Toolbar:
+    MDToolbar:
         title: app.title
         md_bg_color: app.theme_cls.primary_color
         elevation: 10
@@ -38,7 +41,7 @@ Builder.load_string("""
 
         MDLabel:
             id: upd_lbl
-            font_style: 'Display2'
+            font_style: 'H3'
             theme_text_color: 'Primary'
             halign: 'center'
             pos_hint: {'center_x': .5, 'center_y': .6}
@@ -48,7 +51,7 @@ Builder.load_string("""
 
         MDUpdateSpinner:
             event_update: lambda x: app.update_screen(self)
-""")
+''')
 
 
 class Example(App):
@@ -75,25 +78,25 @@ class Example(App):
 
 
 Example().run()
-'''
+"""
 
 from kivy.animation import Animation
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.metrics import dp
-from kivy.properties import ListProperty, BooleanProperty, \
+from kivy.properties import ListProperty, BooleanProperty,\
     ObjectProperty
 from kivy.uix.floatlayout import FloatLayout
 from kivy.lang import Builder
 
 from kivymd.theming import ThemableBehavior
 
-Builder.load_string("""
+Builder.load_string('''
 #:import Window kivy.core.window.Window
 #:import MDSpinner kivymd.spinner.MDSpinner
 
 
-<MDUpdateSpinner>:
+<MDUpdateSpinner>
 
     AnchorLayout:
         id: body_spinner
@@ -117,7 +120,7 @@ Builder.load_string("""
             size_hint: None, None
             size: dp(30), dp(30)
             color: root.color
-""")
+''')
 
 
 class MDUpdateSpinner(ThemableBehavior, FloatLayout):

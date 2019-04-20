@@ -1,14 +1,24 @@
 # -*- coding: utf-8 -*-
 
-'''
-toolbar.py
+"""
+MDToolbar
+=======
 
-Copyright © 2010-2018 HeaTTheatR
+Copyright (c) 2015 Andrés Rodríguez and KivyMD contributors -
+    KivyMD library up to version 0.1.2
+Copyright (c) 2019 Ivanov Yuri and KivyMD contributors -
+    KivyMD library version 0.1.3 and higher
 
 For suggestions and questions:
 <kivydevelopment@gmail.com>
 
-EXAMPLE:
+This file is distributed under the terms of the same license,
+as the Kivy framework.
+
+`Material Design spec, App bars: top <https://material.io/design/components/app-bars-top.html>`_
+
+Example
+-------
 
 from kivy.app import App
 from kivy.lang import Builder
@@ -17,7 +27,7 @@ from kivymd.theming import ThemeManager
 from kivymd.toast import toast
 from kivymd.toolbar import MDBottomAppBar
 
-kv = """
+kv = '''
 #:import MDRaisedButton kivymd.button.MDRaisedButton
 #:import MDLabel kivymd.label.MDLabel
 
@@ -47,7 +57,7 @@ BoxLayout:
                 on_release:
                     app.md_app_bar.set_pos_action_button('right')
                     app.move_item_menu('right')
-"""
+'''
 
 
 class MyApp(App):
@@ -86,7 +96,7 @@ class MyApp(App):
 
 
 MyApp().run()
-'''
+"""
 
 from kivy.clock import Clock
 from kivy.lang import Builder
@@ -100,29 +110,29 @@ from kivy.core.window import Window
 from kivymd.backgroundcolorbehavior import SpecificBackgroundColorBehavior
 from kivymd.button import MDIconButton, MDFloatingActionButton
 from kivymd.theming import ThemableBehavior
-from kivymd.elevationbehavior import RectangularElevationBehavior
+from kivymd.elevation import RectangularElevationBehavior
 
 Builder.load_string('''
 #:import m_res kivymd.material_resources
 #:import MDFloatingActionButton kivymd.button.MDFloatingActionButton
 
 
-<AppBarActionButton>:
+<AppBarActionButton>
     size: 0, 0
     opacity: 0
     md_bg_color: root.action_button_color
 
 
-<MDBottomAppBar>:
- 
-    Toolbar:
+<MDBottomAppBar>
+
+    MDToolbar:
         id: toolbar
         left_action_items: root.left_action_items
         right_action_items: root.right_action_items
         md_bg_color: root.md_bg_color
 
 
-<Toolbar>:
+<MDToolbar>
     size_hint_y: None
     height: root.theme_cls.standard_increment
     padding: [root.theme_cls.horizontal_margins - dp(12), 0]
@@ -139,7 +149,7 @@ Builder.load_string('''
         padding: dp(12), 0
 
         MDLabel:
-            font_style: 'Title'
+            font_style: 'H6'
             opposite_colors: root.opposite_colors
             theme_text_color: 'Custom'
             text_color: root.specific_text_color
@@ -156,10 +166,10 @@ Builder.load_string('''
 ''')
 
 
-class Toolbar(ThemableBehavior, RectangularElevationBehavior,
-              SpecificBackgroundColorBehavior, BoxLayout):
+class MDToolbar(ThemableBehavior, RectangularElevationBehavior,
+                SpecificBackgroundColorBehavior, BoxLayout):
     left_action_items = ListProperty()
-    """The icons on the left of the Toolbar.
+    """The icons on the left of the MDToolbar.
     To add one, append a list like the following:
         ['icon_name', callback]
     where 'icon_name' is a string that corresponds to an icon definition and
@@ -167,19 +177,19 @@ class Toolbar(ThemableBehavior, RectangularElevationBehavior,
     """
 
     right_action_items = ListProperty()
-    """The icons on the left of the Toolbar.
+    """The icons on the left of the MDToolbar.
     Works the same way as :attr:`left_action_items`
     """
 
     title = StringProperty()
-    """The text displayed on the Toolbar."""
+    """The text displayed on the MDToolbar."""
 
     md_bg_color = ListProperty([0, 0, 0, 1])
 
     anchor_title = StringProperty('left')
 
     def __init__(self, **kwargs):
-        super(Toolbar, self).__init__(**kwargs)
+        super(MDToolbar, self).__init__(**kwargs)
         self.bind(specific_text_color=self.update_action_bar_text_colors)
         Clock.schedule_once(
             lambda x: self.on_left_action_items(0, self.left_action_items))
@@ -216,7 +226,7 @@ class MDBottomAppBar(FloatLayout):
     left_action_items = ListProperty()
     right_action_items = ListProperty()
     md_bg_color = ListProperty([0, 0, 0, 1])
-    action_button_color = \
+    action_button_color =\
         ListProperty([1, .7568627450980392, .027450980392156862, 1])
     anchor = StringProperty('right')
     callback = ObjectProperty(lambda x: None)
@@ -224,10 +234,10 @@ class MDBottomAppBar(FloatLayout):
     def __init__(self, **kwargs):
         super(MDBottomAppBar, self).__init__(**kwargs)
         # Default action Button.
-        x = Window.width - dp(56) - dp(20) if self.anchor == 'right' \
-            else Window.width // 2 - dp(56) // 2 if self.anchor == 'center' \
+        x = Window.width - dp(56) - dp(20) if self.anchor == 'right'\
+            else Window.width // 2 - dp(56) // 2 if self.anchor == 'center'\
             else dp(20)
-        self.action_button = \
+        self.action_button =\
             AppBarActionButton(y=self.ids.toolbar.height // 2,
                                x=x, opacity=1, size=(dp(56), dp(56)),
                                on_release=self.callback,
@@ -244,7 +254,7 @@ class MDBottomAppBar(FloatLayout):
                 return
 
             self.remove_widget(self.action_button)
-            self.action_button = \
+            self.action_button =\
                 AppBarActionButton(y=self.ids.toolbar.height // 2,
                                    x=x, on_release=self.callback,
                                    action_button_color=self.action_button_color)
@@ -260,5 +270,5 @@ class MDBottomAppBar(FloatLayout):
 
 
 class AppBarActionButton(MDFloatingActionButton):
-    action_button_color = \
+    action_button_color =\
         ListProperty([1, .7568627450980392, .027450980392156862, 1])

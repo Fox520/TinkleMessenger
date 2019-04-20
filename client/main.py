@@ -54,10 +54,10 @@ from kivymd.bottomsheet import MDListBottomSheet
 from kivymd.theming import ThemeManager
 from kivymd.button import MDRaisedButton
 from kivymd.dialog import MDDialog
-from kivymd.list import OneLineListItem, TwoLineListItem, TwoLineAvatarListItem, ThreeLineAvatarListItem,  AvatarSampleWidget, MDList
+from kivymd.list import OneLineListItem, TwoLineListItem, TwoLineAvatarListItem, ThreeLineAvatarListItem, MDList
 from kivymd.textfields import MDTextField
 from kivymd.label import MDLabel
-from kivymd.snackbar import Snackbar
+from kivymd.snackbars import Snackbar
 
 from spin_load import ProgressSpinner
 
@@ -499,9 +499,9 @@ Builder.load_string("""
 #:import get_random_color kivy.utils.get_random_color
 #:import OpacityScrollEffect __main__.OpacityScrollEffect
 
-#:import Toolbar kivymd.toolbar.Toolbar
+#:import MDToolbar kivymd.toolbar.MDToolbar
 #:import NavigationLayout kivymd.navigationdrawer.NavigationLayout
-#:import MDThemePicker kivymd.theme_picker.MDThemePicker
+#:import MDThemePicker kivymd.pickers.MDThemePicker
 
 <MyImageButton@ButtonBehavior+AsyncImage>:
 
@@ -544,10 +544,24 @@ Builder.load_string("""
                 pos: self.pos
                 size: self.size
                 source: LOADING_IMAGE
-        
+
+<-AvatarSampleWidget>:
+    canvas:
+        Rectangle:
+            texture: self.texture
+            size: self.width + 20, self.height + 20
+            pos: self.x - 10, self.y - 10       
 
     """)
+class ILeftBody:
+    '''Pseudo-interface for widgets that go in the left container for
+    ListItems that support it.
 
+    Implements nothing and requires no implementation, for annotation only.
+    '''
+    pass
+class AvatarSampleWidget(ILeftBody, AsyncImage):
+    pass
 # Name: advanced_screen
 
 
@@ -3517,8 +3531,8 @@ class Profile_Pic(BoxLayout, Screen):
 class Tinkle(App):
     global sm
     theme_cls = ThemeManager()
-    theme_cls.primary_palette = 'DeepOrange'
-    theme_cls.theme_style = "Dark"
+    theme_cls.primary_palette = 'Lime'
+    theme_cls.theme_style = "Light"
     sm = ScreenManager()
     # dynamically add/remove screens to consume less memory
 

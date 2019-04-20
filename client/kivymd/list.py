@@ -1,19 +1,28 @@
 # -*- coding: utf-8 -*-
-'''
+
+"""
 Lists
 =====
 
-`Material Design spec, Lists page <https://www.google.com/design/spec/components/lists.html>`_
+Copyright (c) 2015 Andrés Rodríguez and KivyMD contributors -
+    KivyMD library up to version 0.1.2
+Copyright (c) 2019 Ivanov Yuri and KivyMD contributors -
+    KivyMD library version 0.1.3 and higher
 
-`Material Design spec, Lists: Controls page <https://www.google.com/design/spec/components/lists-controls.html>`_
+For suggestions and questions:
+<kivydevelopment@gmail.com>
+
+This file is distributed under the terms of the same license,
+as the Kivy framework.
+
+`Material Design spec, Lists <https://material.io/design/components/lists.html>`_
 
 The class :class:`MDList` in combination with a ListItem like
 :class:`OneLineListItem` will create a list that expands as items are added to
 it, working nicely with Kivy's :class:`~kivy.uix.scrollview.ScrollView`.
 
-
-Simple examples
----------------
+Example
+-------
 
 Kv Lang:
 
@@ -29,7 +38,9 @@ Kv Lang:
                 secondary_text: "Secondary text here"
             ThreeLineListItem:
                 text: "Three-line item"
-                secondary_text: "This is a multi-line label where you can fit more text than usual"
+                secondary_text:
+                    "This is a multi-line label where you can "\
+                    "fit more text than usual"
 
 
 Python:
@@ -138,66 +149,78 @@ Python example:
 
 API
 ---
-'''
+"""
 
 from kivy.lang import Builder
 from kivy.metrics import dp
-from kivy.properties import ObjectProperty, StringProperty, NumericProperty, \
+from kivy.properties import ObjectProperty, StringProperty, NumericProperty,\
     ListProperty, OptionProperty
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.gridlayout import GridLayout
-import material_resources as m_res #
-from ripplebehavior import RectangularRippleBehavior #
-from theming import ThemableBehavior #
-from kivy.core.text import LabelBase
-from kivy.uix.image import AsyncImage
-from kivy import Config
-Config.set('graphics', 'default_font', ["font",".font.ttf",".font.ttf",".font.ttf",".font.ttf"])
-#LabelBase.register(name="font", fn_regular="font.ttf")
+
+import kivymd.material_resources as m_res
+from kivymd.ripplebehavior import RectangularRippleBehavior
+from kivymd.theming import ThemableBehavior
+from kivymd.font_definitions import theme_font_styles
+
 Builder.load_string('''
-#:import m_res material_resources
+#:import m_res kivymd.material_resources
+
+
 <MDList>
     cols: 1
     size_hint_y: None
     height: self._min_list_height
     padding: 0, self._list_vertical_padding
 
+
 <BaseListItem>
     size_hint_y: None
     canvas:
         Color:
-            rgba: self.theme_cls.divider_color if root.divider is not None else (0, 0, 0, 0)
+            rgba:
+                self.theme_cls.divider_color if root.divider is not None\
+                else (0, 0, 0, 0)
         Line:
             points: (root.x ,root.y, root.x+self.width, root.y)\
                     if root.divider == 'Full' else\
                     (root.x+root._txt_left_pad, root.y,\
                     root.x+self.width-root._txt_left_pad-root._txt_right_pad,\
                     root.y)
+
     BoxLayout:
         id: _text_container
         orientation: 'vertical'
         pos: root.pos
-        padding: root._txt_left_pad, root._txt_top_pad, root._txt_right_pad, root._txt_bot_pad
+        padding:
+            root._txt_left_pad, root._txt_top_pad,\
+            root._txt_right_pad, root._txt_bot_pad
+
         MDLabel:
             id: _lbl_primary
             text: root.text
             font_style: root.font_style
-            font_name: "font"
             theme_text_color: root.theme_text_color
             text_color: root.text_color
             size_hint_y: None
             height: self.texture_size[1]
+            markup: True
+            shorten_from: 'right'
+            shorten: True
+
         MDLabel:
             id: _lbl_secondary
             text: '' if root._num_lines == 1 else root.secondary_text
             font_style: root.secondary_font_style
-            font_name: "font"
             theme_text_color: root.secondary_theme_text_color
             text_color: root.secondary_text_color
             size_hint_y: None
             height: 0 if root._num_lines == 1 else self.texture_size[1]
             shorten: True if root._num_lines == 2 else False
+            shorten_from: 'right'
+            markup: True
+
 
 <OneLineAvatarListItem>
     BoxLayout:
@@ -207,6 +230,7 @@ Builder.load_string('''
         y: root.y + root.height/2 - self.height/2
         size: dp(40), dp(40)
 
+
 <ThreeLineAvatarListItem>
     BoxLayout:
         id: _left_container
@@ -214,6 +238,7 @@ Builder.load_string('''
         x: root.x + dp(16)
         y: root.y + root.height - root._txt_top_pad - self.height - dp(5)
         size: dp(40), dp(40)
+
 
 <OneLineIconListItem>
     BoxLayout:
@@ -223,6 +248,7 @@ Builder.load_string('''
         y: root.y + root.height/2 - self.height/2
         size: dp(48), dp(48)
 
+
 <ThreeLineIconListItem>
     BoxLayout:
         id: _left_container
@@ -230,6 +256,7 @@ Builder.load_string('''
         x: root.x + dp(16)
         y: root.y + root.height - root._txt_top_pad - self.height - dp(5)
         size: dp(48), dp(48)
+
 
 <OneLineRightIconListItem>
     BoxLayout:
@@ -239,6 +266,7 @@ Builder.load_string('''
         y: root.y + root.height/2 - self.height/2
         size: dp(48), dp(48)
 
+
 <ThreeLineRightIconListItem>
     BoxLayout:
         id: _right_container
@@ -246,6 +274,7 @@ Builder.load_string('''
         x: root.x + root.width - m_res.HORIZ_MARGINS - self.width
         y: root.y + root.height/2 - self.height/2
         size: dp(48), dp(48)
+
 
 <OneLineAvatarIconListItem>
     BoxLayout:
@@ -255,6 +284,7 @@ Builder.load_string('''
         y: root.y + root.height/2 - self.height/2
         size: dp(48), dp(48)
 
+
 <TwoLineAvatarIconListItem>
     BoxLayout:
         id: _right_container
@@ -263,6 +293,7 @@ Builder.load_string('''
         y: root.y + root.height/2 - self.height/2
         size: dp(48), dp(48)
 
+
 <ThreeLineAvatarIconListItem>
     BoxLayout:
         id: _right_container
@@ -270,32 +301,25 @@ Builder.load_string('''
         x: root.x + root.width - m_res.HORIZ_MARGINS - self.width
         y: root.y + root.height - root._txt_top_pad - self.height - dp(5)
         size: dp(48), dp(48)
-
-<-AvatarSampleWidget>:
-    canvas:
-        Rectangle:
-            texture: self.texture
-            size: self.width + 20, self.height + 20
-            pos: self.x - 10, self.y - 10
-
 ''')
 
 
 class MDList(GridLayout):
-    '''ListItem container. Best used in conjunction with a
+    """ListItem container. Best used in conjunction with a
     :class:`kivy.uix.ScrollView`.
 
     When adding (or removing) a widget, it will resize itself to fit its
     children, plus top and bottom paddings as described by the MD spec.
-    '''
+    """
+
     selected = ObjectProperty()
     _min_list_height = dp(16)
     _list_vertical_padding = dp(8)
 
     icon = StringProperty()
 
-    def add_widget(self, widget, index=0):
-        super(MDList, self).add_widget(widget, index)
+    def add_widget(self, widget, index=0, canvas=None):
+        super(MDList, self).add_widget(widget, index, canvas)
         self.height += widget.height
 
     def remove_widget(self, widget):
@@ -305,29 +329,26 @@ class MDList(GridLayout):
 
 class BaseListItem(ThemableBehavior, RectangularRippleBehavior,
                    ButtonBehavior, FloatLayout):
-    '''Base class to all ListItems. Not supposed to be instantiated on its own.
-    '''
+    """Base class to all ListItems. Not supposed to be instantiated on its own.
+    """
 
     text = StringProperty()
-    '''Text shown in the first line.
+    """Text shown in the first line.
 
     :attr:`text` is a :class:`~kivy.properties.StringProperty` and defaults
     to "".
-    '''
-    
-    text_color = ListProperty(None)
-    ''' Text color used if theme_text_color is set to 'Custom' '''
+    """
 
-    font_style = OptionProperty(
-        'Subhead', options=['Body1', 'Body2', 'Caption', 'Subhead', 'Title',
-                            'Headline', 'Display1', 'Display2', 'Display3',
-                            'Display4', 'Button', 'Icon'])
-    
-    theme_text_color = StringProperty('Primary',allownone=True)
-    ''' Theme text color for primary text '''
+    text_color = ListProperty(None)
+    """ Text color used if theme_text_color is set to 'Custom' """
+
+    font_style = OptionProperty('Subtitle1', options=theme_font_styles)
+
+    theme_text_color = StringProperty('Primary', allownone=True)
+    """ Theme text color for primary text """
 
     secondary_text = StringProperty()
-    '''Text shown in the second and potentially third line.
+    """Text shown in the second and potentially third line.
 
     The text will wrap into the third line if the ListItem's type is set to
     \'one-line\'. It can be forced into the third line by adding a \\n
@@ -335,21 +356,19 @@ class BaseListItem(ThemableBehavior, RectangularRippleBehavior,
 
     :attr:`secondary_text` is a :class:`~kivy.properties.StringProperty` and
     defaults to "".
-    '''
-    
-    secondary_text_color = ListProperty(None)
-    ''' Text color used for secondary text if secondary_theme_text_color 
-    is set to 'Custom' '''
-    
-    secondary_theme_text_color = StringProperty('Secondary',allownone=True)
-    ''' Theme text color for secondary primary text '''
-    
-    secondary_font_style = OptionProperty(
-        'Body1', options=['Body1', 'Body2', 'Caption', 'Subhead', 'Title',
-                          'Headline', 'Display1', 'Display2', 'Display3',
-                          'Display4', 'Button', 'Icon'])
+    """
 
-    divider = OptionProperty('Full', options=['Full', 'Inset', None], allownone=True)
+    secondary_text_color = ListProperty(None)
+    """ Text color used for secondary text if secondary_theme_text_color 
+    is set to 'Custom' """
+
+    secondary_theme_text_color = StringProperty('Secondary', allownone=True)
+    """ Theme text color for secondary primary text """
+
+    secondary_font_style = OptionProperty('Body1', options=theme_font_styles)
+
+    divider = OptionProperty('Full',
+                             options=['Full', 'Inset', None], allownone=True)
 
     _txt_left_pad = NumericProperty(dp(16))
     _txt_top_pad = NumericProperty()
@@ -359,53 +378,54 @@ class BaseListItem(ThemableBehavior, RectangularRippleBehavior,
 
 
 class ILeftBody:
-    '''Pseudo-interface for widgets that go in the left container for
+    """Pseudo-interface for widgets that go in the left container for
     ListItems that support it.
 
     Implements nothing and requires no implementation, for annotation only.
-    '''
+    """
     pass
 
 
 class ILeftBodyTouch:
-    '''Same as :class:`~ILeftBody`, but allows the widget to receive touch
+    """Same as :class:`~ILeftBody`, but allows the widget to receive touch
     events instead of triggering the ListItem's ripple effect
-    '''
+    """
     pass
 
 
 class IRightBody:
-    '''Pseudo-interface for widgets that go in the right container for
+    """Pseudo-interface for widgets that go in the right container for
     ListItems that support it.
 
     Implements nothing and requires no implementation, for annotation only.
-    '''
+    """
     pass
 
 
 class IRightBodyTouch:
-    '''Same as :class:`~IRightBody`, but allows the widget to receive touch
+    """Same as :class:`~IRightBody`, but allows the widget to receive touch
     events instead of triggering the ListItem's ripple effect
-    '''
+    """
     pass
 
 
 class ContainerSupport:
-    '''Overrides add_widget in a ListItem to include support for I*Body
+    """Overrides add_widget in a ListItem to include support for I*Body
     widgets when the appropiate containers are present.
-    '''
+    """
+
     _touchable_widgets = ListProperty()
 
     def add_widget(self, widget, index=0):
         if issubclass(widget.__class__, ILeftBody):
-            self.ids['_left_container'].add_widget(widget)
+            self.ids._left_container.add_widget(widget)
         elif issubclass(widget.__class__, ILeftBodyTouch):
-            self.ids['_left_container'].add_widget(widget)
+            self.ids._left_container.add_widget(widget)
             self._touchable_widgets.append(widget)
         elif issubclass(widget.__class__, IRightBody):
-            self.ids['_right_container'].add_widget(widget)
+            self.ids._right_container.add_widget(widget)
         elif issubclass(widget.__class__, IRightBodyTouch):
-            self.ids['_right_container'].add_widget(widget)
+            self.ids._right_container.add_widget(widget)
             self._touchable_widgets.append(widget)
         else:
             return super(BaseListItem, self).add_widget(widget)
@@ -445,9 +465,8 @@ class ContainerSupport:
 
 
 class OneLineListItem(BaseListItem):
-    '''
-    A one line list item
-    '''
+    """A one line list item"""
+
     _txt_top_pad = NumericProperty(dp(16))
     _txt_bot_pad = NumericProperty(dp(15))  # dp(20) - dp(5)
     _num_lines = 1
@@ -458,9 +477,8 @@ class OneLineListItem(BaseListItem):
 
 
 class TwoLineListItem(BaseListItem):
-    '''
-    A two line list item
-    '''
+    """A two line list item"""
+
     _txt_top_pad = NumericProperty(dp(20))
     _txt_bot_pad = NumericProperty(dp(15))  # dp(20) - dp(5)
 
@@ -470,9 +488,8 @@ class TwoLineListItem(BaseListItem):
 
 
 class ThreeLineListItem(BaseListItem):
-    '''
-    A three line list item
-    '''
+    """A three line list item"""
+
     _txt_top_pad = NumericProperty(dp(16))
     _txt_bot_pad = NumericProperty(dp(15))  # dp(20) - dp(5)
     _num_lines = 3
@@ -481,8 +498,6 @@ class ThreeLineListItem(BaseListItem):
         super(ThreeLineListItem, self).__init__(**kwargs)
         self.height = dp(88)
 
-class AvatarSampleWidget(ILeftBody, AsyncImage):
-    pass
 
 class OneLineAvatarListItem(ContainerSupport, BaseListItem):
     _txt_left_pad = NumericProperty(dp(72))
@@ -542,7 +557,7 @@ class TwoLineRightIconListItem(OneLineRightIconListItem):
         self.height = dp(72)
 
 
-class ThreeLineRightIconListitem(ContainerSupport, ThreeLineListItem):
+class ThreeLineRightIconListItem(ContainerSupport, ThreeLineListItem):
     # dp(40) = dp(16) + dp(24):
     _txt_right_pad = NumericProperty(dp(40) + m_res.HORIZ_MARGINS)
 

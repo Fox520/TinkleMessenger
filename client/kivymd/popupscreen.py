@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
 
-'''
-popupscreen.py
+"""
+Popup Screen
+============
 
-Copyright © 2010-2018 HeaTTheatR
+Copyright (c) 2019 Ivanov Yuri
 
 For suggestions and questions:
 <kivydevelopment@gmail.com>
 
-EXAMPLE:
+This file is distributed under the terms of the same license,
+as the Kivy framework.
+
+Example
+-------
 
 from kivy.app import App
 from kivy.lang import Builder
@@ -20,9 +25,9 @@ from kivymd.list import ILeftBodyTouch
 from kivymd.popupscreen import MDPopupScreen
 from kivymd.theming import ThemeManager
 
-Builder.load_string("""
+Builder.load_string('''
 #:import get_hex_from_color kivy.utils.get_hex_from_color
-#:import Toolbar kivymd.toolbar.Toolbar
+#:import MDToolbar kivymd.toolbar.MDToolbar
 #:import OneLineIconListItem kivymd.list.OneLineIconListItem
 #:import MDRoundFlatButton kivymd.button.MDRoundFlatButton
 #:import Window kivy.core.window.Window
@@ -34,12 +39,12 @@ Builder.load_string("""
 #
 ###############################################################################
 
-<PopupScreen>:
+<PopupScreen>
 
     BoxLayout:
         orientation: 'vertical'
 
-        Toolbar:
+        MDToolbar:
             id: toolbar
             title: 'Example Popup Screen'
             md_bg_color: app.theme_cls.primary_color
@@ -62,7 +67,7 @@ Builder.load_string("""
 #
 ###############################################################################
 
-<StartScreen>:
+<StartScreen>
     orientation: 'vertical'
     padding: dp(1)
     spacing: dp(30)
@@ -88,7 +93,7 @@ Builder.load_string("""
 #
 ###############################################################################
 
-<MyPopupScreen>:
+<MyPopupScreen>
     orientation: 'vertical'
 
     BoxLayout:
@@ -111,7 +116,7 @@ Builder.load_string("""
     TwoLineIconListItem:
         text: "Call Viber Out"
         secondary_text:
-            "[color=%s]Advantageous rates for calls[/color]" \
+            "[color=%s]Advantageous rates for calls[/color]"\
             % get_hex_from_color(app.theme_cls.primary_color)
         IconLeftSampleWidget:
             icon: 'phone'
@@ -119,13 +124,13 @@ Builder.load_string("""
     TwoLineIconListItem:
         text: "Call over mobile network"
         secondary_text:
-            "[color=%s]Operator's tariffs apply[/color]" \
+            "[color=%s]Operator's tariffs apply[/color]"\
             % get_hex_from_color(app.theme_cls.primary_color)
         IconLeftSampleWidget:
             icon: 'remote'
 
     Widget:
-""")
+''')
 
 
 class PopupScreen(MDPopupScreen):
@@ -152,13 +157,13 @@ class MyApp(App):
         popup_screen = MyPopupScreen()
         root = PopupScreen(screen=popup_screen,
                            background_color=[.3, .3, .3, 1])
-        root.max_height = root.ids.start_screen.ids.image.height + \
-            root.ids.toolbar.height + dp(5)
+        root.max_height = root.ids.start_screen.ids.image.height\
+            + root.ids.toolbar.height + dp(5)
         return root
 
 
 MyApp().run()
-'''
+"""
 
 from kivy.clock import Clock
 from kivy.metrics import dp
@@ -171,20 +176,20 @@ from kivy.properties import ObjectProperty, ListProperty
 
 from kivymd.theming import ThemableBehavior
 
-Builder.load_string("""
-<RootScreen>:
+Builder.load_string('''
+<RootScreen>
     padding: dp(15)
 
     canvas:
         Color:
             rgba:
-                self.theme_cls.bg_light if not len(root.background_color) \
+                self.theme_cls.bg_light if not len(root.background_color)\
                 else root.background_color
         RoundedRectangle:
             pos: self.pos
             size: self.size
-            radius: [15,]
-""")
+            radius: [15, ]
+''')
 
 
 class RootScreen(BoxLayout, ThemableBehavior):
@@ -219,6 +224,8 @@ class MDPopupScreen(FloatLayout):
         self.open_menu = False
 
     def on_touch_down(self, touch):
+        if touch.button == 'scrollup' or touch.button == 'scrolldown':
+            return
         if self.open_menu:
             Clock.schedule_once(self.hide, .3)
         return super(MDPopupScreen, self).on_touch_down(touch)

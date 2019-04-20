@@ -1,5 +1,23 @@
 # -*- coding: utf-8 -*-
 
+"""
+Selection Controls
+==================
+
+Copyright (c) 2015 Andrés Rodríguez and KivyMD contributors -
+    KivyMD library up to version 0.1.2
+Copyright (c) 2019 Ivanov Yuri and KivyMD contributors -
+    KivyMD library version 0.1.3 and higher
+
+For suggestions and questions:
+<kivydevelopment@gmail.com>
+
+This file is distributed under the terms of the same license,
+as the Kivy framework.
+
+`Material Design spec, Selection controls <https://material.io/design/components/selection-controls.html>`_
+"""
+
 from kivy.lang import Builder
 from kivy.properties import StringProperty, ListProperty, NumericProperty
 from kivy.uix.behaviors import ToggleButtonBehavior
@@ -13,13 +31,13 @@ from kivy.utils import get_color_from_hex
 from kivymd.color_definitions import colors
 from kivymd.icon_definitions import md_icons
 from kivymd.theming import ThemableBehavior
-from kivymd.elevationbehavior import CircularElevationBehavior
+from kivymd.elevation import CircularElevationBehavior
 from kivymd.ripplebehavior import CircularRippleBehavior
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.widget import Widget
 
 Builder.load_string('''
-<MDCheckbox>:
+<MDCheckbox>
     canvas:
         Clear
         Color:
@@ -28,20 +46,20 @@ Builder.load_string('''
             texture: self.texture
             size: self.texture_size
             pos:
-                int(self.center_x - self.texture_size[0] / 2.), \
+                int(self.center_x - self.texture_size[0] / 2.),\
                 int(self.center_y - self.texture_size[1] / 2.)
 
     text: self._radio_icon if self.group else self._checkbox_icon
     font_name: 'Icons'
     font_size: sp(24)
     color:
-        self.theme_cls.primary_color if self.active \
+        self.theme_cls.primary_color if self.active\
         else self.theme_cls.secondary_text_color
     halign: 'center'
     valign: 'middle'
 
 
-<Thumb>:
+<Thumb>
     color: 1, 1, 1, 1
     canvas:
         Color:
@@ -51,12 +69,12 @@ Builder.load_string('''
             pos: self.pos
 
 
-<MDSwitch>:
+<MDSwitch>
     canvas.before:
         Color:
             rgba:
-                self._track_color_disabled if self.disabled else \
-                (self._track_color_active if self.active \
+                self._track_color_disabled if self.disabled else\
+                (self._track_color_active if self.active\
                 else self._track_color_normal)
         Ellipse:
             size: dp(16), dp(16)
@@ -80,7 +98,7 @@ Builder.load_string('''
         size: dp(24), dp(24)
         pos: root._thumb_pos
         color:
-            root.thumb_color_disabled if root.disabled else \
+            root.thumb_color_disabled if root.disabled else\
             (root.thumb_color_down if root.active else root.thumb_color)
         elevation:    4 if root.active else 2
         on_release: setattr(root, 'active', not root.active)
@@ -92,10 +110,10 @@ class MDCheckbox(ThemableBehavior, CircularRippleBehavior,
     active = BooleanProperty(False)
 
     _checkbox_icon = StringProperty(
-        u"{}".format(md_icons['checkbox-blank-outline']))
-    _radio_icon = StringProperty(u"{}".format(
+        u'{}'.format(md_icons['checkbox-blank-outline']))
+    _radio_icon = StringProperty(u'{}'.format(
         md_icons['checkbox-blank-circle-outline']))
-    _icon_active = StringProperty(u"{}".format(md_icons['checkbox-marked']))
+    _icon_active = StringProperty(u'{}'.format(md_icons['checkbox-marked']))
 
     def __init__(self, **kwargs):
         self.check_anim_out = Animation(font_size=0, duration=.1, t='out_quad')
@@ -110,17 +128,17 @@ class MDCheckbox(ThemableBehavior, CircularRippleBehavior,
         if self.state == 'down':
             self.check_anim_in.cancel(self)
             self.check_anim_out.start(self)
-            self._radio_icon = u"{}".format(
+            self._radio_icon = u'{}'.format(
                 md_icons['checkbox-marked-circle-outline'])
-            self._checkbox_icon = u"{}".format(
+            self._checkbox_icon = u'{}'.format(
                 md_icons['checkbox-marked-outline'])
             self.active = True
         else:
             self.check_anim_in.cancel(self)
             self.check_anim_out.start(self)
-            self._radio_icon = u"{}".format(
+            self._radio_icon = u'{}'.format(
                 md_icons['checkbox-blank-circle-outline'])
-            self._checkbox_icon = u"{}".format(
+            self._checkbox_icon = u'{}'.format(
                 md_icons['checkbox-blank-outline'])
             self.active = False
 
@@ -146,7 +164,7 @@ class Thumb(CircularElevationBehavior, CircularRippleBehavior, ButtonBehavior,
 class MDSwitch(ThemableBehavior, ButtonBehavior, FloatLayout):
     active = BooleanProperty(False)
 
-    _thumb_color = ListProperty(get_color_from_hex(colors['Grey']['50']))
+    _thumb_color = ListProperty(get_color_from_hex(colors['Gray']['50']))
 
     def _get_thumb_color(self):
         return self._thumb_color
@@ -183,7 +201,7 @@ class MDSwitch(ThemableBehavior, ButtonBehavior, FloatLayout):
                                      bind=['_thumb_color_down'])
 
     _thumb_color_disabled = ListProperty(
-        get_color_from_hex(colors['Grey']['400']))
+        get_color_from_hex(colors['Gray']['400']))
 
     def _get_thumb_color_disabled(self):
         return self._thumb_color_disabled
@@ -209,8 +227,8 @@ class MDSwitch(ThemableBehavior, ButtonBehavior, FloatLayout):
     def __init__(self, **kwargs):
         super(MDSwitch, self).__init__(**kwargs)
         self.theme_cls.bind(theme_style=self._set_colors,
-                            primary_color=self._set_colors,
-                            primary_palette=self._set_colors)
+                     primary_color=self._set_colors,
+                     primary_palette=self._set_colors)
         self._set_colors()
 
     def _set_colors(self, *args):
@@ -220,11 +238,11 @@ class MDSwitch(ThemableBehavior, ButtonBehavior, FloatLayout):
             self._track_color_active[3] = .5
             self._track_color_disabled = get_color_from_hex('FFFFFF')
             self._track_color_disabled[3] = .1
-            self.thumb_color = get_color_from_hex(colors['Grey']['400'])
+            self.thumb_color = get_color_from_hex(colors['Gray']['400'])
             self.thumb_color_down = get_color_from_hex(
                 colors[self.theme_cls.primary_palette]['200'])
             self.thumb_color_disabled = get_color_from_hex(
-                colors['Grey']['800'])
+                colors['Gray']['800'])
         else:
             self._track_color_active = get_color_from_hex(
                 colors[self.theme_cls.primary_palette]['200'])

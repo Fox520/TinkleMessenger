@@ -1,176 +1,332 @@
 # -*- coding: utf-8 -*-
 
+"""
+Dialog
+======
+
+Copyright (c) 2015 Andrés Rodríguez and KivyMD contributors -
+    KivyMD library up to version 0.1.2
+Copyright (c) 2019 Ivanov Yuri and KivyMD contributors -
+    KivyMD library version 0.1.3 and higher
+
+For suggestions and questions:
+<kivydevelopment@gmail.com>
+
+This file is distributed under the terms of the same license,
+as the Kivy framework.
+
+`Material Design spec, Dialogs <https://material.io/design/components/dialogs.html>`_
+
+Example
+-------
+
+from kivy.app import App
 from kivy.lang import Builder
-from kivy.properties import StringProperty, ObjectProperty, ListProperty
-from kivy.metrics import dp
-from kivy.uix.modalview import ModalView
-from kivy.animation import Animation
-from theming import ThemableBehavior
-from elevationbehavior import RectangularElevationBehavior
-from button import MDFlatButton
+from kivy.factory import Factory
+from kivy.utils import get_hex_from_color
+
+from kivymd.dialog import MDInputDialog, MDDialog
+from kivymd.theming import ThemeManager
+
 
 Builder.load_string('''
-<MDDialog>:
-    canvas:
-        Color:
-            rgba: self.theme_cls.bg_light
-        Rectangle:
-            size: self.size
-            pos: self.pos
+#:import MDToolbar kivymd.toolbar.MDToolbar
+#:import MDRectangleFlatButton kivymd.button.MDRectangleFlatButton
 
-    _container: container
-    _action_area:action_area
-    elevation: 12
-    GridLayout:
-        cols: 1
-        GridLayout:
-            cols: 1
-            padding: dp(24), dp(24), dp(24), dp(24)
-            spacing: dp(20)
-            MDLabel:
-                text: root.title
-                font_style: 'Title'
-                theme_text_color: 'Primary'
-                halign: 'left'
-                valign: 'middle'
-                size_hint_y: None
-                text_size: self.width, None
-                height: self.texture_size[1]
-            ScrollView:
-                effect_cls: 'ScrollEffect'
-                BoxLayout:
-                    size_hint_y: None
-                    height: self.minimum_height
-                    id: container
-        AnchorLayout:
-            anchor_x: 'right'
-            anchor_y: 'center'
-            size_hint: 1, None
-            height: dp(52) if len(root._action_buttons) > 0 else 0
-            padding: dp(8), dp(8)
-            GridLayout:
-                id: action_area
-                rows: 1
-                size_hint: None, None if len(root._action_buttons) > 0 else 1
-                height: dp(36) if len(root._action_buttons) > 0 else 0
-                width: self.minimum_width
-                spacing: dp(8)
+
+<ExampleDialogs@BoxLayout>
+    orientation: 'vertical'
+    spacing: dp(5)
+
+    MDToolbar:
+        id: toolbar
+        title: app.title
+        left_action_items: [['menu', lambda x: None]]
+        elevation: 10
+        md_bg_color: app.theme_cls.primary_color
+
+    FloatLayout:
+        MDRectangleFlatButton:
+            text: "Open input dialog"
+            pos_hint: {'center_x': .5, 'center_y': .7}
+            opposite_colors: True
+            on_release: app.show_example_input_dialog()
+
+        MDRectangleFlatButton:
+            text: "Open Ok Cancel dialog"
+            pos_hint: {'center_x': .5, 'center_y': .5}
+            opposite_colors: True
+            on_release: app.show_example_okcancel_dialog()
 ''')
 
 
-class MDDialog(ThemableBehavior, RectangularElevationBehavior, ModalView):
-    title = StringProperty('')
+class Example(App):
+    theme_cls = ThemeManager()
+    theme_cls.primary_palette = 'Teal'
+    title = "Dialogs"
 
-    content = ObjectProperty(None)
+    def build(self):
+        return Factory.ExampleDialogs()
 
-    md_bg_color = ListProperty([0, 0, 0, .2])
+    def show_example_input_dialog(self):
+        dialog = MDInputDialog(
+            title='Title', hint_text='Hint text', size_hint=(.8, .4),
+            text_button_ok='Yes', events_callback=lambda x: None)
+        dialog.open()
 
-    _container = ObjectProperty()
-    _action_buttons = ListProperty([])
-    _action_area = ObjectProperty()
+    def show_example_okcancel_dialog(self):
+        dialog = MDDialog(
+            title='Title', size_hint=(.8, .3), text_button_ok='Yes',
+            text="Your [color=%s][b]text[/b][/color] dialog" % get_hex_from_color(
+                self.theme_cls.primary_color),
+            text_button_cancel='Cancel', events_callback=lambda x: None)
+        dialog.open()
+
+
+Example().run()
+"""
+
+from kivy.clock import Clock
+from kivy.lang import Builder
+from kivy.properties import StringProperty, ObjectProperty, BooleanProperty
+from kivy.metrics import dp
+from kivy.uix.anchorlayout import AnchorLayout
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.modalview import ModalView
+from kivy.uix.textinput import TextInput
+
+from kivymd.cards import MDCard
+from kivymd.textfields import MDTextField, MDTextFieldRect
+from kivymd.theming import ThemableBehavior
+from kivymd.button import MDFlatButton, MDRaisedButton, MDTextButton
+from kivymd import images_path
+from kivymd.material_resources import DEVICE_IOS
+
+
+Builder.load_string('''
+#:import images_path kivymd.images_path
+#:import MDSeparator kivymd.cards.MDSeparator
+
+
+<ContentInputDialog>
+    orientation: 'vertical'
+    padding: dp(15)
+    spacing: dp(10)
+
+    MDLabel:
+        font_style: 'H6'
+        text: root.title
+        halign: 'left' if not root.device_ios else 'center'
+
+    BoxLayout:
+        id: box_input
+        size_hint: 1, None
+
+    Widget:
+    Widget:
+
+    MDSeparator:
+        id: sep
+
+    BoxLayout:
+        id: box_buttons
+        size_hint_y: None
+        height: dp(20)
+        padding: dp(20), 0, dp(20), 0
+
+
+<ContentMDDialog>
+    orientation: 'vertical'
+    padding: dp(15)
+    spacing: dp(10)
+
+    text_button_ok: ''
+    text_button_cancel: ''
+
+    MDLabel:
+        id: title
+        text: root.title
+        font_style: 'H6'
+        halign: 'left' if not root.device_ios else 'center'
+        valign: 'top'
+        size_hint_y: None
+        text_size: self.width, None
+        height: self.texture_size[1]
+
+    ScrollView:
+        id: scroll
+        size_hint_y: None
+        height:
+            root.height - (box_buttons.height + title.height + dp(48)\
+            + sep.height)
+
+        canvas:
+            Rectangle:
+                pos: self.pos
+                size: self.size
+                #source: '{}dialog_in_fade.png'.format(images_path)
+                source: '{}transparent.png'.format(images_path)
+
+        MDLabel:
+            text: '\\n' + root.text + '\\n'
+            size_hint_y: None
+            height: self.texture_size[1]
+            valign: 'top'
+            halign: 'left' if not root.device_ios else 'center'
+            markup: True
+
+    MDSeparator:
+        id: sep
+
+    BoxLayout:
+        id: box_buttons
+        size_hint_y: None
+        height: dp(20)
+        padding: dp(20), 0, dp(20), 0
+''')
+
+if DEVICE_IOS:
+    Heir = BoxLayout
+else:
+    Heir = MDCard
+
+
+# FIXME: Not work themes for iOS.
+class BaseDialog(ThemableBehavior, ModalView):
+
+    def set_content(self, instance_content_dialog):
+        def _events_callback(result_press):
+            self.dismiss()
+            if result_press:
+                self.events_callback(result_press, self)
+
+        if self.device_ios:  # create buttons for iOS
+            self.background = self._background
+
+            if instance_content_dialog.__class__ is ContentInputDialog:
+                self.text_field = MDTextFieldRect(
+                    pos_hint={'center_x': .5},
+                    size_hint=(1, None), multiline=False, height=dp(33),
+                    cursor_color=self.theme_cls.primary_color,
+                    hint_text=instance_content_dialog.hint_text)
+                instance_content_dialog.ids.box_input.height = dp(33)
+                instance_content_dialog.ids.box_input.add_widget(
+                    self.text_field)
+
+            if self.text_button_cancel != '':
+                anchor = 'left'
+            else:
+                anchor = 'center'
+            box_button_ok = AnchorLayout(anchor_x=anchor)
+            box_button_ok.add_widget(
+                MDTextButton(
+                    text=self.text_button_ok, font_size='18sp',
+                    on_release=lambda x: _events_callback(
+                        self.text_button_ok)))
+            instance_content_dialog.ids.box_buttons.add_widget(box_button_ok)
+
+            if self.text_button_cancel != '':
+                box_button_ok.anchor_x = 'left'
+                box_button_cancel = AnchorLayout(anchor_x='right')
+                box_button_cancel.add_widget(
+                    MDTextButton(
+                        text=self.text_button_cancel, font_size='18sp',
+                        on_release=lambda x: _events_callback(
+                            self.text_button_cancel)))
+                instance_content_dialog.ids.box_buttons.add_widget(
+                    box_button_cancel)
+
+        else:  # create buttons for Android
+            if instance_content_dialog.__class__ is ContentInputDialog:
+                self.text_field = MDTextField(
+                    size_hint=(1, None), height=dp(48),
+                    hint_text=instance_content_dialog.hint_text)
+                instance_content_dialog.ids.box_input.height = dp(48)
+                instance_content_dialog.ids.box_input.add_widget(
+                    self.text_field)
+                instance_content_dialog.ids.box_buttons.remove_widget(
+                    instance_content_dialog.ids.sep)
+
+            box_buttons = AnchorLayout(
+                anchor_x='right', size_hint_y=None, height=dp(30))
+            box = BoxLayout(size_hint_x=None, spacing=dp(5))
+            box.bind(minimum_width=box.setter('width'))
+            button_ok = MDRaisedButton(
+                text=self.text_button_ok,
+                on_release=lambda x: _events_callback(self.text_button_ok))
+            box.add_widget(button_ok)
+
+            if self.text_button_cancel != '':
+                button_cancel = MDFlatButton(
+                    text=self.text_button_cancel,
+                    theme_text_color='Custom',
+                    text_color=self.theme_cls.primary_color,
+                    on_release=lambda x: _events_callback(
+                        self.text_button_cancel))
+                box.add_widget(button_cancel)
+
+            box_buttons.add_widget(box)
+            instance_content_dialog.ids.box_buttons.add_widget(box_buttons)
+            instance_content_dialog.ids.box_buttons.height = button_ok.height
+            instance_content_dialog.remove_widget(
+                instance_content_dialog.ids.sep)
+
+
+class MDInputDialog(BaseDialog):
+    title = StringProperty('Title')
+    hint_text = StringProperty()
+    text_button_ok = StringProperty('Ok')
+    text_button_cancel = StringProperty()
+    events_callback = ObjectProperty()
+    _background = StringProperty('{}ios_bg_mod.png'.format(images_path))
+
+    def __init__(self, **kwargs):
+        super(MDInputDialog, self).__init__(**kwargs)
+
+        self.content_dialog = ContentInputDialog(
+            title=self.title,
+            hint_text=self.hint_text,
+            text_button_ok=self.text_button_ok,
+            text_button_cancel=self.text_button_cancel,
+            device_ios=self.device_ios)
+        self.add_widget(self.content_dialog)
+        self.set_content(self.content_dialog)
+        Clock.schedule_once(self.set_field_focus, .5)
+
+    def set_field_focus(self, interval):
+        self.text_field.focus = True
+
+
+class MDDialog(BaseDialog):
+    title = StringProperty('Title')
+    text = StringProperty('Text dialog')
+    text_button_cancel = StringProperty()
+    text_button_ok = StringProperty('Ok')
+    events_callback = ObjectProperty()
+    _background = StringProperty('{}ios_bg_mod.png'.format(images_path))
 
     def __init__(self, **kwargs):
         super(MDDialog, self).__init__(**kwargs)
-        self.bind(_action_buttons=self._update_action_buttons,
-                  auto_dismiss=lambda *x: setattr(self.shadow, 'on_release',
-                                                  self.shadow.dismiss if self.auto_dismiss else None))
+        content_dialog = ContentMDDialog(
+            title=self.title, text=self.text,
+            text_button_ok=self.text_button_ok,
+            text_button_cancel=self.text_button_cancel,
+            device_ios=self.device_ios)
+        self.add_widget(content_dialog)
+        self.set_content(content_dialog)
 
-    def add_action_button(self, text, action=None):
-        """Add an :class:`FlatButton` to the right of the action area.
 
-        :param icon: Unicode character for the icon
-        :type icon: str or None
-        :param action: Function set to trigger when on_release fires
-        :type action: function or None
-        """
-        button = MDFlatButton(text=text,
-                              size_hint=(None, None),
-                              height=dp(36))
-        if action:
-            button.bind(on_release=action)
-        button.text_color = self.theme_cls.primary_color
-        button.md_bg_color = self.theme_cls.bg_light
-        self._action_buttons.append(button)
+class ContentInputDialog(Heir):
+    title = StringProperty()
+    hint_text = StringProperty()
+    text_button_ok = StringProperty()
+    text_button_cancel = StringProperty()
+    device_ios = BooleanProperty()
 
-    def add_widget(self, widget):
-        if self._container:
-            if self.content:
-                raise PopupException(
-                    'Popup can have only one widget as content')
-            self.content = widget
-        else:
-            super(MDDialog, self).add_widget(widget)
 
-    def open(self, *largs):
-        '''Show the view window from the :attr:`attach_to` widget. If set, it
-        will attach to the nearest window. If the widget is not attached to any
-        window, the view will attach to the global
-        :class:`~kivy.core.window.Window`.
-        '''
-        if self._window is not None:
-            Logger.warning('ModalView: you can only open once.')
-            return self
-        # search window
-        self._window = self._search_window()
-        if not self._window:
-            Logger.warning('ModalView: cannot open view, no window found.')
-            return self
-        self._window.add_widget(self)
-        self._window.bind(on_resize=self._align_center,
-                          on_keyboard=self._handle_keyboard)
-        self.center = self._window.center
-        self.bind(size=self._align_center)
-        a = Animation(_anim_alpha=1., d=self._anim_duration)
-        a.bind(on_complete=lambda *x: self.dispatch('on_open'))
-        a.start(self)
-        return self
-
-    def dismiss(self, *largs, **kwargs):
-        '''Close the view if it is open. If you really want to close the
-        view, whatever the on_dismiss event returns, you can use the *force*
-        argument:
-        ::
-
-            view = ModalView(...)
-            view.dismiss(force=True)
-
-        When the view is dismissed, it will be faded out before being
-        removed from the parent. If you don't want animation, use::
-
-            view.dismiss(animation=False)
-
-        '''
-        if self._window is None:
-            return self
-        if self.dispatch('on_dismiss') is True:
-            if kwargs.get('force', False) is not True:
-                return self
-        if kwargs.get('animation', True):
-            Animation(_anim_alpha=0., d=self._anim_duration).start(self)
-        else:
-            self._anim_alpha = 0
-            self._real_remove_widget()
-        return self
-
-    def on_content(self, instance, value):
-        if self._container:
-            self._container.clear_widgets()
-            self._container.add_widget(value)
-
-    def on__container(self, instance, value):
-        if value is None or self.content is None:
-            return
-        self._container.clear_widgets()
-        self._container.add_widget(self.content)
-
-    def on_touch_down(self, touch):
-        if self.disabled and self.collide_point(*touch.pos):
-            return True
-        return super(MDDialog, self).on_touch_down(touch)
-
-    def _update_action_buttons(self, *args):
-        self._action_area.clear_widgets()
-        for btn in self._action_buttons:
-            btn.content.texture_update()
-            btn.width = btn.content.texture_size[0] + dp(16)
-            self._action_area.add_widget(btn)
+class ContentMDDialog(Heir):
+    title = StringProperty()
+    text = StringProperty()
+    text_button_cancel = StringProperty()
+    text_button_ok = StringProperty()
+    device_ios = BooleanProperty()

@@ -1,14 +1,31 @@
 # -*- coding: utf-8 -*-
-# These expanded material design icons are maintained by Austin Andrews
-# (Templarian on Github). They can be found at materialdesignicons.com.
-# 
-# LAST UPDATED: Version 1.7.22
-#
-# For those updating from an older version of KivyMD, icon names have
-# changed/updated (e.g. square-o is now checkbox-blank-outline). The
-# previous gallery for comparison (if you need to find the icon using
-# the previous name is version 2.2.0 located at
-# https://zavoloklom.github.io/material-design-iconic-font/icons.html
+
+"""
+Icon Definitions
+================
+
+Copyright (c) 2015 Andrés Rodríguez and KivyMD contributors -
+    KivyMD library up to version 0.1.2
+Copyright (c) 2019 Ivanov Yuri and KivyMD contributors -
+    KivyMD library version 0.1.3 and higher
+
+For suggestions and questions:
+<kivydevelopment@gmail.com>
+
+This file is distributed under the terms of the same license,
+as the Kivy framework.
+
+These expanded material design icons are maintained by Austin Andrews
+(Templarian on Github). They can be found at materialdesignicons.com.
+
+LAST UPDATED: Version 1.7.22
+
+For those updating from an older version of KivyMD, icon names have
+changed/updated (e.g. square-o is now checkbox-blank-outline). The
+previous gallery for comparison (if you need to find the icon using
+the previous name is version 2.2.0 located at
+https://zavoloklom.github.io/material-design-iconic-font/icons.html
+"""
 
 md_icons = {
     'access-point': u'\uF002',

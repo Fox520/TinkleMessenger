@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 
-'''
-accordionlistitem.py
+"""
+Accordion List Item
+===================
 
-Copyright © 2010-2018 HeaTTheatR
+Copyright (c) 2015 Andrés Rodríguez and KivyMD contributors -
+    KivyMD library up to version 0.1.2
+Copyright (c) 2019 Ivanov Yuri and KivyMD contributors -
+    KivyMD library version 0.1.3 and higher
 
 For suggestions and questions:
 <kivydevelopment@gmail.com>
@@ -11,7 +15,8 @@ For suggestions and questions:
 This file is distributed under the terms of the same license,
 as the Kivy framework.
 
-EXAMPLE:
+Example
+-------
 
 from kivy.app import App
 from kivy.lang import Builder
@@ -25,15 +30,15 @@ from kivymd.theming import ThemeManager
 from kivymd.accordionlistitem import MDAccordionListItem
 from kivymd.toast import toast
 
-Builder.load_string("""
-#:import Toolbar kivymd.toolbar.Toolbar
+Builder.load_string('''
+#:import MDToolbar kivymd.toolbar.MDToolbar
 #:import get_hex_from_color kivy.utils.get_hex_from_color
 #:import TwoLineIconListItem kivymd.list.TwoLineIconListItem
 #:import OneLineIconListItem kivymd.list.OneLineIconListItem
 #:import MDRoundFlatButton kivymd.button.MDRoundFlatButton
 
 
-<ContentForAnimCard>:
+<ContentForAnimCard>
     orientation: 'vertical'
     padding: dp(10)
     spacing: dp(10)
@@ -64,7 +69,7 @@ Builder.load_string("""
         text: "Call Viber Out"
         on_press: root.callback(self.text)
         secondary_text:
-            "[color=%s]Advantageous rates for calls[/color]" \
+            "[color=%s]Advantageous rates for calls[/color]"\
             % get_hex_from_color(app.theme_cls.primary_color)
         IconLeftSampleWidget:
             icon: 'phone'
@@ -73,16 +78,16 @@ Builder.load_string("""
         text: "Call over mobile network"
         on_press: root.callback(self.text)
         secondary_text:
-            "[color=%s]Operator's tariffs apply[/color]" \
+            "[color=%s]Operator's tariffs apply[/color]"\
             % get_hex_from_color(app.theme_cls.primary_color)
         IconLeftSampleWidget:
             icon: 'remote'
 
 
-<ExampleAccordionList@BoxLayout>:
+<ExampleAccordionList@BoxLayout>
     orientation: 'vertical'
 
-    Toolbar:
+    MDToolbar:
         id: toolbar
         title: app.title
         md_bg_color: app.theme_cls.primary_color
@@ -99,7 +104,7 @@ Builder.load_string("""
                 cols: 1
                 size_hint_y: None
                 height: self.minimum_height
-""")
+''')
 
 
 class ContentForAnimCard(BoxLayout):
@@ -138,7 +143,7 @@ class Example(App):
 
 
 Example().run()
-'''
+"""
 
 from kivy.lang import Builder
 from kivy.animation import Animation
@@ -150,8 +155,8 @@ from kivy.uix.image import Image
 from kivymd.button import MDIconButton
 from kivymd.list import IRightBodyTouch, OneLineAvatarIconListItem, ILeftBody
 
-Builder.load_string("""
-<AccordionListItem>:
+Builder.load_string('''
+<AccordionListItem>
     text: root.title
 
     AvatarLeft:
@@ -171,7 +176,7 @@ Builder.load_string("""
             PopMatrix
 
 
-<MDAccordionListItem>:
+<MDAccordionListItem>
     size_hint_y: None
     height: dp(68)
 
@@ -180,13 +185,13 @@ Builder.load_string("""
         size_hint_y: None
         height: root.height
         orientation: 'vertical'
-                
+
         AccordionListItem:
             id: item_anim
             title: root.title
             icon: root.icon
             on_press: root.check_open_box(self)
-""")
+''')
 
 
 class AvatarLeft(ILeftBody, Image):

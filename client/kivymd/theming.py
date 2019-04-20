@@ -1,50 +1,44 @@
 # -*- coding: utf-8 -*-
 
+"""
+Theming
+=======
+
+Copyright (c) 2015 Andrés Rodríguez and KivyMD contributors -
+    KivyMD library up to version 0.1.2
+Copyright (c) 2019 Ivanov Yuri and KivyMD contributors -
+    KivyMD library version 0.1.3 and higher
+
+For suggestions and questions:
+<kivydevelopment@gmail.com>
+
+This file is distributed under the terms of the same license,
+as the Kivy framework.
+
+`Material Design spec, Material theming <https://material.io/design/material-theming>`_
+"""
+
 from kivy.app import App
-from kivy.core.text import LabelBase
 from kivy.core.window import Window
 from kivy.clock import Clock
 from kivy.metrics import dp
-from kivy.properties import OptionProperty, AliasProperty, ObjectProperty, \
-    StringProperty, ListProperty, BooleanProperty
+from kivy.properties import OptionProperty, AliasProperty, ObjectProperty,\
+    StringProperty, ListProperty, BooleanProperty, DictProperty
 from kivy.uix.widget import Widget
 from kivy.utils import get_color_from_hex
 from kivy.atlas import Atlas
 
-from kivymd.color_definitions import colors
-from kivymd.material_resources import FONTS, DEVICE_TYPE, DEVICE_IOS
+from kivymd.color_definitions import colors, palette, hue
+from kivymd.font_definitions import theme_font_styles  # Fonts will be loaded
+from kivymd.material_resources import DEVICE_TYPE, DEVICE_IOS
 from kivymd import images_path
-
-for font in FONTS:
-    LabelBase.register(**font)
 
 
 class ThemeManager(Widget):
-    primary_palette = OptionProperty(
-        'Blue',
-        options=['Pink', 'Blue', 'Indigo', 'BlueGrey', 'Brown',
-                 'LightBlue',
-                 'Purple', 'Grey', 'Yellow', 'LightGreen', 'DeepOrange',
-                 'Green', 'Red', 'Teal', 'Orange', 'Cyan', 'Amber',
-                 'DeepPurple', 'Lime'])
-
-    primary_hue = OptionProperty(
-        '500',
-        options=['50', '100', '200', '300', '400', '500', '600', '700',
-                 '800',
-                 '900', 'A100', 'A200', 'A400', 'A700'])
-
-    primary_light_hue = OptionProperty(
-        '200',
-        options=['50', '100', '200', '300', '400', '500', '600', '700',
-                 '800',
-                 '900', 'A100', 'A200', 'A400', 'A700'])
-
-    primary_dark_hue = OptionProperty(
-        '700',
-        options=['50', '100', '200', '300', '400', '500', '600', '700',
-                 '800',
-                 '900', 'A100', 'A200', 'A400', 'A700'])
+    primary_palette = OptionProperty('Blue', options=palette)
+    primary_hue = OptionProperty('500', options=hue)
+    primary_light_hue = OptionProperty('200', options=hue)
+    primary_dark_hue = OptionProperty('700', options=hue)
 
     def _get_primary_color(self):
         return get_color_from_hex(
@@ -67,31 +61,10 @@ class ThemeManager(Widget):
     primary_dark = AliasProperty(_get_primary_dark,
                                  bind=('primary_palette', 'primary_dark_hue'))
 
-    accent_palette = OptionProperty(
-        'Amber',
-        options=['Pink', 'Blue', 'Indigo', 'BlueGrey', 'Brown',
-                 'LightBlue',
-                 'Purple', 'Grey', 'Yellow', 'LightGreen', 'DeepOrange',
-                 'Green', 'Red', 'Teal', 'Orange', 'Cyan', 'Amber',
-                 'DeepPurple', 'Lime'])
-
-    accent_hue = OptionProperty(
-        '500',
-        options=['50', '100', '200', '300', '400', '500', '600', '700',
-                 '800',
-                 '900', 'A100', 'A200', 'A400', 'A700'])
-
-    accent_light_hue = OptionProperty(
-        '200',
-        options=['50', '100', '200', '300', '400', '500', '600', '700',
-                 '800',
-                 '900', 'A100', 'A200', 'A400', 'A700'])
-
-    accent_dark_hue = OptionProperty(
-        '700',
-        options=['50', '100', '200', '300', '400', '500', '600', '700',
-                 '800',
-                 '900', 'A100', 'A200', 'A400', 'A700'])
+    accent_palette = OptionProperty('Amber', options=palette)
+    accent_hue = OptionProperty('500', options=hue)
+    accent_light_hue = OptionProperty('200', options=hue)
+    accent_dark_hue = OptionProperty('700', options=hue)
 
     def _get_accent_color(self):
         return get_color_from_hex(
@@ -275,14 +248,13 @@ class ThemeManager(Widget):
 
     error_color = AliasProperty(_get_error_color)
 
-
     def _get_ripple_color(self):
         return self._ripple_color
 
     def _set_ripple_color(self, value):
         self._ripple_color = value
 
-    _ripple_color = ListProperty(get_color_from_hex(colors['Grey']['400']))
+    _ripple_color = ListProperty(get_color_from_hex(colors['Gray']['400']))
     ripple_color = AliasProperty(_get_ripple_color,
                                  _set_ripple_color,
                                  bind=['_ripple_color'])
@@ -316,8 +288,8 @@ class ThemeManager(Widget):
     horizontal_margins = AliasProperty(_get_horizontal_margins)
 
     def on_theme_style(self, instance, value):
-        if hasattr(App.get_running_app(), 'theme_cls') and \
-                        App.get_running_app().theme_cls == self:
+        if hasattr(App.get_running_app(), 'theme_cls') and\
+                App.get_running_app().theme_cls == self:
             self.set_clearcolor_by_theme_style(value)
 
     def set_clearcolor_by_theme_style(self, theme_style):
@@ -327,6 +299,22 @@ class ThemeManager(Widget):
         elif theme_style == 'Dark':
             Window.clearcolor = get_color_from_hex(
                 colors['Dark']['Background'])
+
+    # font name, size (sp), always caps, letter spacing (sp)
+    font_styles = DictProperty({'H1': ['RobotoLight', 96, False, -1.5],
+                                'H2': ['RobotoLight', 60, False, -0.5],
+                                'H3': ['Roboto', 48, False, 0],
+                                'H4': ['Roboto', 34, False, 0.25],
+                                'H5': ['Roboto', 24, False, 0],
+                                'H6': ['RobotoMedium', 20, False, 0.15],
+                                'Subtitle1': ['Roboto', 16, False, 0.15],
+                                'Subtitle2': ['RobotoMedium', 14, False, 0.1],
+                                'Body1': ['Roboto', 16, False, 0.5],
+                                'Body2': ['Roboto', 14, False, 0.25],
+                                'Button': ['RobotoMedium', 14, True, 1.25],
+                                'Caption': ['Roboto', 12, False, 0.4],
+                                'Overline': ['Roboto', 10, True, 1.5],
+                                'Icon': ['Icons', 24, False, 0]})
 
     def __init__(self, **kwargs):
         super(ThemeManager, self).__init__(**kwargs)

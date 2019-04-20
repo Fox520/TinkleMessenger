@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
-'''
-stackfloatingbuttons.py
+"""
+Stack Floating Buttons
+======================
 
-Copyright © 2010-2018 HeaTTheatR
+Copyright (c) 2019 Ivanov Yuri
 
 For suggestions and questions:
 <kivydevelopment@gmail.com>
@@ -11,7 +12,8 @@ For suggestions and questions:
 This file is distributed under the terms of the same license,
 as the Kivy framework.
 
-EXAMPLE:
+Example
+-------
 
 from kivy.app import App
 from kivy.lang import Builder
@@ -22,20 +24,20 @@ from kivymd.theming import ThemeManager
 from kivymd.stackfloatingbuttons import MDStackFloatingButtons
 
 
-Builder.load_string("""
-#:import Toolbar kivymd.toolbar.Toolbar
+Builder.load_string('''
+#:import MDToolbar kivymd.toolbar.MDToolbar
 
 
-<ExampleFloatingButtons@BoxLayout>:
+<ExampleFloatingButtons@BoxLayout>
     orientation: 'vertical'
 
-    Toolbar:
+    MDToolbar:
         title: 'Stack Floating Buttons'
         md_bg_color: app.theme_cls.primary_color
         elevation: 10
         left_action_items: [['menu', lambda x: None]]
 
-""")
+''')
 
 
 class Example(App):
@@ -67,7 +69,7 @@ class Example(App):
 
 
 Example().run()
-'''
+"""
 
 from kivy.animation import Animation
 from kivy.core.window import Window
@@ -76,16 +78,15 @@ from kivy.lang import Builder
 from kivy.properties import StringProperty, DictProperty, ObjectProperty
 from kivy.metrics import dp
 
-from kivymd.card import MDCard
+from kivymd.cards import MDCard
 
 
-Builder.load_string(
-"""
-#: import Window kivy.core.window.Window
-#: import MDFloatingActionButton kivymd.button.MDFloatingActionButton
+Builder.load_string('''
+#:import Window kivy.core.window.Window
+#:import MDFloatingActionButton kivymd.button.MDFloatingActionButton
 
 
-<FloatingButton@MDFloatingActionButton>:
+<FloatingButton@MDFloatingActionButton>
     x: Window.width - (self.width + dp(21))
     y: dp(25)
     size_hint: None, None
@@ -93,9 +94,9 @@ Builder.load_string(
     elevation: 5
     md_bg_color: app.theme_cls.primary_color
     on_release: self.parent.callback(self)
- 
 
-<MDFloatingLabel>:
+
+<MDFloatingLabel>
     size_hint: None, None
     height: dp(20)
     width: label.texture_size[0]
@@ -111,7 +112,7 @@ Builder.load_string(
         text: '  %s  ' % root.text
 
 
-<MDStackFloatingButtons>:
+<MDStackFloatingButtons>
     FloatingButton:
         id: f_btn_1
         icon: list(root.floating_data.values())[0]
@@ -142,7 +143,7 @@ Builder.load_string(
         md_bg_color: app.theme_cls.primary_color
         y: dp(15)
         on_release: root.show_floating_buttons()
-""")
+''')
 
 
 class MDFloatingLabel(MDCard):

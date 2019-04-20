@@ -1,10 +1,24 @@
 # -*- coding: utf-8 -*-
 
+"""
+Material Resources
+==================
+
+Copyright (c) 2015 Andrés Rodríguez and KivyMD contributors -
+    KivyMD library up to version 0.1.2
+Copyright (c) 2019 Ivanov Yuri and KivyMD contributors -
+    KivyMD library version 0.1.3 and higher
+
+For suggestions and questions:
+<kivydevelopment@gmail.com>
+
+This file is distributed under the terms of the same license,
+as the Kivy framework.
+"""
+
 from kivy import platform
 from kivy.core.window import Window
 from kivy.metrics import dp
-
-from kivymd import fonts_path
 
 # Feel free to override this const if you're designing for a device such as
 # a GNU/Linux tablet.
@@ -30,24 +44,3 @@ else:
     LANDSCAPE_TOOLBAR_HEIGHT = STANDARD_INCREMENT
 
 TOUCH_TARGET_HEIGHT = dp(48)
-
-FONTS = [
-    {
-        "name": "Roboto",
-        "fn_regular": fonts_path + 'Roboto-Regular.ttf',
-        "fn_bold": fonts_path + 'Roboto-Medium.ttf',
-        "fn_italic": fonts_path + 'Roboto-Italic.ttf',
-        "fn_bolditalic": fonts_path + 'Roboto-MediumItalic.ttf'
-    },
-    {
-        "name": "RobotoLight",
-        "fn_regular": fonts_path + 'Roboto-Thin.ttf',
-        "fn_bold": fonts_path + 'Roboto-Light.ttf',
-        "fn_italic": fonts_path + 'Roboto-ThinItalic.ttf',
-        "fn_bolditalic": fonts_path + 'Roboto-LightItalic.ttf'
-    },
-    {
-        "name": "Icons",
-        "fn_regular": fonts_path + 'materialdesignicons-webfont.ttf'
-    }
-]
