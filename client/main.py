@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 # encoding=utf-8
+# TODO: Work on `about` dialog
+
 from __future__ import division
 
 import codecs
-import json
+import simplejson as json
 import os
 import re
 import os.path
@@ -14,20 +16,18 @@ import string
 import sys
 import threading
 import time
-import urllib
 import hashlib
 import traceback
 import dataset
 import requests
-
 
 from functools import partial
 from kivy import Config
 from kivy.app import App
 from kivy.clock import Clock
 
-from kivy.core.text import LabelBase
 from kivy.core.window import Window
+
 Window.softinput_mode = "below_target"  # resize to accomodate keyboard
 from kivy.effects.opacityscroll import OpacityScrollEffect
 from kivy.lang import Builder
@@ -37,19 +37,16 @@ from kivy.resources import resource_add_path  # To compile to exe
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.colorpicker import ColorPicker
-from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.image import AsyncImage, Image
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen, ScreenManager
-from kivy.uix.scrollview import ScrollView
-from kivy.uix.widget import Widget
 from kivy.uix.filechooser import FileChooserIconView
 #
 from kivy.utils import get_color_from_hex
 
-import toto
+from kivymd.toast import toast
 from kivymd.bottomsheet import MDListBottomSheet
 from kivymd.theming import ThemeManager
 from kivymd.button import MDRaisedButton
@@ -68,7 +65,6 @@ os.environ['KIVY_GL_BACKEND'] = 'sdl2'
 
 Config.set('graphics', 'multisamples', '0')  # sdl error
 Config.set('kivy', 'window_icon', 'img/tinkle_logo.png')
-
 
 json_settings = json.dumps([
     {
@@ -103,7 +99,6 @@ else:
     path_music = os.path.join(home, "Music")
     path_images = os.path.join(home, "Pictures")
     path_docs = os.path.join(home, "Desktop")
-
 
 ALL_GROUPS = None
 
@@ -242,7 +237,6 @@ transitions = (
     'in_expo', 'in_cubic', 'in_circ', 'in_bounce', 'in_back',
 )
 
-
 if not os.path.exists(directory):
     os.makedirs(directory)
 if not os.path.exists(chats_directory):
@@ -252,12 +246,12 @@ if not os.path.exists(other_files):
 
 WEB_ADDR = "http://127.0.0.1/"
 
-
 _web_address = None
 _server_ip = None
 
 
 def return_site_web_address():
+    # return "127.0.0.1"
     global _web_address
     # fetch address from web and write it
     if _web_address != None:
@@ -272,6 +266,7 @@ def return_site_web_address():
 
 
 def return_server_address():
+    # return "127.0.0.1"
     global _server_ip
     if _server_ip != None:
         return _server_ip
@@ -354,9 +349,10 @@ def write_name(foo_name, should_write=True, pwda=""):
         DEFAULT_ACCOUNT = True
     try:
         sock.connect((nhost, nport))
+        # temp_data = {"type": "login", "name": foo_name, "password": pwda}
         temp_data = {"type": "login", "name": foo_name, "password": pwda}
-        sock.send(json.dumps(temp_data))
-        data = sock.recv(1024)
+        sock.send(bytes(json.dumps(temp_data), "utf-8"))
+        data = sock.recv(1024).decode("utf-8")
         name_test_server = json.loads(data)
         sock.close()
         if name_test_server["type"] == "login":
@@ -395,25 +391,19 @@ def exceedLimit(f):
 
 
 def global_notify(msg):
-    if isAndroid() == True:
-        try:
-            _toast(msg)
-        except:
-            print(traceback.format_exc())
-            toto.toast(msg)
-    else:
-        toto.toast(msg)
+    toast(msg)
 
 
 if isAndroid() == True:
     from jnius import autoclass, PythonJavaClass, java_method, cast
     from android import activity
     from android.runnable import run_on_ui_thread
+
     autoclass('org.jnius.NativeInvocationHandler')
+
 
     @run_on_ui_thread
     def _toast(text, length_long=False):
-
         Toast = autoclass('android.widget.Toast')
         context = autoclass('org.kivy.android.PythonActivity').mActivity
         duration = Toast.LENGTH_LONG if length_long else Toast.LENGTH_SHORT
@@ -450,8 +440,8 @@ def doHashCheckServer(fname, media_type):
         template["hash"] = fhash
         fsock = socket.socket()
         fsock.connect((return_server_address(), port_files))
-        fsock.send(json.dumps(template))
-        result = json.loads(fsock.recv(1024))
+        fsock.send(bytes(json.dumps(template), "utf-8"))
+        result = json.loads(fsock.recv(1024).decode("utf-8"))
         if result["type"] == "hash_request":
             if result["result"] == True:
                 return [True, result["file_path"]]
@@ -502,6 +492,8 @@ Builder.load_string("""
 #:import MDToolbar kivymd.toolbar.MDToolbar
 #:import NavigationLayout kivymd.navigationdrawer.NavigationLayout
 #:import MDThemePicker kivymd.pickers.MDThemePicker
+#:import MDTab kivymd.tabs.MDTab
+#:import MDTabbedPanel kivymd.tabs.MDTabbedPanel
 
 <MyImageButton@ButtonBehavior+AsyncImage>:
 
@@ -553,6 +545,8 @@ Builder.load_string("""
             pos: self.x - 10, self.y - 10       
 
     """)
+
+
 class ILeftBody:
     '''Pseudo-interface for widgets that go in the left container for
     ListItems that support it.
@@ -560,8 +554,12 @@ class ILeftBody:
     Implements nothing and requires no implementation, for annotation only.
     '''
     pass
+
+
 class AvatarSampleWidget(ILeftBody, AsyncImage):
     pass
+
+
 # Name: advanced_screen
 
 
@@ -601,23 +599,24 @@ class AdvancedScreen(Screen):
             Tinkle().manage_screens("group_members", "add")
             Tinkle().change_screen("group_members")
         elif short_info == "add friend":
-            #print "changing to add friend screen"
+            # print "changing to add friend screen"
             Tinkle().manage_screens("names_friends_group", "add")
             Tinkle().change_screen("names_friends_group")
 
         elif short_info == "group information":
-            #print "changing to group information screen"
+            # print "changing to group information screen"
             try:
                 global s
                 template = {}
                 template["type"] = "group_info"
                 template["group_id"] = current_group_id
-                s.send(json.dumps(template))
+                s.send(bytes(json.dumps(template), "utf-8"))
                 threading.Thread(target=global_notify,
                                  args=("Not yet implemented.",)).start()
             except:
                 threading.Thread(target=global_notify,
                                  args=("Error while getting info",)).start()
+
 
 # Name: group_members
 
@@ -639,7 +638,7 @@ class GroupMembers(Screen):
             "type": "get_group_members",
             "group_id": current_group_id
         }
-        s.send(json.dumps(template))
+        s.send(bytes(json.dumps(template), "utf-8"))
 
     def on_leave(self):
         self.ids.ml.clear_widgets()
@@ -648,7 +647,7 @@ class GroupMembers(Screen):
         if was_here_members_group == True:
             self.event.cancel()
             self.ids.ml.clear_widgets()
-            #print("adding names")
+            # print("adding names")
             for each_user in current_group_members:
                 if len(each_user) >= 4:  # and each_user != A().get_the_name():
                     self.add_member_name(each_user)
@@ -706,7 +705,7 @@ class GroupMembers(Screen):
             template["type"] = "add_admin"
             template["group_id"] = current_group_id
             template["member_name"] = member_name
-            s.send(json.dumps(template))
+            s.send(bytes(json.dumps(template), "utf-8"))
         except:
             print(traceback.format_exc())
         self.dialog.dismiss()
@@ -717,7 +716,7 @@ class GroupMembers(Screen):
             template["type"] = "remove_admin"
             template["group_id"] = current_group_id
             template["member_name"] = member_name
-            s.send(json.dumps(template))
+            s.send(bytes(json.dumps(template), "utf-8"))
         except:
             print(traceback.format_exc())
         self.dialog.dismiss()
@@ -728,10 +727,11 @@ class GroupMembers(Screen):
             template["type"] = "remove_member"
             template["group_id"] = current_group_id
             template["member_name"] = member_name
-            s.send(json.dumps(template))
+            s.send(bytes(json.dumps(template), "utf-8"))
         except:
             print(traceback.format_exc())
         self.dialog.dismiss()
+
 
 # Name: names_friends_group
 
@@ -770,7 +770,7 @@ class GetFriendsAddGroup(Screen):
         template = {
             "type": "whoisonline--friends"
         }
-        s.send(json.dumps(template))
+        s.send(bytes(json.dumps(template), "utf-8"))
 
     def add_one_line(self, data):
         self.ldml.add_widget(OneLineListItem(text=data,
@@ -783,7 +783,7 @@ class GetFriendsAddGroup(Screen):
     def change_to_img(self, img_client, *args):
         global receiver_name
         member_name = img_client
-        txt = "Do you want to add "+member_name+"?"
+        txt = "Do you want to add " + member_name + "?"
 
         content = MDLabel(font_style='Subhead',
                           text=txt,
@@ -809,7 +809,7 @@ class GetFriendsAddGroup(Screen):
             template["type"] = "add_member"
             template["member_name"] = friend_name
             template["group_id"] = current_group_id
-            s.send(json.dumps(template))
+            s.send(bytes(json.dumps(template), "utf-8"))
             self.dialog.dismiss()
             Tinkle().change_screen("advanced_screen")
         except:
@@ -902,8 +902,10 @@ class SignInScreen(Screen):
 
     def display_password(self, themsg):
         box = GridLayout(rows=2)
-        box.add_widget(MDTextField(readonly=True, text=themsg, multiline=True, background_color=get_color_from_hex(chat_clr_value), background_normal="",
-                                   auto_dismiss=True))
+        box.add_widget(
+            MDTextField(readonly=True, text=themsg, multiline=True, background_color=get_color_from_hex(chat_clr_value),
+                        background_normal="",
+                        auto_dismiss=True))
         box.add_widget(MDRaisedButton(
             text="dismiss", on_release=lambda *args: popup.dismiss()))
 
@@ -945,8 +947,8 @@ class Registration(Screen):
             nport = port_name
             sock.connect((nhost, nport))
             temp = {"type": "register", "name": name_reg, "password": pwd}
-            sock.send(json.dumps(temp))
-            tdata = sock.recv(1024)
+            sock.send(bytes(json.dumps(temp), "utf-8"))
+            tdata = sock.recv(1024).decode("utf-8")
             data = json.loads(tdata)
             if data["state"] == "success":
                 with open(client_file, "wb") as f:
@@ -970,7 +972,7 @@ class Registration(Screen):
 
         self.temp_name = self.ids["username"]
         self.full_name = self.ids["first_name"].text + \
-            " " + self.ids["last_name"].text
+                         " " + self.ids["last_name"].text
         self.email_address = self.ids["email_address"]
         tt_name = self.temp_name.text
         b = tt_name.lstrip(" ")  # strip first only
@@ -985,7 +987,7 @@ class Registration(Screen):
                 else:
                     threading.Thread(target=global_notify, args=(
                         "Invalid username length",)).start()
-                #self.temp_name.text = ""
+                # self.temp_name.text = ""
                 self.prg_spin.stop_spinning()
                 self.manager.current = "registration_screen"
 
@@ -1051,7 +1053,7 @@ class Registration(Screen):
                             self.full_name, self.email_address.text]
             dupped_list = json.dumps(list_of_data)
             soc.connect((host, port_data))
-            soc.send(dupped_list)
+            soc.send(bytes(dupped_list, "utf-8"))
         except Exception as e:
             print(e)
 
@@ -1060,6 +1062,7 @@ class Registration(Screen):
             os.remove(client_file)
         except Exception as e:
             print(traceback.format_exc())
+
 
 ###############################################################
 
@@ -1100,16 +1103,18 @@ class CreateGroupScreen(Screen):
 
     def send_data_in_thread(self, s, template):
         try:
-            s.send(json.dumps(template))
+            s.send(bytes(json.dumps(template), "utf-8"))
         except:
             print("error sending group info")
             print(traceback.format_exc())
+
 
 # Name: dump_screen
 
 
 class DumpScreen(Screen):
     pass
+
 
 # Name: names_for_status
 
@@ -1133,7 +1138,7 @@ class GetNamesForStatusScreen(Screen):
         if was_here_status == True:
             self.event.cancel()
             self.ids.ldml.clear_widgets()
-            #print("adding names")
+            # print("adding names")
             for each_user in current_share_status:
                 if len(each_user) >= 4:  # and each_user != A().get_the_name():
                     self.add_one_line(each_user)
@@ -1149,7 +1154,7 @@ class GetNamesForStatusScreen(Screen):
         template = {
             "type": "whoisonline--status"
         }
-        s.send(json.dumps(template))
+        s.send(bytes(json.dumps(template), "utf-8"))
 
     def add_one_line(self, data):
         self.ldml.add_widget(OneLineListItem(text=data,
@@ -1157,7 +1162,8 @@ class GetNamesForStatusScreen(Screen):
                                              text_size=(self.width, None),
                                              size_hint_y=None,
                                              font_size=(self.height / 20),
-                                             on_press=lambda *args: self.change_to_doc(data)))  # data is the clients' name
+                                             on_press=lambda *args: self.change_to_doc(
+                                                 data)))  # data is the clients' name
 
     def change_to_doc(self, status_client):
         with open(status_file, "wb") as f:
@@ -1171,6 +1177,7 @@ class GetNamesForStatusScreen(Screen):
         except:
             print(traceback.format_exc())
         Tinkle().manage_screens("names_for_status", "remove")
+
 
 # Name: names_for_find_friends
 
@@ -1193,12 +1200,16 @@ class GetNamesForFindFriendsScreen(Screen):
         if was_here_find_friends == True:
             self.event.cancel()
             self.ids.ldml.clear_widgets()
-            #print("adding names")
+            print(current_find_friends)
             for each_user in current_find_friends:
-                if len(each_user) >= 4 and A().get_the_name() not in each_user:
+                if len(each_user) >= 4:  # and A().get_the_name() not in each_user:
+                    print(each_user)
                     self.add_one_line(each_user)
 
-    def on_enter(self):
+            print("done wif refreshing mate")
+
+    def refresh_screen(self):
+        print("doing the refresh tings")
         self.ldml = self.ids["ldml"]
         threading.Thread(target=self.send_background).start()
         self.event = Clock.schedule_interval(self.do_checks, 0.3)
@@ -1207,33 +1218,27 @@ class GetNamesForFindFriendsScreen(Screen):
         template = {
             "type": "whoisonline--req_fri"
         }
-        s.send(json.dumps(template))
+        s.send(bytes(json.dumps(template), "utf-8"))
 
     def add_one_line(self, data):
-        self.ldml.add_widget(OneLineListItem(text=data,
-                                             markup=True,
-                                             text_size=(self.width, None),
-                                             size_hint_y=None,
-                                             font_size=(self.height / 20),
-                                             on_release=lambda *args: self.change_to_img(data)))  # data is the clients' name
+        self.ldml.add_widget(
+            OneLineListItem(text=data, on_release=lambda *args: self.change_to_img(data)))  # data is the clients' name
 
     def change_to_img(self, img_client):
-        threading.Thread(target=self.do_sending, args=(img_client,)).start()
-        self.manager.current = "Chat"
+        self.main_pop = MDDialog(
+            title='Confirm', size_hint=(.8, .3), text_button_ok='Yes',
+            text="Send friend request to %s?" % img_client,
+            text_button_cancel='Cancel',
+            events_callback=partial(self.do_sending, img_client))
+        self.main_pop.open()
 
-    def do_sending(self, img_client):
-        a = {"type": "new_request", "req_name": img_client}
-        s.send(json.dumps(a))
-        threading.Thread(target=global_notify, args=(
-            "Request sent to "+img_client,)).start()
-        create_file_sent_req(img_client)
-
-    def on_leave(self):
-        try:
-            self.event.cancel()
-        except:
-            print(traceback.format_exc())
-        Tinkle().manage_screens("names_for_find_friends", "remove")
+    def do_sending(self, img_client, *args):
+        if args[0] == "Yes":
+            a = {"type": "new_request", "req_name": img_client}
+            s.send(bytes(json.dumps(a), "utf-8"))
+            threading.Thread(target=global_notify, args=(
+                "Request sent to " + img_client,)).start()
+            create_file_sent_req(img_client)
 
 
 # Name: names_for_friend_req
@@ -1255,33 +1260,24 @@ class GetNamesForFriendRequestsScreen(Screen):
 
     def do_checks(self, *args):
         if was_here_friend_req == True:
-            print("checks complete")
-            print(current_friend_req)
             self.event.cancel()
             self.ids.ldml.clear_widgets()
-            #print("adding names")
+            # print("adding names")
             for each_user in current_friend_req:
                 if len(each_user) >= 4 and A().get_the_name() not in each_user:
                     self.add_one_line(each_user)
-            # self.add_one_line(A().get_the_name())
 
-    def on_enter(self):
+    def refresh_screen(self):
+        print("doing the refreshing")
         self.ldml = self.ids["ldml"]
         self.event = Clock.schedule_interval(self.do_checks, 0.3)
         threading.Thread(target=self.send_background).start()
-
-    def on_leave(self):
-        try:
-            self.event.cancel()
-        except:
-            print(traceback.format_exc())
-        Tinkle().manage_screens("names_for_friend_req", "remove")
 
     def send_background(self):
         template = {
             "type": "whoisonline--acpt"
         }
-        s.send(json.dumps(template))
+        s.send(bytes(json.dumps(template), "utf-8"))
 
     def add_one_line(self, data):
         self.ldml.add_widget(OneLineListItem(text=data,
@@ -1289,49 +1285,46 @@ class GetNamesForFriendRequestsScreen(Screen):
                                              text_size=(self.width, None),
                                              size_hint_y=None,
                                              font_size=(self.height / 20),
-                                             on_press=lambda *args: self.change_to_img(data)))  # data is the clients' name
+                                             on_press=lambda *args: self.change_to_img(
+                                                 data)))  # data is the clients' name
 
     def change_to_img(self, img_client):
 
-        about_text = "Would you like to accept "+img_client+"'s friend request?"
-        content = MDLabel(font_style='Subhead',
-                          text=about_text,
-                          size_hint_y=None,
-                          valign='top')
-        content.bind(texture_size=content.setter('size'))
-        self.main_pop = MDDialog(title="Friend Request",
-                                 content=content,
-                                 size_hint=(.8, None),
-                                 height=dp(200),
-                                 auto_dismiss=False)
-
-        self.main_pop.add_action_button("Accept",
-                                        action=partial(self.call_accept_friend, img_client))
-        self.main_pop.add_action_button("Deny",
-                                        action=partial(self.call_reject_friend, img_client))
+        self.main_pop = MDDialog(
+            title='Confirm', size_hint=(.8, .3), text_button_ok='Yes',
+            text="Do you want to a friend request from %s?" % img_client,
+            text_button_cancel='Cancel',
+            events_callback=partial(self.callback_request, img_client))
         self.main_pop.open()
 
-    def call_accept_friend(self, img_client, *args):
+    def callback_request(self, img_client, *args):
+        if args[0] == "Yes":
+            self.call_accept_friend(img_client)
+        else:
+            self.call_reject_friend(img_client)
+
+    def call_accept_friend(self, img_client):
         self.main_pop.dismiss
         a = {"type": "request_accept", "req_name": img_client}
-        s.send(json.dumps(a))
+        s.send(bytes(json.dumps(a), "utf-8"))
         try:
             self.main_pop.dismiss()
         except:
             pass
         delete_file_sent(img_client)
-        self.manager.current = "Chat"
+        # self.manager.current = "Chat"
 
-    def call_reject_friend(self, img_client, *args):
+    def call_reject_friend(self, img_client):
         self.main_pop.dismiss
         a = {"type": "reject_request", "req_name": img_client}
-        s.send(json.dumps(a))
+        s.send(bytes(json.dumps(a), "utf-8"))
         try:
             self.main_pop.dismiss()
         except Exception as e:
             pass
         delete_file_sent(img_client)
-        self.manager.current = "Chat"
+        # self.manager.current = "Chat"
+
 
 # Name: names_for_friends_accept
 
@@ -1350,17 +1343,6 @@ class GetNamesForCurrentFriendsScreen(Screen):
     def on_menu_pressed(self, *args):
         pass
 
-    def on_leave(self):
-        self.ids.ldml.clear_widgets()
-        Tinkle().manage_screens("names_for_friends_accept", "remove")
-        Tinkle().manage_screens("for_selecting", "remove")
-        Tinkle().manage_screens("for_selecting_audio", "remove")
-        Tinkle().manage_screens("for_selecting_docs", "remove")
-        try:
-            self.event.cancel()
-        except:
-            print(traceback.format_exc())
-
     def do_checks(self, *args):
         if was_here_friends_accept == True:
             self.event.cancel()
@@ -1369,7 +1351,8 @@ class GetNamesForCurrentFriendsScreen(Screen):
                 if len(each_user) >= 4 and A().get_the_name() not in each_user:
                     self.add_one_line(each_user)
 
-    def on_enter(self):
+    # Get current friends from server
+    def refresh_screen(self):
         self.ldml = self.ids["ldml"]
         self.event = Clock.schedule_interval(self.do_checks, 0.3)
         threading.Thread(target=self.send_background).start()
@@ -1378,7 +1361,7 @@ class GetNamesForCurrentFriendsScreen(Screen):
         template = {
             "type": "whoisonline--friends"
         }
-        s.send(json.dumps(template))
+        s.send(bytes(json.dumps(template), "utf-8"))
 
     def add_one_line(self, data):
         self.ldml.add_widget(OneLineListItem(text=data,
@@ -1386,7 +1369,8 @@ class GetNamesForCurrentFriendsScreen(Screen):
                                              text_size=(self.width, None),
                                              size_hint_y=None,
                                              font_size=(self.height / 20),
-                                             on_press=lambda *args: self.change_to_img(data)))  # data is the clients' name
+                                             on_press=lambda *args: self.change_to_img(
+                                                 data)))  # data is the clients' name
 
     def change_to_img(self, img_client):
         global receiver_name
@@ -1400,17 +1384,17 @@ class PopGroupInfo(Popup):
         self.ml = self.ids["ml"]
         for k, v in group_info_dict.items():
             if k == "name":
-                self.add_one_line("Group name: "+str(v))
+                self.add_one_line("Group name: " + str(v))
             elif k == "creator":
-                self.add_one_line("Created by: "+str(v))
+                self.add_one_line("Created by: " + str(v))
             elif k == "admins":
-                self.add_one_line("Admins: "+str(v))
+                self.add_one_line("Admins: " + str(v))
             elif k == "creation_date":
-                self.add_one_line("Date created: "+str(v))
+                self.add_one_line("Date created: " + str(v))
             elif k == "description":
-                self.add_one_line("Description: "+str(v))
+                self.add_one_line("Description: " + str(v))
             elif k == "num_members":
-                self.add_one_line("Number of members "+str(v))
+                self.add_one_line("Number of members " + str(v))
 
     def add_one_line(self, data):
         self.ml.add_widget(OneLineListItem(text=data,
@@ -1431,7 +1415,7 @@ class PopGetGroups(Popup):
             self.add_two_line(gName, gDesc, k)
 
     def add_two_line(self, group_name, group_description, group_id):
-        msg_to_add = group_name+": " + group_description
+        msg_to_add = group_name + ": " + group_description
         a = TwoLineListItem(text=msg_to_add,
                             secondary_text=group_id,
                             markup=True,
@@ -1478,7 +1462,7 @@ class Conversation(Screen):
                 "key": get_password(),
                 "ls": str(time.ctime())
             }
-            self.soc.send(json.dumps(template))
+            self.soc.send(bytes(json.dumps(template), "utf-8"))
         except Exception as e:
             print(e)
 
@@ -1487,31 +1471,20 @@ class Conversation(Screen):
         threading.Thread(target=self.insert_data).start()
 
     def on_back_pressed(self, *args):
-        Tinkle().manage_screens("names_for_friends_accept", "add")
-        Tinkle().change_screen("names_for_friends_accept")
+        Tinkle().change_screen("Chat")
 
     def on_menu_pressed(self, *args):
         pass
 
     def add_two_line(self, from_who, msg_to_add, prof_img):
-        a = TwoLineAvatarListItem(text=msg_to_add,
-                                  secondary_text=from_who,
-                                  markup=True,
-                                  text_size=(self.width, None),
-                                  size_hint_y=None,
-                                  font_style="Body1")
-        a.add_widget(AvatarSampleWidget(source=prof_img))
+        a = TwoLineListItem(text=msg_to_add, secondary_text=from_who)
+        # a.add_widget(AvatarSampleWidget(source=prof_img))
         self.mld.add_widget(a)
 
     def add_three_line(self, from_who, msg_to_add, prof_img):
-        a = ThreeLineAvatarListItem(text=msg_to_add[:70] + "...",
-                                    secondary_text=from_who,
-                                    markup=True,
-                                    text_size=(self.width, None),
-                                    size_hint_y=None,
-                                    font_style="Body1",
-                                    on_release=lambda *args: self.out_quick(from_who, msg_to_add))
-        a.add_widget(AvatarSampleWidget(source=prof_img))
+        a = ThreeLineListItem(text=msg_to_add[:70] + "...", secondary_text=from_who,
+                              on_release=lambda *args: self.out_quick(from_who, msg_to_add))
+        # a.add_widget(AvatarSampleWidget(source=prof_img))
         self.mld.add_widget(a)
 
     def clear_log(self):
@@ -1571,14 +1544,14 @@ class Conversation(Screen):
             if len(check_bef_send) > 0 and len(check_bef_send) <= 250:
                 template = {
                     "type": "private_message",
-                            "msg": sanitized,
-                            "to": receiver_name,
-                            "from_who": A().get_the_name()
+                    "msg": sanitized,
+                    "to": receiver_name,
+                    "from_who": A().get_the_name()
                 }
-                s.send(json.dumps(template))  # get the name
+                s.send(bytes(json.dumps(template), "utf-8"))  # get the name
                 self.message.text = ""
         except Exception as e:
-            #self.data.text += "An error occured while sending."
+            # self.data.text += "An error occured while sending."
             threading.Thread(target=global_notify, args=(
                 "Unable to send message",)).start()
             print(traceback.format_exc())
@@ -1609,12 +1582,12 @@ class Conversation(Screen):
             self.bs_menu_1.add_item(
                 "Back",
                 lambda x: self.callback_for_menu_items(
-                    "names_for_friends_accept"))
+                    "Chat"))
         self.bs_menu_1.open()
 
     def callback_for_menu_items(self, scn):
         try:
-            Tinkle().manage_screens(scn, "add")
+            # Tinkle().manage_screens(scn, "add")
             Tinkle().change_screen(scn)
         except:
             print(traceback.format_exc())
@@ -1692,8 +1665,8 @@ class Conversation(Screen):
             extension = c_extension
             my_name = str(A().get_the_name())
             tempo_img_file = my_name + "-" + \
-                ''.join(random.choice(string.ascii_lowercase + string.digits)
-                        for _ in range(7)) + extension
+                             ''.join(random.choice(string.ascii_lowercase + string.digits)
+                                     for _ in range(7)) + extension
 
             with open(self.filename, "rb") as f:
                 orag = f.read()
@@ -1711,7 +1684,7 @@ class Conversation(Screen):
                     "Sharing in background",)).start()
             else:
                 bibo["link"] = complete_link
-                s.send(json.dumps(bibo))
+                s.send(bytes(json.dumps(bibo), "utf-8"))
                 self.remove_file(tempo_img_file)
                 threading.Thread(target=global_notify, args=(
                     "Upload complete, used cache",)).start()
@@ -1720,7 +1693,7 @@ class Conversation(Screen):
         with open(fname, "rb") as f:
             files = {'testname': f}
             r = requests.post(urlll, files=files)
-        s.send(json.dumps(dumped_list))
+        s.send(bytes(json.dumps(dumped_list), "utf-8"))
         threading.Thread(target=global_notify,
                          args=("upload complete",)).start()
         self.remove_file(fname)
@@ -1747,6 +1720,7 @@ class Conversation(Screen):
         new_data_to_add = ""
         Tinkle().manage_screens("names_for_friends_accept", "add")
         self.ids.mld.clear_widgets()
+
 
 # Name: group_convo
 
@@ -1781,13 +1755,8 @@ class GroupConversation(Screen):
         pass
 
     def add_two_line(self, from_who, msg_to_add, prof_img):
-        a = TwoLineAvatarListItem(text=msg_to_add,
-                                  secondary_text=from_who,
-                                  markup=True,
-                                  text_size=(self.width, None),
-                                  size_hint_y=None,
-                                  font_style="Body1")
-        a.add_widget(AvatarSampleWidget(source=prof_img))
+        a = TwoLineListItem(text=msg_to_add, secondary_text=from_who)
+        # a.add_widget(AvatarSampleWidget(source=prof_img))
         self.mld.add_widget(a)
 
     def add_three_line(self, from_who, msg_to_add, prof_img):
@@ -1815,7 +1784,7 @@ class GroupConversation(Screen):
         self.event = Clock.schedule_interval(self.handle_msg1, MSG_CHECK_DELAY)
 
     def handle_msg1(self, *args):
-        #print("checking for messages")
+        # print("checking for messages")
         global new_data_to_add_group
         if self.prev_msg != new_data_to_add_group:
             # print(new_data_to_add_group)
@@ -1840,11 +1809,11 @@ class GroupConversation(Screen):
             if len(check_bef_send) > 0 and len(check_bef_send) <= 250:
                 template = {
                     "type": "group_message",
-                            "msg": sanitized,
-                            "group_id": current_group_id,
-                            "from_who": A().get_the_name()
+                    "msg": sanitized,
+                    "group_id": current_group_id,
+                    "from_who": A().get_the_name()
                 }
-                s.send(json.dumps(template))  # get the name
+                s.send(bytes(json.dumps(template), "utf-8"))  # get the name
                 self.message.text = ""
         except Exception as e:
             threading.Thread(target=global_notify, args=(
@@ -1960,8 +1929,8 @@ class GroupConversation(Screen):
             extension = c_extension
             my_name = str(A().get_the_name())
             tempo_img_file = my_name + "_" + \
-                ''.join(random.choice(string.ascii_lowercase + string.digits)
-                        for _ in range(7)) + extension
+                             ''.join(random.choice(string.ascii_lowercase + string.digits)
+                                     for _ in range(7)) + extension
 
             with open(self.filename, "rb") as f:
                 orag = f.read()
@@ -1980,7 +1949,7 @@ class GroupConversation(Screen):
                     "Sharing in background",)).start()
             else:
                 bibo["link"] = complete_link
-                s.send(json.dumps(bibo))
+                s.send(bytes(json.dumps(bibo), "utf-8"))
                 self.remove_file(tempo_img_file)
                 threading.Thread(target=global_notify, args=(
                     "Upload complete, used cache",)).start()
@@ -1989,7 +1958,7 @@ class GroupConversation(Screen):
         with open(fname, "rb") as f:
             files = {'testname': f}
             r = requests.post(urlll, files=files)
-        s.send(json.dumps(dumped_list))
+        s.send(bytes(json.dumps(dumped_list), "utf-8"))
         threading.Thread(target=global_notify,
                          args=("upload complete",)).start()
         self.remove_file(fname)
@@ -2006,8 +1975,8 @@ class GroupConversation(Screen):
         # self.prev_msg = ""
         # new_data_to_add = ""
 
-        #Tinkle().manage_screens("group_convo", "remove")
-        #Tinkle().manage_screens("advanced_screen", "remove")
+        # Tinkle().manage_screens("group_convo", "remove")
+        # Tinkle().manage_screens("advanced_screen", "remove")
         Tinkle().manage_screens("group_members", "remove")
         Tinkle().manage_screens("names_friends_group", "remove")
         try:
@@ -2029,7 +1998,8 @@ class GenericPop:
 class MyFileChooser(FileChooserIconView):
     filters = fil_avail_img_ext
     rootpath = home
-    #FileChooserIconView.filters = fil_avail_img_ext
+
+    # FileChooserIconView.filters = fil_avail_img_ext
 
     def on_selection(self, *args):
         self.preview_img(args[1][0])
@@ -2044,6 +2014,7 @@ class MyFileChooser(FileChooserIconView):
         popup = Popup(title="Press escape to close",
                       content=Image(source=src))
         popup.open()
+
 
 # Name: status_screen
 
@@ -2108,7 +2079,7 @@ class Status(Screen):
     def upload_status(self, fname):
         global text_to_send
         extension = os.path.splitext(fname)[1]
-        new_name = "status_"+self.id_generator() + extension
+        new_name = "status_" + self.id_generator() + extension
         if exceedLimit(fname) == True:
             threading.Thread(target=global_notify,
                              args=("File exceeds 15MB limit",)).start()
@@ -2128,7 +2099,7 @@ class Status(Screen):
                     "from": A().get_the_name(),
                     "link": site_path}
         try:
-            s.send(json.dumps(template))
+            s.send(bytes(json.dumps(template), "utf-8"))
             threading.Thread(target=global_notify, args=(
                 "status update complete",)).start()
         except BaseException as e:
@@ -2189,8 +2160,7 @@ class DisplayStatus(Screen):
                 template["to"] = self.the_target_name
                 template["msg"] = self.comment.text
                 try:
-                    da = json.dumps(template)
-                    s.send(da)
+                    s.send(bytes(json.dumps(template), "utf-8"))
                 except Exception as e:
                     pass
                 self.comment.text = ""
@@ -2215,7 +2185,7 @@ class DisplayStatus(Screen):
             self.act_view.add_widget(self.reps_button)
         template["type"] = "status_get"
         template["which_user"] = self.the_target_name
-        s.send(json.dumps(template))
+        s.send(bytes(json.dumps(template), "utf-8"))
         self.event = Clock.schedule_interval(self.update_things, 2)
 
     def update_things(self, dt):
@@ -2267,6 +2237,7 @@ class DisplayStatus(Screen):
         except Exception as e:
             print(traceback.format_exc())
 
+
 # Name: view_status_comments
 
 
@@ -2299,13 +2270,8 @@ class StatusComments(Screen):
             self.add_two_line(the_name, the_message, prof_img)
 
     def add_two_line(self, from_who, msg_to_add, prof_img):
-        a = TwoLineAvatarListItem(text=msg_to_add,
-                                  secondary_text=from_who,
-                                  markup=True,
-                                  text_size=(self.width, None),
-                                  size_hint_y=None,
-                                  font_style="Body1")
-        a.add_widget(AvatarSampleWidget(source=prof_img))
+        a = TwoLineAvatarListItem(text=msg_to_add, secondary_text=from_who)
+        # a.add_widget(AvatarSampleWidget(source=prof_img))
         self.ml.add_widget(a)
 
     def add_three_line(self, from_who, msg_to_add, prof_img):
@@ -2322,6 +2288,7 @@ class StatusComments(Screen):
     def on_leave(self):
         self.ml.clear_widgets()
         Tinkle().manage_screens("status_comment", "remove")
+
 
 # Name: Chat
 
@@ -2395,23 +2362,13 @@ class Chat(Screen):
     def get_groups_list(self):
         template = {}
         template["type"] = "get_groups"
-        s.send(json.dumps(template))
+        s.send(bytes(json.dumps(template), "utf-8"))
 
     def add_one_line(self, data):
-        self.ml.add_widget(OneLineListItem(text=data,
-                                           markup=True,
-                                           text_size=(self.width, None),
-                                           size_hint_y=None,
-                                           font_style="Body1"))
+        self.ml.add_widget(OneLineListItem(text=data))
 
     def add_one_line_special(self, data, from_who):
-        self.ml.add_widget(OneLineListItem(text=data,
-                                           markup=True,
-                                           text_size=(self.width, None),
-                                           size_hint_y=None,
-                                           on_release=lambda *args: self.change_convo(
-                                               from_who),
-                                           font_style="Body1"))
+        self.ml.add_widget(OneLineListItem(text=data, on_release=lambda *args: self.change_convo(from_who)))
 
     def change_convo(self, name_from):
         global receiver_name
@@ -2420,13 +2377,8 @@ class Chat(Screen):
         Tinkle().change_screen("convo")
 
     def add_two_line(self, from_who, msg_to_add, prof_img):
-        a = TwoLineAvatarListItem(text=msg_to_add,
-                                  secondary_text=from_who,
-                                  markup=True,
-                                  text_size=(self.width, None),
-                                  size_hint_y=None,
-                                  font_style="Body1")
-        a.add_widget(AvatarSampleWidget(source=prof_img))
+        a = TwoLineListItem(text=msg_to_add, secondary_text=from_who)
+        # a.add_widget(AvatarSampleWidget(source=prof_img))
         self.ml.add_widget(a)
 
     def add_three_line(self, from_who, msg_to_add, prof_img):
@@ -2442,23 +2394,20 @@ class Chat(Screen):
 
     def show_about(self):
         about_text = "Made with love from my room ;-)\nSend reports, issues or improvements to:\n[insertemail]@gmail.com OR +26481XXXX"
-        content = MDLabel(font_style='Subhead',
-                          text=about_text,
-                          size_hint_y=None,
-                          valign='top')
+        content = MDLabel(font_style='Subtitle2', text=about_text)
         content.bind(texture_size=content.setter('size'))
-        self.dialog = MDDialog(title="Tinkle Messenger",
-                               content=content,
-                               auto_dismiss=False)
+        self.dialog = MDDialog(title="Tinkle Messenger", content=content)
 
-        self.dialog.add_action_button("Dismiss",
-                                      action=lambda *x: self.dialog.dismiss())
+        # self.dialog.add_action_button("Dismiss",
+        #                               action=lambda *x: self.dialog.dismiss())
         self.dialog.open()
 
     def out_quick(self, thefrom, themsg):
         box = GridLayout(rows=2)
-        box.add_widget(MDTextField(readonly=True, text=themsg, multiline=True, background_color=get_color_from_hex(chat_clr_value), background_normal="",
-                                   auto_dismiss=False))
+        box.add_widget(
+            MDTextField(readonly=True, text=themsg, multiline=True, background_color=get_color_from_hex(chat_clr_value),
+                        background_normal="",
+                        auto_dismiss=False))
         box.add_widget(MDRaisedButton(
             text="dismiss", on_release=lambda *args: popup.dismiss()))
 
@@ -2562,10 +2511,10 @@ class Chat(Screen):
                     "from": A().get_the_name(),
                     "msg": self.message.text,
                 }
-                s.send(json.dumps(template))  # get the name
+                s.send(bytes(json.dumps(template), "utf-8"))  # get the name
                 self.message.text = ""
         except Exception as e:
-            #self.data.text += "An error occured while sending."
+            # self.data.text += "An error occured while sending."
             threading.Thread(target=global_notify, args=(
                 "Error: Unable to send message",)).start()
 
@@ -2606,7 +2555,7 @@ class Chat(Screen):
         else:
             append_write = 'w'  # make a new file if not
         with codecs.open(save_messages_file, append_write) as f:
-            f.write(together.encode("utf-8"))
+            f.write(together)
 
     def read_messages_from_log(self):
         global save_messages_file
@@ -2670,7 +2619,7 @@ class Chat(Screen):
 
         while True:  # Here is msgg function loop
             try:
-                data = s.recv(1024)  # FF1102
+                data = s.recv(1024).decode("utf-8")  # FF1102
                 data = json.loads(data)
                 type_msg = data["type"]
                 try:
@@ -2680,7 +2629,8 @@ class Chat(Screen):
                     data["msg"] = "empty_null"
                 if type_msg == "private_message":
                     try:  # if screen is private pass to convo else write to file
-                        if sm.current == "convo" and data["from"] == receiver_name or data["from"] == A().get_the_name():
+                        if sm.current == "convo" and data["from"] == receiver_name or data[
+                            "from"] == A().get_the_name():
                             append_to_file(receiver_name, data)
                             new_data_to_add = data
                             type_msg = ""
@@ -2692,11 +2642,11 @@ class Chat(Screen):
                                 # setting if user wants notification one line
                                 self.add_one_line_special(
                                     "New text: " + data["from"], data["from"])
-                                Snackbar(text="New text from "+data["from"], button_text="open", button_callback=partial(
-                                    self.change_convo, data["from"])).show()
+                                Snackbar(text="New text from " + data["from"], button_text="open",
+                                         button_callback=partial(
+                                             self.change_convo, data["from"])).show()
 
                                 if data["from"] != A().get_the_name():
-
                                     threading.Thread(target=self.PlayAudio, args=(
                                         location_notification,)).start()
                                 type_msg = ""
@@ -2709,8 +2659,9 @@ class Chat(Screen):
                                 append_to_file(data["from"], data)
                                 self.add_one_line(
                                     "Text from: " + data["from"])
-                                Snackbar(text="New text from "+data["from"], button_text="open", button_callback=partial(
-                                    self.change_convo, data["from"])).show()
+                                Snackbar(text="New text from " + data["from"], button_text="open",
+                                         button_callback=partial(
+                                             self.change_convo, data["from"])).show()
 
                                 if data["from"] != A().get_the_name():
                                     threading.Thread(target=self.PlayAudio, args=(
@@ -2722,8 +2673,9 @@ class Chat(Screen):
                         print("Cannot play ring:", e)
                 if type_msg == "group_message":
                     try:  # if screen is private pass to convo else write to file
-                        if sm.current == "group_convo" and data["group_identifier"] == current_group_id or data["from"] == A().get_the_name():
-                            #append_to_file(receiver_name, data)
+                        if sm.current == "group_convo" and data["group_identifier"] == current_group_id or data[
+                            "from"] == A().get_the_name():
+                            # append_to_file(receiver_name, data)
                             new_data_to_add_group = data
                             type_msg = ""
                             data = ""
@@ -2731,7 +2683,7 @@ class Chat(Screen):
                     except Exception as e:
                         print(e)
                 if type_msg == "image":
-                    #from_who_img, url_img, img_name = self.parse_image(data)
+                    # from_who_img, url_img, img_name = self.parse_image(data)
                     from_who_img = data["from"]
                     url_img = data["link"]
                     img_name = data["link"][:-7]
@@ -2827,7 +2779,7 @@ class Chat(Screen):
                                     the_message = data["msg"]
                                     if len(the_message) > 0:
                                         self.add_one_line(the_message)
-                                        #the_name,the_message = "",""
+                                        # the_name,the_message = "",""
 
                     except Exception as e:
                         print(traceback.format_exc())
@@ -2838,7 +2790,7 @@ class Chat(Screen):
                     print(traceback.format_exc())
 
     # def on_enter(self):
-    #     self.add_two_line("From","this is my text","http://127.0.0.1/display/default.png")
+    #     self.add_one_line("From this is my texthttp://127.0.0.1/display/default.png")
 
     def on_enter(self):
         global chat_was_on
@@ -2858,9 +2810,8 @@ class Chat(Screen):
                 s.connect((host, port))
                 # self.send_init_msg()
                 tpa = [name, the_key]
-                dupped = json.dumps(tpa)
-                s.send(dupped)
-                initial = s.recv(512)  # the server greeting
+                s.send(bytes(json.dumps(tpa), "utf-8"))
+                initial = s.recv(512).decode("utf-8")  # the server greeting
                 initial = json.loads(initial)
                 self.add_two_line(
                     initial["from"], initial["greeting"], initial["img_link"])
@@ -2894,7 +2845,7 @@ class Chat(Screen):
             "type": ""
         }
         template["type"] = "AQUIREDATA!"
-        s.send(json.dumps(template))
+        s.send(bytes(json.dumps(template), "utf-8"))
 
 
 # Name: for_selecting
@@ -2935,7 +2886,7 @@ class ShareImage(BoxLayout, Screen):
         with open(fname, "rb") as f:
             files = {'testname': f}
             r = requests.post(urlll, files=files)
-        s.send(json.dumps(dumped_list))
+        s.send(bytes(json.dumps(dumped_list), "utf-8"))
         threading.Thread(target=global_notify,
                          args=("upload complete",)).start()
         self.remove_file(fname)
@@ -2949,6 +2900,7 @@ class ShareImage(BoxLayout, Screen):
     # OUTPUT: random string of specified length
     def id_generator(size=7, chars=string.ascii_lowercase + string.digits):
         return ''.join(random.choice(chars) for _ in range(size))
+
     # LOGIC: create temp copy of image, upload, delete
 
     def send_it(self):
@@ -2981,8 +2933,8 @@ class ShareImage(BoxLayout, Screen):
                     # create temp_file for randomness of filename
                     my_name = str(A().get_the_name())
                     tempo_img_file = my_name + "-" + \
-                        ''.join(random.choice(string.ascii_lowercase + string.digits)
-                                for _ in range(7)) + extension
+                                     ''.join(random.choice(string.ascii_lowercase + string.digits)
+                                             for _ in range(7)) + extension
                     with open(self.filename, "rb") as f:
                         orag = f.read()
                     with open(tempo_img_file, "wb") as fb:
@@ -3005,7 +2957,7 @@ class ShareImage(BoxLayout, Screen):
                         #     "Sharing in background",)).start()
                     else:
                         bibo["link"] = complete_link
-                        s.send(json.dumps(bibo))
+                        s.send(bytes(json.dumps(bibo), "utf-8"))
                         self.remove_file(tempo_img_file)
                         threading.Thread(target=global_notify, args=(
                             "Upload complete, used cache",)).start()
@@ -3024,6 +2976,7 @@ class ShareImage(BoxLayout, Screen):
 
     def on_leave(self):
         Tinkle().manage_screens("for_selecting", "remove")
+
 
 # Name: for_selecting_audio
 
@@ -3067,12 +3020,12 @@ class ShareAudio(BoxLayout, Screen):
 
     def upload_audio(self, fname, urlll, dumped_list):
         global s
-        #files = {"testname":open(fname,"rb")}
-        #r = requests.post(urlll,files=files)
+        # files = {"testname":open(fname,"rb")}
+        # r = requests.post(urlll,files=files)
         with open(fname, "rb") as f:
             files = {'testname': f}
             r = requests.post(urlll, files=files)
-        s.send(json.dumps(dumped_list))
+        s.send(bytes(json.dumps(dumped_list), "utf-8"))
         self.remove_file(fname)
 
     def remove_file(self, fname):
@@ -3118,8 +3071,8 @@ class ShareAudio(BoxLayout, Screen):
                     # create temp_file for randomness of filename
                     my_name = str(A().get_the_name())
                     tempo_aud_file = my_name + "_" + \
-                        ''.join(random.choice(string.ascii_lowercase + string.digits)
-                                for _ in range(7)) + extension
+                                     ''.join(random.choice(string.ascii_lowercase + string.digits)
+                                             for _ in range(7)) + extension
                     with open(self.filename, "rb") as f:
                         orag = f.read()
                     with open(tempo_aud_file, "wb") as fb:
@@ -3143,7 +3096,7 @@ class ShareAudio(BoxLayout, Screen):
                             "Sharing in background",)).start()
                     else:
                         bibo["link"] = complete_link
-                        s.send(json.dumps(bibo))
+                        s.send(bytes(json.dumps(bibo), "utf-8"))
                         self.remove_file(tempo_aud_file)
                         threading.Thread(target=global_notify, args=(
                             "Upload complete, used cache",)).start()
@@ -3161,6 +3114,7 @@ class ShareAudio(BoxLayout, Screen):
 
     def on_leave(self):
         Tinkle().manage_screens("for_selecting_audio", "remove")
+
 
 # Name: for_selecting_docs
 
@@ -3196,7 +3150,7 @@ class ShareDocument(BoxLayout, Screen):
             with open(fname, "rb") as f:
                 files = {'testname': f}
                 r = requests.post(urlll, files=files)
-            s.send(json.dumps(dumped_list))
+            s.send(bytes(json.dumps(dumped_list), "utf-8"))
             self.remove_file(fname)
         except Exception as e:
             print(e)
@@ -3239,8 +3193,8 @@ class ShareDocument(BoxLayout, Screen):
                     # create temp_file for randomness of filename
                     my_name = str(A().get_the_name())
                     tempo_doc_file = my_name + "_" + \
-                        ''.join(random.choice(string.ascii_lowercase + string.digits)
-                                for _ in range(7)) + extension
+                                     ''.join(random.choice(string.ascii_lowercase + string.digits)
+                                             for _ in range(7)) + extension
                     with open(self.filename, "rb") as f:
                         orag = f.read()
                     with open(tempo_doc_file, "wb") as fb:
@@ -3265,7 +3219,7 @@ class ShareDocument(BoxLayout, Screen):
                             "Sharing in the background",)).start()
                     else:
                         bibo["link"] = complete_link
-                        s.send(json.dumps(bibo))
+                        s.send(bytes(json.dumps(bibo), "utf-8"))
                         self.remove_file(tempo_doc_file)
                         threading.Thread(target=global_notify, args=(
                             "Upload complete, used cache",)).start()
@@ -3359,8 +3313,8 @@ class ChangeProPic:
             some_soc.connect((host, port))
             template = {"type": "update_pic", "name": my_name,
                         "password": my_pass, "link": image_link, "original_link": old_link}
-            some_soc.send(json.dumps(template))
-            temp_data = some_soc.recv(1024)
+            some_soc.send(bytes(json.dumps(template), "utf-8"))
+            temp_data = some_soc.recv(1024).decode("utf-8")
             temp = json.loads(temp_data)
             if temp["update_reply"] == "success":
                 new_link = temp["new_link"]
@@ -3399,8 +3353,8 @@ class ChangeProPic:
                 # create temp_file for randomness of filename
                 my_name = str(A().get_the_name())
                 tempo_img_file = my_name + "-" + \
-                    ''.join(random.choice(string.ascii_lowercase + string.digits)
-                            for _ in range(7)) + extension
+                                 ''.join(random.choice(string.ascii_lowercase + string.digits)
+                                         for _ in range(7)) + extension
                 with open(self.filename, "rb") as f:
                     orag = f.read()
                 with open(tempo_img_file, "wb") as fb:
@@ -3413,6 +3367,7 @@ class ChangeProPic:
                     "File type not supported",)).start()
         else:
             print("No image selected")
+
 
 # Name: profile_Pic
 
@@ -3471,8 +3426,8 @@ class Profile_Pic(BoxLayout, Screen):
             some_soc.connect((host, port))
             template = {"type": "update_pic", "name": my_name,
                         "password": my_pass, "link": image_link, "original_link": old_link}
-            some_soc.send(json.dumps(template))
-            temp_data = some_soc.recv(1024)
+            some_soc.send(bytes(json.dumps(template), "utf-8"))
+            temp_data = some_soc.recv(1024).decode("utf-8")
             temp = json.loads(temp_data)
             if temp["update_reply"] == "success":
                 new_link = temp["new_link"]
@@ -3510,8 +3465,8 @@ class Profile_Pic(BoxLayout, Screen):
             # create temp_file for randomness of filename
             my_name = str(A().get_the_name())
             tempo_img_file = my_name + "-" + \
-                ''.join(random.choice(string.ascii_lowercase + string.digits)
-                        for _ in range(7)) + extension
+                             ''.join(random.choice(string.ascii_lowercase + string.digits)
+                                     for _ in range(7)) + extension
             with open(self.filename, "rb") as f:
                 orag = f.read()
             with open(tempo_img_file, "wb") as fb:
@@ -3534,13 +3489,14 @@ class Tinkle(App):
     theme_cls.primary_palette = 'Lime'
     theme_cls.theme_style = "Light"
     sm = ScreenManager()
+
     # dynamically add/remove screens to consume less memory
 
     def change_screen(self, screen_name):
         if sm.has_screen(screen_name):
             sm.current = screen_name
         else:
-            print("Screen [" + screen_name+"] does not exist.")
+            print("Screen [" + screen_name + "] does not exist.")
 
     def manage_screens(self, screen_name, action):
         scns = {
@@ -3569,14 +3525,14 @@ class Tinkle(App):
             if action == "remove":
                 if sm.has_screen(screen_name):
                     sm.remove_widget(sm.get_screen(screen_name))
-                   # print("Screen ["+screen_name+"] removed")
+                # print("Screen ["+screen_name+"] removed")
             elif action == "add":
                 if sm.has_screen(screen_name):
-                    print("Screen ["+screen_name+"] already exists")
+                    print("Screen [" + screen_name + "] already exists")
                 else:
                     sm.add_widget(scns[screen_name](name=screen_name))
-                    print(screen_name+" added")
-                    #print("Screen ["+screen_name+"] added")
+                    print(screen_name + " added")
+                    # print("Screen ["+screen_name+"] added")
         except:
             print(traceback.format_exc())
             print("Traceback ^.^")
@@ -3601,10 +3557,10 @@ class Tinkle(App):
 
     def client_backup(self):
         with open(backup_file, "wb") as f:
-            f.write(A().get_the_name()+"\n")
+            f.write(A().get_the_name() + "\n")
             f.write(get_password())
             threading.Thread(target=global_notify, args=(
-                "Backup file: "+backup_file,)).start()
+                "Backup file: " + backup_file,)).start()
 
     def display_settings(self, settings):
         try:
@@ -3632,6 +3588,7 @@ class Tinkle(App):
 
         sm.add_widget(SignInScreen(name="signin_screen"))
         sm.add_widget(Registration(name="registration_screen"))
+        # sm.add_widget(Chat(name="Chat"))
         return sm
 
     def post_build_init(self, ev):

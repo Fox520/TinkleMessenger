@@ -22,7 +22,7 @@ make_file()
 
 
 def WriteData(conn):
-        data = conn.recv(512)
+        data = conn.recv(512).decode("utf-8")
         loaded_data = json.loads(data)
         try:
             username = loaded_data[0]
@@ -38,7 +38,7 @@ def WriteData(conn):
 
 
 shutdown = False
-print "SaveData - Public"
+print("SaveData - Public")
 while not shutdown:
 	conn,addr = s.accept()
 	threading.Thread(target=WriteData,args=(conn,)).start()

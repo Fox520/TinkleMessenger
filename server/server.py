@@ -16,9 +16,8 @@ import dataset
 import group_man
  
 import sys  
+import importlib
 
-reload(sys)  
-sys.setdefaultencoding('utf8')
 # todo: remove name from statuses,friends,conditions,users databases
 # send pm:> pm,[name]:[space]message
 s = socket.socket()
@@ -69,13 +68,13 @@ def remove_user(name):
         result = group_man.get_groups(groups, name)
         #at least be in group
         if len(result) > 0:
-            for group_id, values in result.items():
+            for group_id, values in list(result.items()):
                 group_man.remove_member(groups, group_id, name)
                 #print("removed "+name+" from "+group_id)
         #print("removal complete")
 
     except:
-        print(traceback.format_exc())
+        print((traceback.format_exc()))
         #print("User not found.")
 
 
@@ -115,7 +114,7 @@ def id_generator(size=50, chars=string.ascii_lowercase + string.digits):
 # send greeting
 def handle_secrets(conn):
     global clients_dict
-    raw = conn.recv(512)
+    raw = conn.recv(512).decode("utf-8")
     raw_buff = json.loads(raw)
     handle, secret = raw_buff[0], raw_buff[1]
     clients_dict[handle] = [secret, conn]
@@ -124,7 +123,7 @@ def handle_secrets(conn):
     initial["from"] = "Tenno"#FROM_INITIAL[random.randint(0,len(FROM_INITIAL)-1)]
     initial["img_link"] = WEB_ADDRESS+"display/default.png"
 
-    conn.send(json.dumps(initial))
+    conn.send(bytes(json.dumps(initial),"utf-8"))
     data = dict(name=handle, friend_requests="",
                 friend_rejects="", friend_accepts="")
     threading.Thread(target=auto_reply, args=(
@@ -153,8 +152,8 @@ def claim_hold(name, supersecret):
     global clients_hold, clients_dict
     try:
         output = None, None, None
-        for key1, value1 in clients_dict.items():
-            for key0, value0 in clients_hold.items():  # name, address
+        for key1, value1 in list(clients_dict.items()):
+            for key0, value0 in list(clients_hold.items()):  # name, address
                 if name == key1 or value0[0] == supersecret:
                     to_send_out = {
                         "type": "",
@@ -174,14 +173,14 @@ def claim_hold(name, supersecret):
         return output  # must return a list
 
     except Exception as e:
-        print(traceback.format_exc())
+        print((traceback.format_exc()))
 
 # sends the msgs in hold every 5 seconds
 def do_aquireback(con, ade, from_who):
 
     for list_of_left_message in ade[from_who]:
         #bprint["msg"] = list_of_left_message
-        con.send(json.dumps(list_of_left_message))
+        con.send(bytes(json.dumps(list_of_left_message),"utf-8"))
         time.sleep(5)
 
 
@@ -227,19 +226,19 @@ def do_group_reply(group_identifier, msg_from, content, connection, is_media=Fal
                     template["group_identifier"] = GROUP_IDENTIFIER
 
                     try:
-                        socket_for_member.send(json.dumps(template))
+                        socket_for_member.send(bytes(json.dumps(template),"utf-8"))
                     except BaseException as e:
-                        print(traceback.format_exc())
+                        print((traceback.format_exc()))
 
     except BaseException as e:
-        print(traceback.format_exc())
+        print((traceback.format_exc()))
 
 # sends out message to everyone
 def send_welcome_everyone(name):
     template = {}
-    for c_name, c_conn in clients_dict.items():
+    for c_name, c_conn in list(clients_dict.items()):
         try:
-            c_conn[1].send("")
+            c_conn[1].send(bytes("","utf-8"))
         except Exception as e:
             try:
                 c_conn[1].close()
@@ -248,10 +247,10 @@ def send_welcome_everyone(name):
                 pass
     template["type"] = "singleton"
     template["msg"] = _get_welcome(name)
-    for c_name, c_connw in clients_dict.items():
+    for c_name, c_connw in list(clients_dict.items()):
         try:
 
-            c_connw[1].send(json.dumps(template))
+            c_connw[1].send(bytes(json.dumps(template),"utf-8"))
         except Exception as e:
             try:
                 c_connw[1].close()
@@ -299,27 +298,21 @@ def do_private_reply(to_name, msg_from, content, connection):
             template["prof_img"] = DP_LATE + msg_from+".png"
 
             try:
-                # socket_for_pm.send("")
-                socket_for_pm.send(json.dumps(template))  # send the pm
+                socket_for_pm.send(bytes(json.dumps(template),"utf-8"))  # send the pm
             except Exception as e:
 
                 try:
 
                     hold_unclaimed(template)
-                    # connection.send(json.dumps({"type":"singleton","msg":USER_HOLD}))
                     time.sleep(1)
                 except Exception as e:  # incase they disconnect
-                    #print "CallbackError:",e
                     connection.close()  # then close their connection
 
         else:
             pass
-            #print "inside else"
-            #print "[-] Name Not Found! [-]"
-            # connection.send(json.dumps({"type":"singleton","msg":USER_NOT_FOUND}))
     except Exception as e:
 
-        print "status_comment Error:", e
+        print("status_comment Error:", e)
 
 
 def check_group_exist(identifier):
@@ -327,7 +320,7 @@ def check_group_exist(identifier):
         groups[identifier]
         return True
     except Exception as e:
-        print(traceback.format_exc())
+        print((traceback.format_exc()))
         return False
 
 # INPUT: groups dictionary, group id
@@ -343,7 +336,7 @@ def get_users_in_group(dictionary, identifier):
             dictionary, identifier, "members")
         return True, members_array
     except BaseException as e:
-        print(traceback.format_exc())
+        print((traceback.format_exc()))
         return False, None
 
 
@@ -351,7 +344,7 @@ def get_group_name(dictionary, identifier):
     try:
         return group_man.get_content(dictionary, identifier, "name")
     except Exception as e:
-        print(traceback.format_exc())
+        print((traceback.format_exc()))
         return "null"
 
 
@@ -387,7 +380,7 @@ def populate_group_database():
                 }
             ]
     else:
-        print "group database does not exist"
+        print("group database does not exist")
 
 
 def auto_reply(connection, handle, my_key, ddaattaa):
@@ -410,7 +403,7 @@ def auto_reply(connection, handle, my_key, ddaattaa):
     while True:
         try:
             try:
-                data = str(connection.recv(4096))
+                data = str(connection.recv(4096).decode("utf-8"))
                 data = json.loads(data)
                 template = {
                     "type": "",
@@ -467,17 +460,17 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                                 #print "Adding to hold_unclaimed"
                                 if group_based == False:
                                     hold_unclaimed(template)
-                                    connection.send(json.dumps(
-                                        {"type": "singleton", "msg": USER_HOLD}))
+                                    connection.send(bytes(json.dumps(
+                                        {"type": "singleton", "msg": USER_HOLD}), "utf-8"))
 
                         except BaseException as e:
-                            print "Error:", e
+                            print("Error:", e)
                             hold_unclaimed(template)
-                            connection.send(json.dumps(
-                                {"type": "singleton", "msg": USER_HOLD}))
+                            connection.send(bytes(json.dumps(
+                                {"type": "singleton", "msg": USER_HOLD}),"utf-8"))
 
             except BaseException as e:
-                print traceback.format_exc()
+                print(traceback.format_exc())
 
             # idk what this line does forgot
             clients_dict[handle] = [my_key, connection]
@@ -502,32 +495,31 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                         template["prof_img"] = DP_LATE + msg_from+".png"
 
                         try:
-                            socket_for_pm.send("")
                             # send the pm
-                            socket_for_pm.send(json.dumps(template))
+                            socket_for_pm.send(bytes(json.dumps(template),"utf-8"))
                             #send back to sender too
-                            connection.send(json.dumps(template))
+                            connection.send(bytes(json.dumps(template),"utf-8"))
                         except Exception as e:
                             #print "Cannot reach pm, adding ",T_O_Name,"to hold_unclaimed"
 
                             try:
 
                                 hold_unclaimed(template)
-                                connection.send(json.dumps(
-                                    {"type": "singleton", "msg": USER_HOLD}))
+                                connection.send(bytes(json.dumps(
+                                    {"type": "singleton", "msg": USER_HOLD}),"utf-8"))
                                 time.sleep(1)
-                                connection.send(json.dumps(template))
+                                connection.send(bytes(json.dumps(template),"utf-8"))
                             except Exception as e:  # incase they disconnect
                                 #print "CallbackError:",e
                                 connection.close()  # then close their connection
 
                     else:
                         #print "[-] Name Not Found! [-]"
-                        connection.send(json.dumps(
-                            {"type": "singleton", "msg": USER_NOT_FOUND}))
+                        connection.send(bytes(json.dumps(
+                            {"type": "singleton", "msg": USER_NOT_FOUND}),"utf-8"))
                 except:
-                    print "PM Error"
-                    print(traceback.format_exc())
+                    print("PM Error")
+                    print((traceback.format_exc()))
 
             elif type_msg == "AQUIREDATA!":
                 res = claim_hold(msg_from, my_key)
@@ -537,7 +529,7 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                         threading.Thread(target=do_aquireback(
                             con, ade, msg_from)).start()
                 except:
-                    print(traceback.format_exc())
+                    print((traceback.format_exc()))
 
             elif type_msg == "status_comment":
                # print data
@@ -552,15 +544,15 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                     template["to"] = T_O_Name
                     template["from"] = msg_from
                     try:
-                        socket_for_pm.send(json.dumps(template))
+                        socket_for_pm.send(bytes(json.dumps(template),"utf-8"))
                     except Exception as e:
                         hold_unclaimed(template)
                 # threading.Thread(target=do_private_reply,args=(data["to"],msg_from,content,connection)).start()
 
             elif type_msg == "list!":  # this will remove all currently inactive clients i.e. the ones offline
-                for c_name, c_conn in clients_dict.items():
+                for c_name, c_conn in list(clients_dict.items()):
                     try:
-                        c_conn[1].send("")
+                        c_conn[1].send(bytes("","utf-8"))
                     except Exception as e:
                         #print "ErrorList:",e
                         try:
@@ -571,7 +563,7 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                        # del clients_dict[c_name]
 
                 list_cli = len(clients_dict)
-                connection.send(str(list_cli))
+                connection.send(bytes(str(list_cli),"utf-8"))
             elif type_msg == "status_update":
                 st_text = data["text"]
                 st_link = data["link"]
@@ -600,51 +592,51 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                                "link": link_status,
                                "method_id": m_id}
                 #print temp_status
-                connection.send(json.dumps(temp_status))
+                connection.send(bytes(json.dumps(temp_status),"utf-8"))
 
             elif type_msg == "whoisonline--req_fri":  # request friend
                 template["type"] = "whoisonline--req_fri"
                 list_clients = []
-                for c_name, c_conn in clients_dict.items():
+                for c_name, c_conn in list(clients_dict.items()):
                     abc = db["friends"].find_one(name=msg_from)[
                         "friend_accepts"]
                    # print abc
                     if c_name not in abc:  # not in current friends
                         list_clients.append(c_name)
                     template["msg"] = list_clients
-                    connection.send(json.dumps(template))
+                    connection.send(bytes(json.dumps(template),"utf-8"))
             elif type_msg == "whoisonline--status":  # request friend
                 template["type"] = "whoisonline--status"
                 list_status = []
-                for c_name, c_conn in clients_dict.items():
+                for c_name, c_conn in list(clients_dict.items()):
                     abc = db["friends"].find_one(name=msg_from)[
                         "friend_accepts"]
                     if c_name in abc:  # in current friends
                         list_status.append(c_name)
                     template["msg"] = list_status
-                    connection.send(json.dumps(template))
+                    connection.send(bytes(json.dumps(template),"utf-8"))
 
             elif type_msg == "whoisonline--acpt":  # accept friend from request here
                 template["type"] = "whoisonline--acpt"
                 list_accept = []
-                for c_name, c_conn in clients_dict.items():
+                for c_name, c_conn in list(clients_dict.items()):
                     abc = db["friends"].find_one(name=msg_from)[
                         "friend_requests"]
                     if c_name in abc:
                         list_accept.append(c_name)
                     template["msg"] = list_accept
-                    connection.send(json.dumps(template))
+                    connection.send(bytes(json.dumps(template),"utf-8"))
 
             elif type_msg == "whoisonline--friends":  # accept friend from request here
                 template["type"] = "whoisonline--friends"
                 list_current = []
-                for c_name, c_conn in clients_dict.items():
+                for c_name, c_conn in list(clients_dict.items()):
                     abc = db["friends"].find_one(name=msg_from)[
                         "friend_accepts"]
                     if c_name in abc:
                         list_current.append(c_name)
                     template["msg"] = list_current
-                    connection.send(json.dumps(template))
+                    connection.send(bytes(json.dumps(template),"utf-8"))
 
             elif type_msg == "request_accept":
                 # Remove first from requesting
@@ -677,7 +669,7 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                 #print db["friends"].find_one(name=oka)["friend_requests"]
 
             elif type_msg == "show_requests":
-                print db["friends"].find_one(name=msg_from)["friend_requests"]
+                print(db["friends"].find_one(name=msg_from)["friend_requests"])
 
             elif type_msg == "reject_request":
                 # Remove first from requesting
@@ -697,9 +689,9 @@ def auto_reply(connection, handle, my_key, ddaattaa):
 
             elif type_msg == "broadcast":
                 # could set link here to send for all
-                for c_name, c_conn in clients_dict.items():
+                for c_name, c_conn in list(clients_dict.items()):
                     try:
-                        c_conn[1].send("")
+                        c_conn[1].send(bytes("","utf-8"))
                     except Exception as e:
                         #print "Error2:",e
                         try:
@@ -716,10 +708,10 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                 #template["link"] = link_img
                 template["msg"] = data["msg"]
                 template["prof_img"] = DP_LATE + msg_from+".png"
-                for c_name, c_connw in clients_dict.items():
+                for c_name, c_connw in list(clients_dict.items()):
                     try:
 
-                        c_connw[1].send(json.dumps(template))
+                        c_connw[1].send(bytes(json.dumps(template),"utf-8"))
                        # print template["msg"]+" sent successfully"
                     except Exception as e:
                         #print "Error1:",e
@@ -752,7 +744,7 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                 template = {}
                 template["type"] = "singleton"
                 template["msg"] = msg
-                connection.send(json.dumps(template))
+                connection.send(bytes(json.dumps(template),"utf-8"))
 
             elif type_msg == "delete_group":
                 group_id = data["group_id"]
@@ -767,12 +759,12 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                         template = {}
                         template["type"] = "singleton"
                         template["msg"] = "Group deleted"
-                        connection.send(json.dumps(template))
+                        connection.send(bytes(json.dumps(template),"utf-8"))
                     else:
                         template = {}
                         template["type"] = "singleton"
                         template["msg"] = "Failed to deleted group"
-                        connection.send(json.dumps(template))
+                        connection.send(bytes(json.dumps(template), "utf-8"))
 
             elif type_msg == "add_member":
                 member_name = data["member_name"]
@@ -797,7 +789,7 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                     template = {}
                     template["type"] = "singleton"
                     template["msg"] = "Can't add yourself"
-                    connection.send(json.dumps(template))
+                    connection.send(bytes(json.dumps(template),"utf-8"))
 
             elif type_msg == "remove_member":
                 member_name = data["member_name"]
@@ -823,22 +815,22 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                                 template["msg"] = "You removed yourself"+extra
                             else:
                                 template["msg"] = "You removed "+member_name
-                            connection.send(json.dumps(template))
+                            connection.send(bytes(json.dumps(template),"utf-8"))
                         else:
                             template = {}
                             template["type"] = "singleton"
                             template["msg"] = "Failed to remove "+member_name
-                            connection.send(json.dumps(template))
+                            connection.send(bytes(json.dumps(template),"utf-8"))
                     else:
                         template = {}
                         template["type"] = "singleton"
                         template["msg"] = member_name + " not part of group"
-                        connection.send(json.dumps(template))
+                        connection.send(bytes(json.dumps(template),"utf-8"))
                 else:
                     template = {}
                     template["type"] = "singleton"
                     template["msg"] = "Insufficient privileges to remove"
-                    connection.send(json.dumps(template))
+                    connection.send(bytes(json.dumps(template),"utf-8"))
             elif type_msg == "add_admin":
                 group_id = data["group_id"]
                 member_name = data["member_name"]
@@ -856,7 +848,7 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                     template = {}
                     template["type"] = "singleton"
                     template["msg"] = riv
-                    connection.send(json.dumps(template))
+                    connection.send(bytes(json.dumps(template),"utf-8"))
             elif type_msg == "remove_admin":
                 group_id = data["group_id"]
                 member_name = data["member_name"]
@@ -874,7 +866,7 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                     template = {}
                     template["type"] = "singleton"
                     template["msg"] = riv
-                    connection.send(json.dumps(template))
+                    connection.send(bytes(json.dumps(template),"utf-8"))
 
             elif type_msg == "get_group_members":
                 group_id = data["group_id"]
@@ -887,14 +879,14 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                     template["members"] = current_members
                     template["group_id"] = group_id
                     template["from"] = msg_from
-                    connection.send(json.dumps(template))
+                    connection.send(bytes(json.dumps(template),"utf-8"))
 
             # remove, groups should be private and "add" members only
             elif type_msg == "get_groups":
                 template = {}
                 template["type"] = "get_groups"
                 template["msg"] = group_man.get_groups(groups, msg_from)
-                connection.send(json.dumps(template))
+                connection.send(bytes(json.dumps(template),"utf-8"))
 
             elif type_msg == "group_info":
                 gid = data["group_id"]
@@ -905,13 +897,13 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                 template["creation_date"] = group_man.get_content(groups, gid, "creation_date")
                 template["description"] = group_man.get_content(groups, gid, "description")
                 template["num_members"] = len(group_man.get_content(groups, gid, "members"))
-                connection.send(json.dumps(template))
+                connection.send(bytes(json.dumps(template),"utf-8"))
 
         except socket.error as e:
             break
         except:
             print("massive")
-            print(traceback.format_exc())
+            print((traceback.format_exc()))
 
 
 def exit_handler():
@@ -925,7 +917,7 @@ atexit.register(exit_handler)
 populate_client_dict()
 populate_group_database()
 
-print "Server - Public"
+print("Server - Public")
 
 while True:
     try:

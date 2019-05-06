@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import sqlite3,socket,json,threading,urllib
+import sqlite3,socket,json,threading,urllib.request,urllib.parse,urllib.error
 ##########################
 {
 	"name":"",
@@ -32,7 +32,7 @@ def create_user(db,conn,name, pwd):
 		db.commit()
 		return True
 	except Exception as e:
-		print "Error creating user:",e
+		print("Error creating user:",e)
 		return False
 
 def login(conn,name,pwd):
@@ -71,12 +71,15 @@ def check_if_name_exists(db,conn,name):
 		return False
 
 def create_image(name):
-	urllib.urlopen(WEB_ADDR + "internal_dp.php?username="+name)
+	urllib.request.urlopen(WEB_ADDR + "internal_dp.php?username="+name)
 def initial(cli):
 	db = sqlite3.connect("users.db")
 	conn = db.cursor()
-	temp_data = cli.recv(1024)
+	temp_data = cli.recv(1024).decode("utf-8")
+	print(temp_data)
 	data = json.loads(temp_data)
+	print("dasd")
+	print(data)
 	if data["type"] == "login":
 		name = data["name"]
 		password = data["password"]
@@ -87,7 +90,7 @@ def initial(cli):
 			temp["prof_link"] = WEB_ADDR + "display/"+name + ".png"
 		else:
 			temp["state"] = "fail"
-		cli.send(json.dumps(temp))
+		cli.send(bytes(json.dumps(temp),"utf-8"))
 		db.commit()
 		db.close()
 	elif data["type"] == "register":
@@ -101,13 +104,13 @@ def initial(cli):
 			temp["prof_link"] = WEB_ADDR + "display/"+name+".png"
 		else:
 			temp["state"] = "fail"
-		cli.send(json.dumps(temp))
+		cli.send(bytes(json.dumps(temp),"utf-8"))
 		db.commit()
 		db.close()
 	#cli.close()
 
 shutdown = False
-print "GetName - Public"
+print("GetName - Public")
 while not shutdown:
 	cli,addr = s.accept()
 	t1 = threading.Thread(target=initial,args=(cli,)).start()

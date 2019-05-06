@@ -16,28 +16,58 @@
                     [['menu', lambda x: nav_draw.toggle_nav_drawer()]]
                 right_action_items:
                     [['blur', lambda x: root.show_bottom_sheet_chat()],['dots-vertical', lambda x: root.show_bottom_sheet()]]
+            MDTabbedPanel:
+                id: tab_panel
+                tab_display_mode: "text"
+                tab_width_mode: "stacked"
 
-            GridLayout:
-                cols: 1
-                rows: 0
-                spacing: 5
-                padding: 10
-                ScrollView:
-                    do_scroll_x: False
-                    effect_cls: OpacityScrollEffect
-                    scroll_y:0
-                    MDList:
-                        id: ml
+                MDTab:
+                    id: global_chat_tab
+                    name: "global_chat"
+                    text: "Global Chat"
 
-            BoxLayout:
-                size_hint_y: None
-                height: 40
-                spacing: 20
+                    GridLayout:
+                        cols: 1
+                        rows: 0
+                        spacing: 5
+                        padding: 10
+                        ScrollView:
+                            do_scroll_x: False
+                            effect_cls: OpacityScrollEffect
+                            scroll_y:0
+                            MDList:
+                                id: ml
 
-                MDTextField:
-                    id: message
-                    #disabled: True
-                    hint_text: "Type your message"
-                    multiline: False
-                    valign: 'bottom'
-                    on_text_validate: root.send_msg()
+                    BoxLayout:
+                        size_hint_y: None
+                        height: 40
+                        spacing: 20
+
+                        MDTextField:
+                            id: message
+                            #disabled: True
+                            hint_text: "Type your message"
+                            multiline: False
+                            valign: 'bottom'
+                            on_text_validate: root.send_msg()
+
+                MDTab:
+                    id: current_friends_tab
+                    name: "friends"
+                    text: "Friends"
+
+                    GetNamesForCurrentFriendsScreen:
+                
+                MDTab:
+                    id: find_new_friends_tab
+                    name: "find_friends"
+                    text: "Find Friends"
+
+                    GetNamesForFindFriendsScreen:
+
+                MDTab:
+                    id: friend_requests_tab
+                    name: "friends_request"
+                    text: "Friend Requests"
+
+                    GetNamesForFriendRequestsScreen:

@@ -39,7 +39,7 @@ def get_content(dictionary, gid, key):
         #print dictionary[gid][0][key]
         return dictionary[gid][0][key]
     except Exception as e:
-        print(traceback.format_exc())
+        print((traceback.format_exc()))
         #print "Group does not exist"
         return False
 # return modified dictionary
@@ -50,7 +50,7 @@ def delete_group(dictionary, gid):
         del dictionary[gid]
         return dictionary
     except Exception as e:
-        print(traceback.format_exc())
+        print((traceback.format_exc()))
         #print "Group does not exist"
         return False
 
@@ -70,7 +70,7 @@ def remove_member(dictionary, gid, member):
         else:
             return [True, delete_group(dictionary, gid),1]
     except Exception as e:
-        print(traceback.format_exc())
+        print((traceback.format_exc()))
         #print "unable to remove member"
         return [False]
 
@@ -88,7 +88,7 @@ def add_member(dictionary, gid, member):
             return dictionary
 
     except Exception as e:
-        print(traceback.format_exc())
+        print((traceback.format_exc()))
         #print "cant add member"
         return
 
@@ -122,7 +122,7 @@ def check_is_creator(dictionary, gid, member):
         else:
             return False
     except Exception as e:
-        print e
+        print(e)
 
 
 def add_admin(dictionary, gid, member):
@@ -144,7 +144,7 @@ def remove_admin(dictionary, gid, member):
 def get_groups(dictionary, userToTest):
     """Returns groups which the user is in"""
     temp = {}
-    for k,v in dictionary.items():
+    for k,v in list(dictionary.items()):
         #print dictionary[k][0]
         for t_name in dictionary[k][0]["members"]:
             if userToTest == t_name:

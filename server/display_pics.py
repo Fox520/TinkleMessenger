@@ -98,7 +98,7 @@ def make_image_round_thumb(fname):
 def initial(cli):
 	db = sqlite3.connect("users.db")
 	conn = db.cursor()
-	temp_data = cli.recv(1024)
+	temp_data = cli.recv(1024).decode("utf-8")
 	data = json.loads(temp_data)
 	if data["type"] == "update_pic":
 		name = data["name"]
@@ -112,11 +112,11 @@ def initial(cli):
 
 		else:
 			temp["update_reply"] = "fail"
-		cli.send(json.dumps(temp))
+		cli.send(bytes(json.dumps(temp),"utf-8"))
 	cli.close()
 
 shutdown = False
-print "Handle Pics - Public"
+print("Handle Pics - Public")
 while not shutdown:
 	cli,addr = s.accept()
 	t1 = threading.Thread(target=initial,args=(cli,)).start()

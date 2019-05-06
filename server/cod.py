@@ -27,7 +27,7 @@ def Handle(conn):
                     aa = db["conditions"].find_one(name=oka)["last_seen"]
                     #bb = db["conditions"].find_one(name=oka)["typing"]
                 except Exception as e:
-                    print e
+                    print(e)
                     aa = "last seen"
                     #bb = ""
                 template = {
@@ -51,7 +51,7 @@ def Handle(conn):
 
 
 shutdown = False
-print "Conditions - Public"
+print("Conditions - Public")
 while not shutdown:
     conn,addr = s.accept()
     t1 = threading.Thread(target=Handle,args=(conn,)).start()
