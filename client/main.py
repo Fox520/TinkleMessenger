@@ -27,6 +27,7 @@ from kivy.app import App
 from kivy.clock import Clock
 
 from kivy.core.window import Window
+from kivy.factory import Factory
 
 Window.softinput_mode = "below_target"  # resize to accomodate keyboard
 from kivy.effects.opacityscroll import OpacityScrollEffect
@@ -44,7 +45,7 @@ from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen, ScreenManager
 from kivy.uix.filechooser import FileChooserIconView
 #
-from kivy.utils import get_color_from_hex
+from kivy.utils import get_color_from_hex, get_hex_from_color
 
 from kivymd.toast import toast
 from kivymd.bottomsheet import MDListBottomSheet
@@ -55,6 +56,9 @@ from kivymd.list import OneLineListItem, TwoLineListItem, TwoLineAvatarListItem,
 from kivymd.textfields import MDTextField
 from kivymd.label import MDLabel
 from kivymd.snackbars import Snackbar
+from kivymd.popupscreen import MDPopupScreen
+from kivymd.button import MDIconButton
+from kivymd.list import ILeftBodyTouch
 
 from spin_load import ProgressSpinner
 
@@ -90,7 +94,7 @@ def isAndroid():
 
 
 home = os.path.expanduser('~')
-if isAndroid() == True:
+if isAndroid():
     path_music = os.path.join('/sdcard', 'Download')
     path_images = os.path.join('/sdcard', 'Download')
     path_docs = os.path.join('/sdcard', 'Download')
@@ -251,7 +255,7 @@ _server_ip = None
 
 
 def return_site_web_address():
-    # return "127.0.0.1"
+    return "127.0.0.1"
     global _web_address
     # fetch address from web and write it
     if _web_address != None:
@@ -266,7 +270,7 @@ def return_site_web_address():
 
 
 def return_server_address():
-    # return "127.0.0.1"
+    return "127.0.0.1"
     global _server_ip
     if _server_ip != None:
         return _server_ip
@@ -326,7 +330,7 @@ def append_to_file(filename, data):
 
 
 def check_name():
-    if os.path.isfile(client_file) == True:
+    if os.path.isfile(client_file):
         with open(client_file, "rb") as f:
             client_name = f.read()
             if len(client_name) > 4:
@@ -358,7 +362,7 @@ def write_name(foo_name, should_write=True, pwda=""):
         if name_test_server["type"] == "login":
             if name_test_server["state"] == "success":
                 # login success
-                if should_write == True:
+                if should_write:
                     with open(client_file, "wb") as f:
                         f.write(foo_name)
                 return True, "login"
@@ -367,7 +371,7 @@ def write_name(foo_name, should_write=True, pwda=""):
                 # print(name_test_server)
                 return False, "login"  # not exists call register
 
-        if should_write == True:
+        if should_write:
             try:
                 with open(client_file, "wb") as f:
                     f.write(foo_name)
@@ -394,7 +398,7 @@ def global_notify(msg):
     toast(msg)
 
 
-if isAndroid() == True:
+if isAndroid():
     from jnius import autoclass, PythonJavaClass, java_method, cast
     from android import activity
     from android.runnable import run_on_ui_thread
@@ -443,7 +447,7 @@ def doHashCheckServer(fname, media_type):
         fsock.send(bytes(json.dumps(template), "utf-8"))
         result = json.loads(fsock.recv(1024).decode("utf-8"))
         if result["type"] == "hash_request":
-            if result["result"] == True:
+            if result["result"]:
                 return [True, result["file_path"]]
             else:
                 return [False, ""]
@@ -494,6 +498,7 @@ Builder.load_string("""
 #:import MDThemePicker kivymd.pickers.MDThemePicker
 #:import MDTab kivymd.tabs.MDTab
 #:import MDTabbedPanel kivymd.tabs.MDTabbedPanel
+#:import MDRoundFlatButton kivymd.button.MDRoundFlatButton
 
 <MyImageButton@ButtonBehavior+AsyncImage>:
 
@@ -502,12 +507,8 @@ Builder.load_string("""
 
 <MainNavigationDrawer@MDNavigationDrawer>:
     drawer_logo: "resources/tinkle_loading.png"
+    drawer_title: "Tinkle Messenger"
     
-    MyNavigationDrawerIconButton:
-        text: "Show Friend Requests"
-        on_release:
-            app.manage_screens("names_for_friend_req","add")
-            app.change_screen("names_for_friend_req")
     MyNavigationDrawerIconButton:
         text: "Change Profile Picture"
         on_release:
@@ -524,7 +525,7 @@ Builder.load_string("""
             app.change_screen("names_for_status")
 
     MyNavigationDrawerIconButton:
-        text: "Change theme"
+        text: "Change Theme"
         on_release:
             MDThemePicker().open()
 
@@ -537,28 +538,11 @@ Builder.load_string("""
                 size: self.size
                 source: LOADING_IMAGE
 
-<-AvatarSampleWidget>:
-    canvas:
-        Rectangle:
-            texture: self.texture
-            size: self.width + 20, self.height + 20
-            pos: self.x - 10, self.y - 10       
-
+    
     """)
 
-
-class ILeftBody:
-    '''Pseudo-interface for widgets that go in the left container for
-    ListItems that support it.
-
-    Implements nothing and requires no implementation, for annotation only.
-    '''
+class IconLeftSampleWidget(ILeftBodyTouch, MDIconButton):
     pass
-
-
-class AvatarSampleWidget(ILeftBody, AsyncImage):
-    pass
-
 
 # Name: advanced_screen
 
@@ -580,17 +564,10 @@ class AdvancedScreen(Screen):
         pass
 
     def add_two_line(self, short_info, long_info):
-        img_to_use = {
-            "view members": "img/group.png",
-            "add friend": "img/group_add.png",
-            "group information": "img/info.png"
 
-        }
-        a = TwoLineAvatarListItem(
-            text=long_info, secondary_text=short_info, font_style="Body1",
-            on_release=lambda *args: self.open_more(short_info))
+        a = TwoLineListItem(
+            text=long_info, secondary_text=short_info, on_release=lambda *args: self.open_more(short_info))
 
-        a.add_widget(AvatarSampleWidget(source=img_to_use[short_info]))
         self.ml.add_widget(a)
 
     def open_more(self, short_info):
@@ -644,7 +621,7 @@ class GroupMembers(Screen):
         self.ids.ml.clear_widgets()
 
     def do_checks(self, *args):
-        if was_here_members_group == True:
+        if was_here_members_group:
             self.event.cancel()
             self.ids.ml.clear_widgets()
             # print("adding names")
@@ -675,7 +652,7 @@ class GroupMembers(Screen):
         self.ml.add_widget(magnet, index=randint(0, len(self.ml.children)))
 
     def popup_menu(self, member_name, *args):
-
+        #TODO: Fix this
         txt = "1. Make admin\n2. Remove admin\n3. Remove from group"
 
         content = MDLabel(font_style='Subhead',
@@ -783,25 +760,13 @@ class GetFriendsAddGroup(Screen):
     def change_to_img(self, img_client, *args):
         global receiver_name
         member_name = img_client
-        txt = "Do you want to add " + member_name + "?"
-
-        content = MDLabel(font_style='Subhead',
-                          text=txt,
-                          size_hint_y=None,
-                          valign='top')
-
-        content.bind(texture_size=content.setter('size'))
-        self.dialog = MDDialog(title="Options",
-                               content=content,
-                               size_hint=(.8, None),
-                               height=dp(200),
-                               auto_dismiss=True)
-
-        self.dialog.add_action_button("Yes",
-                                      action=partial(self.add_friend_group, member_name))
-        self.dialog.add_action_button("No",
-                                      action=lambda *x: self.dialog.dismiss())
-        self.dialog.open()
+        txt = f"Do you want to add {member_name}?"
+        main_pop = MDDialog(
+            title='Confirm', size_hint=(.8, .3), text_button_ok='Yes',
+            text=txt,
+            text_button_cancel='Cancel',
+            events_callback=partial(self.add_friend_group, member_name))
+        main_pop.open()
 
     def add_friend_group(self, friend_name, *args):
         try:
@@ -834,7 +799,7 @@ class SignInScreen(Screen):
     def _signin(self):
         temp_pw = ""
         result = write_name(self.alias.text, False, temp_pw)
-        if result[0] == True:
+        if result[0]:
             self.prg_spin.stop_spinning()
             global name
             name = self.alias.text
@@ -878,7 +843,7 @@ class SignInScreen(Screen):
             the_key = ""
 
     def do_android(self):
-        if isAndroid() == True:
+        if isAndroid():
             import android_image_select
             reload(android_image_select)
             android_image_select.user_select_image(self.img_callback)
@@ -927,7 +892,7 @@ class Registration(Screen):
         pass
 
     # def on_enter(self):
-    #     if isAndroid() == True:
+    #     if isAndroid():
     #         import permission_helper
     #         perms = ["android.permission.READ_EXTERNAL_STORAGE",
     #                  "android.permission.WRITE_EXTERNAL_STORAGE"]
@@ -981,7 +946,7 @@ class Registration(Screen):
         try:
             char_result = self.test_name_chars(self.temp_name.text)
             if len(tt_name) < 4 or char_result or len(tt_name) > 12:
-                if char_result == True:
+                if char_result:
                     threading.Thread(target=global_notify, args=(
                         "Illegal symbol in username",)).start()
                 else:
@@ -999,11 +964,11 @@ class Registration(Screen):
                         r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+')
                     if len(pattern.findall(self.email_address.text)) > 0:
                         email_valid = True
-                    if email_valid == True:
+                    if email_valid:
 
                         answer = self.register_user(
                             self.temp_name.text, get_password())
-                        if answer == True:
+                        if answer:
                             threading.Thread(target=self.upload_data).start()
                             name = self.temp_name.text
                             self.prg_spin.stop_spinning()
@@ -1135,7 +1100,7 @@ class GetNamesForStatusScreen(Screen):
         pass
 
     def do_checks(self, *args):
-        if was_here_status == True:
+        if was_here_status:
             self.event.cancel()
             self.ids.ldml.clear_widgets()
             # print("adding names")
@@ -1197,7 +1162,7 @@ class GetNamesForFindFriendsScreen(Screen):
         pass
 
     def do_checks(self, *args):
-        if was_here_find_friends == True:
+        if was_here_find_friends:
             self.event.cancel()
             self.ids.ldml.clear_widgets()
             print(current_find_friends)
@@ -1259,7 +1224,7 @@ class GetNamesForFriendRequestsScreen(Screen):
         pass
 
     def do_checks(self, *args):
-        if was_here_friend_req == True:
+        if was_here_friend_req:
             self.event.cancel()
             self.ids.ldml.clear_widgets()
             # print("adding names")
@@ -1344,7 +1309,7 @@ class GetNamesForCurrentFriendsScreen(Screen):
         pass
 
     def do_checks(self, *args):
-        if was_here_friends_accept == True:
+        if was_here_friends_accept:
             self.event.cancel()
             self.ids.ldml.clear_widgets()
             for each_user in current_friends_accept:
@@ -1478,13 +1443,11 @@ class Conversation(Screen):
 
     def add_two_line(self, from_who, msg_to_add, prof_img):
         a = TwoLineListItem(text=msg_to_add, secondary_text=from_who)
-        # a.add_widget(AvatarSampleWidget(source=prof_img))
         self.mld.add_widget(a)
 
     def add_three_line(self, from_who, msg_to_add, prof_img):
         a = ThreeLineListItem(text=msg_to_add[:70] + "...", secondary_text=from_who,
                               on_release=lambda *args: self.out_quick(from_who, msg_to_add))
-        # a.add_widget(AvatarSampleWidget(source=prof_img))
         self.mld.add_widget(a)
 
     def clear_log(self):
@@ -1593,7 +1556,7 @@ class Conversation(Screen):
             print(traceback.format_exc())
 
     def decide_share_image(self):
-        if isAndroid() == True:
+        if isAndroid():
             self.android_share_image()
         else:
             Tinkle().manage_screens("for_selecting", "add")
@@ -1601,7 +1564,7 @@ class Conversation(Screen):
 
     def android_share_image(self):
         try:
-            if isAndroid() == True:
+            if isAndroid():
                 import android_image_select
                 reload(android_image_select)
                 android_image_select.user_select_image(
@@ -1644,12 +1607,12 @@ class Conversation(Screen):
     def _gallery_callback(self, path):
         self.filename = path
         try:
-            if exceedLimit(self.filename) == True:
+            if exceedLimit(self.filename):
                 threading.Thread(target=global_notify,
                                  args=("File exceeds 15MB limit",)).start()
                 return
             condition = doHashCheckServer(self.filename, "image")
-            if condition[0] == True:
+            if condition[0]:
                 should_do_upload = False
                 complete_link = condition[1]
             else:
@@ -1677,7 +1640,7 @@ class Conversation(Screen):
             bibo["type"] = "image"
             bibo["link"] = link_img
             bibo["to"] = receiver_name
-            if should_do_upload == True:
+            if should_do_upload:
                 threading.Thread(target=self.upload_image, args=(
                     tempo_img_file, url_for_img, bibo)).start()
                 threading.Thread(target=global_notify, args=(
@@ -1756,18 +1719,11 @@ class GroupConversation(Screen):
 
     def add_two_line(self, from_who, msg_to_add, prof_img):
         a = TwoLineListItem(text=msg_to_add, secondary_text=from_who)
-        # a.add_widget(AvatarSampleWidget(source=prof_img))
         self.mld.add_widget(a)
 
     def add_three_line(self, from_who, msg_to_add, prof_img):
-        a = ThreeLineAvatarListItem(text=msg_to_add[:70] + "...",
-                                    secondary_text=from_who,
-                                    markup=True,
-                                    text_size=(self.width, None),
-                                    size_hint_y=None,
-                                    font_style="Body1",
-                                    on_release=lambda *args: self.out_quick(from_who, msg_to_add))
-        a.add_widget(AvatarSampleWidget(source=prof_img))
+        a = ThreeLineListItem(text=msg_to_add[:70] + "...", secondary_text=from_who,
+                              on_release=lambda *args: self.out_quick(from_who, msg_to_add))
         self.mld.add_widget(a)
 
     def clear_log(self):
@@ -1857,7 +1813,7 @@ class GroupConversation(Screen):
             print(traceback.format_exc())
 
     def decide_share_image(self):
-        if isAndroid() == True:
+        if isAndroid():
             self.android_share_image()
         else:
             Tinkle().manage_screens("for_selecting", "add")
@@ -1865,7 +1821,7 @@ class GroupConversation(Screen):
 
     def android_share_image(self):
         try:
-            if isAndroid() == True:
+            if isAndroid():
                 import android_image_select
                 reload(android_image_select)
                 android_image_select.user_select_image(
@@ -1908,12 +1864,12 @@ class GroupConversation(Screen):
     def _gallery_callback(self, path):
         self.filename = path
         try:
-            if exceedLimit(self.filename) == True:
+            if exceedLimit(self.filename):
                 threading.Thread(target=global_notify,
                                  args=("File exceeds 15MB limit",)).start()
                 return
             condition = doHashCheckServer(self.filename, "image")
-            if condition[0] == True:
+            if condition[0]:
                 should_do_upload = False
                 complete_link = condition[1]
             else:
@@ -1942,7 +1898,7 @@ class GroupConversation(Screen):
             bibo["link"] = link_img
             bibo["group_based"] = True
             bibo["group_id"] = current_group_id
-            if should_do_upload == True:
+            if should_do_upload:
                 threading.Thread(target=self.upload_image, args=(
                     tempo_img_file, url_for_img, bibo)).start()
                 threading.Thread(target=global_notify, args=(
@@ -2036,7 +1992,7 @@ class Status(Screen):
     def select_pic(self, ssa):
         global popup, text_to_send
         text_to_send = ssa
-        if isAndroid() == True:
+        if isAndroid():
             import android_image_select
             reload(android_image_select)
             android_image_select.user_select_image(self.begin_after_gallery)
@@ -2080,7 +2036,7 @@ class Status(Screen):
         global text_to_send
         extension = os.path.splitext(fname)[1]
         new_name = "status_" + self.id_generator() + extension
-        if exceedLimit(fname) == True:
+        if exceedLimit(fname):
             threading.Thread(target=global_notify,
                              args=("File exceeds 15MB limit",)).start()
             return
@@ -2107,7 +2063,7 @@ class Status(Screen):
             threading.Thread(target=global_notify, args=(
                 "status failed to update",)).start()
         self.remove_file(new_name)
-        if isAndroid() == True:
+        if isAndroid():
             pass
         else:
             Tinkle().change_screen("Chat")
@@ -2254,7 +2210,7 @@ class StatusComments(Screen):
         pass
 
     def on_enter(self):
-        if check_if_exist(comments_status_db_file) == True:
+        if check_if_exist(comments_status_db_file):
             db = dataset.connect(comments_db_name)
             table = db['comments']
             for user in db["comments"]:
@@ -2271,7 +2227,6 @@ class StatusComments(Screen):
 
     def add_two_line(self, from_who, msg_to_add, prof_img):
         a = TwoLineAvatarListItem(text=msg_to_add, secondary_text=from_who)
-        # a.add_widget(AvatarSampleWidget(source=prof_img))
         self.ml.add_widget(a)
 
     def add_three_line(self, from_who, msg_to_add, prof_img):
@@ -2282,7 +2237,6 @@ class StatusComments(Screen):
                                     size_hint_y=None,
                                     font_style="Body1",
                                     on_press=lambda *args: self.out_quick(from_who, msg_to_add))
-        a.add_widget(AvatarSampleWidget(source=prof_img))
         self.ml.add_widget(a)
 
     def on_leave(self):
@@ -2290,8 +2244,10 @@ class StatusComments(Screen):
         Tinkle().manage_screens("status_comment", "remove")
 
 
-# Name: Chat
+class PopupScreen(MDPopupScreen):
+    pass
 
+# Name: Chat
 
 class Chat(Screen):
 
@@ -2304,7 +2260,7 @@ class Chat(Screen):
 
     def callback_for_menu_items(self, sc):
         if sc == "profile_Pic":
-            if isAndroid() == True:
+            if isAndroid():
                 pass
             else:
                 Tinkle().manage_screens(sc, "add")
@@ -2313,51 +2269,14 @@ class Chat(Screen):
             Tinkle().manage_screens(sc, "add")
             Tinkle().change_screen(sc)
 
-    def show_bottom_sheet(self):
-        if not self.bs_menu_1:
-            self.bs_menu_1 = MDListBottomSheet()
-            self.bs_menu_1.add_item(
-                "Friends",
-                lambda x: self.callback_for_menu_items(
-                    "names_for_friends_accept"))
-            self.bs_menu_1.add_item(
-                "Find Friends",
-                lambda x: self.callback_for_menu_items(
-                    "names_for_find_friends"))
-            self.bs_menu_1.add_item(
-                "Refresh",
-                lambda x: self.refresh_msgs())
-            self.bs_menu_1.add_item(
-                "Clear chat",
-                lambda x: self.clear_log())
-            self.bs_menu_1.add_item(
-                "Delete chat",
-                lambda x: self.delete_logs())
-        self.bs_menu_1.open()
+    def show_bottom_popup(self):
+        popup_screen = Factory.MyPopupScreenOne()
+        root = PopupScreen(screen=popup_screen,
+                           background_color=[.3, .3, .3, 1])
+        root.max_height = self.ids.toolbar.height*3
+        self.add_widget(root)
+        root.show()
 
-    def show_bottom_sheet_chat(self):
-        if not self.bs_menu_2:
-            self.bs_menu_2 = MDListBottomSheet()
-            self.bs_menu_2.add_item(
-                "Groups",
-                lambda x: self.get_groups_list())
-
-            self.bs_menu_2.add_item(
-                "Refresh",
-                lambda x: self.refresh_msgs())
-            self.bs_menu_2.add_item(
-                "Clear chat",
-                lambda x: self.clear_log())
-            self.bs_menu_2.add_item(
-                "Settings",
-                lambda x: Tinkle().open_settings())
-            self.bs_menu_2.add_item(
-                "Options",
-                lambda x: self.show_more_options())
-            self.bs_menu_2.add_item(
-                "Tinkle",
-                lambda x: self.show_about())
-        self.bs_menu_2.open()
 
     def get_groups_list(self):
         template = {}
@@ -2378,29 +2297,26 @@ class Chat(Screen):
 
     def add_two_line(self, from_who, msg_to_add, prof_img):
         a = TwoLineListItem(text=msg_to_add, secondary_text=from_who)
-        # a.add_widget(AvatarSampleWidget(source=prof_img))
         self.ml.add_widget(a)
 
     def add_three_line(self, from_who, msg_to_add, prof_img):
-        a = ThreeLineAvatarListItem(text=msg_to_add[:70] + "...",
-                                    secondary_text=from_who,
-                                    markup=True,
-                                    text_size=(self.width, None),
-                                    size_hint_y=None,
-                                    font_style="Body1",
+        a = ThreeLineAvatarListItem(text=msg_to_add[:70] + "...", secondary_text=from_who,
                                     on_press=lambda *args: self.out_quick(from_who, msg_to_add))
-        a.add_widget(AvatarSampleWidget(source=prof_img))
         self.ml.add_widget(a)
 
+    def for_callback(self, *args):
+        # leave this here
+        # else will crash as dialog expects a callback
+        pass
     def show_about(self):
         about_text = "Made with love from my room ;-)\nSend reports, issues or improvements to:\n[insertemail]@gmail.com OR +26481XXXX"
-        content = MDLabel(font_style='Subtitle2', text=about_text)
-        content.bind(texture_size=content.setter('size'))
-        self.dialog = MDDialog(title="Tinkle Messenger", content=content)
 
-        # self.dialog.add_action_button("Dismiss",
-        #                               action=lambda *x: self.dialog.dismiss())
-        self.dialog.open()
+        dialog = MDDialog(
+            title='Tinkle', size_hint=(.8, .4), text_button_ok='OK',
+            text=f"[color=%s][b]{about_text}[/b][/color]" % get_hex_from_color(
+                Tinkle().theme_cls.primary_color),
+            events_callback=self.for_callback)
+        dialog.open()
 
     def out_quick(self, thefrom, themsg):
         box = GridLayout(rows=2)
@@ -2426,7 +2342,7 @@ class Chat(Screen):
         popup.open()
 
     def download_file_arbi(self, url, media_type=""):
-        if 1 == 0:  # isAndroid() == True:
+        if 1 == 0:  # isAndroid():
             import permission_helper
             perms = ["android.permission.READ_EXTERNAL_STORAGE",
                      "android.permission.WRITE_EXTERNAL_STORAGE"]
@@ -2571,24 +2487,7 @@ class Chat(Screen):
             return None
 
     def show_more_options(self, *args):
-
-        txt = "1. Delete messages\n2. Create Group\n3. Create backup"
-        content = MDLabel(font_style='Subhead',
-                          text=txt,
-                          size_hint_y=None,
-                          valign='top')
-
-        content.bind(texture_size=content.setter('size'))
-        self.dialog = MDDialog(title="Options",
-                               content=content,
-                               auto_dismiss=True)
-        self.dialog.add_action_button("1",
-                                      action=partial(self.delete_logs))
-        self.dialog.add_action_button("2",
-                                      action=partial(self.change_to_create_group))
-        self.dialog.add_action_button("3",
-                                      action=partial(self._start_backup))
-        self.dialog.open()
+        pass
 
     def _start_backup(self, *args):
         threading.Thread(target=Tinkle().client_backup).start()
@@ -2636,7 +2535,7 @@ class Chat(Screen):
                             type_msg = ""
                             data = ""
                         else:
-                            if check_if_exist(os.path.join(chats_directory, data["from"])) == True:
+                            if check_if_exist(os.path.join(chats_directory, data["from"])):
                                 # append to file
                                 append_to_file(data["from"], data)
                                 # setting if user wants notification one line
@@ -2783,6 +2682,14 @@ class Chat(Screen):
 
                     except Exception as e:
                         print(traceback.format_exc())
+            except ConnectionResetError as e:
+                self.this_is_a_counter_and_wont_be_used_again = 0
+                if self.this_is_a_counter_and_wont_be_used_again == 0:
+                    print(traceback.format_exc())
+                    threading.Thread(target=global_notify, args=(
+                        "Connection lost; Check status website or restarting",)).start()
+                    self.this_is_a_counter_and_wont_be_used_again = 1
+
             except Exception as e:
                 showed_it = False
                 if showed_it == False:
@@ -2792,7 +2699,7 @@ class Chat(Screen):
     # def on_enter(self):
     #     self.add_one_line("From this is my texthttp://127.0.0.1/display/default.png")
 
-    def on_enter(self):
+    def _on_enter(self):
         global chat_was_on
 
         if chat_was_on == False:
@@ -2827,7 +2734,7 @@ class Chat(Screen):
                     "Unable to connect",)).start()
 
     def load_previous_msg(self):
-        if DEFAULT_ACCOUNT == True:
+        if DEFAULT_ACCOUNT:
             results_of_log_check = self.read_messages_from_log()
             if results_of_log_check != None:
                 for mx in results_of_log_check:
@@ -2860,7 +2767,7 @@ class ShareImage(BoxLayout, Screen):
         super(ShareImage, self).__init__(**kwargs)
 
     def on_back_pressed(self, *args):
-        if IS_GROUP_MEDIA == True:
+        if IS_GROUP_MEDIA:
             Tinkle().change_screen("group_convo")
         else:
             Tinkle().change_screen("convo")
@@ -2905,19 +2812,19 @@ class ShareImage(BoxLayout, Screen):
 
     def send_it(self):
         global receiver_name, IS_GROUP_MEDIA
-        if IS_GROUP_MEDIA == True:
+        if IS_GROUP_MEDIA:
             self.recvr = group_name
         else:
             self.recvr = receiver_name
         if len(self.filename) > 5:
             try:
                 try:
-                    if exceedLimit(self.filename) == True:
+                    if exceedLimit(self.filename):
                         threading.Thread(target=global_notify,
                                          args=("File exceeds 15MB limit",)).start()
                         return
                     condition = doHashCheckServer(self.filename, "image")
-                    if condition[0] == True:
+                    if condition[0]:
                         should_do_upload = False
                         complete_link = condition[1]
                     else:
@@ -2944,13 +2851,13 @@ class ShareImage(BoxLayout, Screen):
                     bibo["type"] = "image"
                     bibo["link"] = link_img
 
-                    if IS_GROUP_MEDIA == True:
+                    if IS_GROUP_MEDIA:
                         bibo["group_based"] = True
                         bibo["group_id"] = current_group_id
                     else:
                         bibo["to"] = self.recvr
 
-                    if should_do_upload == True:
+                    if should_do_upload:
                         threading.Thread(target=self.upload_image, args=(
                             tempo_img_file, url_for_img, bibo)).start()
                         # threading.Thread(target=global_notify, args=(
@@ -2961,7 +2868,7 @@ class ShareImage(BoxLayout, Screen):
                         self.remove_file(tempo_img_file)
                         threading.Thread(target=global_notify, args=(
                             "Upload complete, used cache",)).start()
-                    if IS_GROUP_MEDIA == True:
+                    if IS_GROUP_MEDIA:
                         Tinkle().change_screen("group_convo")
                         IS_GROUP_MEDIA = False
                     else:
@@ -2990,7 +2897,7 @@ class ShareAudio(BoxLayout, Screen):
         super(ShareAudio, self).__init__(**kwargs)
 
     def on_back_pressed(self, *args):
-        if IS_GROUP_MEDIA == True:
+        if IS_GROUP_MEDIA:
             Tinkle().change_screen("group_convo")
         else:
             Tinkle().change_screen("convo")
@@ -3040,19 +2947,19 @@ class ShareAudio(BoxLayout, Screen):
 
     def send_it_audio(self):  # this is upload part
         global receiver_name, IS_GROUP_MEDIA
-        if IS_GROUP_MEDIA == True:
+        if IS_GROUP_MEDIA:
             self.recvr = group_name
         else:
             self.recvr = receiver_name
         if len(self.filename) > 5:
             try:
                 try:
-                    if exceedLimit(self.filename) == True:
+                    if exceedLimit(self.filename):
                         threading.Thread(target=global_notify,
                                          args=("File exceeds 15MB limit",)).start()
                         return
                     condition = doHashCheckServer(self.filename, "audio")
-                    if condition[0] == True:
+                    if condition[0]:
                         should_do_upload = False
                         complete_link = condition[1]
                     else:
@@ -3083,13 +2990,13 @@ class ShareAudio(BoxLayout, Screen):
                     bibo = {}
                     bibo["type"] = "audio"
                     bibo["link"] = link_aud
-                    if IS_GROUP_MEDIA == True:
+                    if IS_GROUP_MEDIA:
                         bibo["group_based"] = True
                         bibo["group_id"] = current_group_id
                     else:
                         bibo["to"] = self.recvr
 
-                    if should_do_upload == True:
+                    if should_do_upload:
                         threading.Thread(target=self.upload_audio, args=(
                             tempo_aud_file, url_for_aud, bibo)).start()
                         threading.Thread(target=global_notify, args=(
@@ -3100,7 +3007,7 @@ class ShareAudio(BoxLayout, Screen):
                         self.remove_file(tempo_aud_file)
                         threading.Thread(target=global_notify, args=(
                             "Upload complete, used cache",)).start()
-                    if IS_GROUP_MEDIA == True:
+                    if IS_GROUP_MEDIA:
                         Tinkle().change_screen("group_convo")
                         IS_GROUP_MEDIA = False
                     else:
@@ -3128,7 +3035,7 @@ class ShareDocument(BoxLayout, Screen):
         super(ShareDocument, self).__init__(**kwargs)
 
     def on_back_pressed(self, *args):
-        if IS_GROUP_MEDIA == True:
+        if IS_GROUP_MEDIA:
             Tinkle().change_screen("group_convo")
         else:
             Tinkle().change_screen("convo")
@@ -3167,18 +3074,18 @@ class ShareDocument(BoxLayout, Screen):
 
     def send_it(self):  # this is upload part
         global receiver_name, IS_GROUP_MEDIA
-        if IS_GROUP_MEDIA == True:
+        if IS_GROUP_MEDIA:
             self.recvr = group_name
         else:
             self.recvr = receiver_name
         if len(self.filename) > 5:
             try:
-                if exceedLimit(self.filename) == True:
+                if exceedLimit(self.filename):
                     threading.Thread(target=global_notify,
                                      args=("File exceeds 15MB limit",)).start()
                     return
                 condition = doHashCheckServer(self.filename, "document")
-                if condition[0] == True:
+                if condition[0]:
                     should_do_upload = False
                     complete_link = condition[1]
                 else:
@@ -3206,13 +3113,13 @@ class ShareDocument(BoxLayout, Screen):
                     bibo["type"] = "document"
                     bibo["link"] = link_doc
 
-                    if IS_GROUP_MEDIA == True:
+                    if IS_GROUP_MEDIA:
                         bibo["group_based"] = True
                         bibo["group_id"] = current_group_id
                     else:
                         bibo["to"] = self.recvr
 
-                    if should_do_upload == True:
+                    if should_do_upload:
                         threading.Thread(target=self.upload_doc, args=(
                             tempo_doc_file, url_for_doc, bibo)).start()
                         threading.Thread(target=global_notify, args=(
@@ -3223,7 +3130,7 @@ class ShareDocument(BoxLayout, Screen):
                         self.remove_file(tempo_doc_file)
                         threading.Thread(target=global_notify, args=(
                             "Upload complete, used cache",)).start()
-                    if IS_GROUP_MEDIA == True:
+                    if IS_GROUP_MEDIA:
                         Tinkle().change_screen("group_convo")
                         IS_GROUP_MEDIA = False
                     else:
@@ -3245,13 +3152,11 @@ class ShareDocument(BoxLayout, Screen):
 class ChangeProPic:
 
     def get_rolling(self):
-        if isAndroid() == True:
+        if isAndroid():
             import android_image_select
-            reload(android_image_select)
             from jnius import autoclass
             autoclass('org.kivy.android.PythonActivity$ActivityResultListener')
             android_image_select.user_select_image(self.start_send_in_thread)
-            reload(android_image_select)
         else:
             threading.Thread(target=global_notify,
                              args=("Android only!",)).start()
@@ -3295,7 +3200,7 @@ class ChangeProPic:
         old_link = return_site_web_address() + "display/" + fname
         result = self.do_something(
             new_display_link, A().get_the_name(), get_password(), old_link)
-        if result[0] == True:
+        if result[0]:
             threading.Thread(target=global_notify,
                              args=("Update complete",)).start()
         elif result[0] == False:
@@ -3338,7 +3243,7 @@ class ChangeProPic:
     def send_it(self, path):  # this is upload part
         if path != None:
             self.filename = path
-            if exceedLimit(self.filename) == True:
+            if exceedLimit(self.filename):
                 threading.Thread(target=global_notify,
                                  args=("File exceeds 15MB limit",)).start()
                 return
@@ -3408,7 +3313,7 @@ class Profile_Pic(BoxLayout, Screen):
         old_link = return_site_web_address() + "display/" + fname
         result = self.do_something(
             new_display_link, A().get_the_name(), get_password(), old_link)
-        if result[0] == True:
+        if result[0]:
             threading.Thread(target=global_notify,
                              args=("Update complete",)).start()
         elif result[0] == False:
@@ -3456,7 +3361,7 @@ class Profile_Pic(BoxLayout, Screen):
         url_for_img_no_php = host + "display/"
         c_extension = os.path.splitext(self.filename)[1]
         if c_extension in avail_img_ext:
-            if exceedLimit(self.filename) == True:
+            if exceedLimit(self.filename):
                 threading.Thread(target=global_notify,
                                  args=("File exceeds 15MB limit",)).start()
                 return
@@ -3486,7 +3391,7 @@ class Profile_Pic(BoxLayout, Screen):
 class Tinkle(App):
     global sm
     theme_cls = ThemeManager()
-    theme_cls.primary_palette = 'Lime'
+    theme_cls.primary_palette = 'Blue'
     theme_cls.theme_style = "Light"
     sm = ScreenManager()
 
@@ -3543,7 +3448,7 @@ class Tinkle(App):
 
     def decide_change_dp(self):
         # if android: use gallery
-        if isAndroid() == True:
+        if isAndroid():
             ChangeProPic().get_rolling()
         else:
             self.manage_screens("profile_Pic", "add")
@@ -3578,7 +3483,7 @@ class Tinkle(App):
         # Your build code here...
         # add this line right before "return"
         self.bind(on_start=self.post_build_init)
-        if isAndroid() == True:
+        if isAndroid():
             # TileTransition doesnt work properly on phones [black screen]
             from moretransitions import BlurTransition
             sm = ScreenManager(transition=BlurTransition())
@@ -3586,9 +3491,8 @@ class Tinkle(App):
             from moretransitions import TileTransition
             sm = ScreenManager(transition=TileTransition())
 
-        sm.add_widget(SignInScreen(name="signin_screen"))
-        sm.add_widget(Registration(name="registration_screen"))
-        # sm.add_widget(Chat(name="Chat"))
+        # sm.add_widget(SignInScreen(name="signin_screen"))
+        sm.add_widget(Chat(name="registration_screen"))
         return sm
 
     def post_build_init(self, ev):
