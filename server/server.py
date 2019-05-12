@@ -126,8 +126,9 @@ def handle_secrets(conn):
     conn.send(bytes(json.dumps(initial),"utf-8"))
     data = dict(name=handle, friend_requests="",
                 friend_rejects="", friend_accepts="")
-    threading.Thread(target=auto_reply, args=(
-        conn, handle, secret, data)).start()
+    auto_reply(conn, handle, secret, data)
+    # threading.Thread(target=auto_reply, args=(
+        # conn, handle, secret, data)).start()
 
 # holds messages while client offline
 # including: images, audio, documents & private msgs
@@ -413,7 +414,9 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                     "to": ""
                 }
             except:
-                continue
+                print("Issue with loading the message")
+                print(traceback.format_exc())
+                return
 
             try:  # my_name,to_who_img,link_img
                 #a = data
@@ -471,6 +474,7 @@ def auto_reply(connection, handle, my_key, ddaattaa):
 
             except BaseException as e:
                 print(traceback.format_exc())
+                return
 
             # idk what this line does forgot
             clients_dict[handle] = [my_key, connection]
