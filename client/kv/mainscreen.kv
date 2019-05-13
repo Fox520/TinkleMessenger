@@ -1,3 +1,5 @@
+#:import get_hex_from_color kivy.utils.get_hex_from_color
+
 <Chat>:
     NavigationLayout:
         id: nav_draw
@@ -7,7 +9,7 @@
             rows: 3
             MDToolbar:
                 id: toolbar
-                title: "Tinkle"
+                title: "Tinkle Messenger"
                 md_bg_color: app.theme_cls.primary_color
                 background_palette: 'Primary'
                 background_hue: '500'
@@ -15,7 +17,7 @@
                 left_action_items:
                     [['menu', lambda x: nav_draw.toggle_nav_drawer()]]
                 right_action_items:
-                    [['blur', lambda x: root.show_bottom_sheet_chat()],['dots-vertical', lambda x: root.show_bottom_sheet()]]
+                    [['dots-vertical', lambda x: root.show_bottom_popup()]]
             MDTabbedPanel:
                 id: tab_panel
                 tab_display_mode: "text"
@@ -45,7 +47,6 @@
 
                         MDTextField:
                             id: message
-                            #disabled: True
                             hint_text: "Type your message"
                             multiline: False
                             valign: 'bottom'
@@ -65,9 +66,67 @@
 
                     GetNamesForFindFriendsScreen:
 
-                MDTab:
-                    id: friend_requests_tab
-                    name: "friends_request"
-                    text: "Friend Requests"
+<MyPopupScreenOne@BoxLayout>:
+    orientation: 'vertical'
 
-                    GetNamesForFriendRequestsScreen:
+    BoxLayout:
+        size_hint_y: None
+        height: self.minimum_height
+
+        Widget:
+        MDRoundFlatButton:
+            text: "Groups"
+            on_release:
+                root.parent.parent.parent.get_groups_list()
+        Widget:
+        MDRoundFlatButton:
+            text: "Create group"
+            on_release:
+                root.parent.parent.parent.change_to_create_group()
+        Widget:
+
+    TwoLineIconListItem:
+        text: "Backup"
+        secondary_text:
+            "[color=%s]Creates a backup of your account credentials.[/color]" \
+            % get_hex_from_color(app.theme_cls.primary_color)
+        on_release:
+            root.parent.parent.parent._start_backup()
+        IconLeftSampleWidget:
+            icon: 'backup-restore'
+
+    OneLineIconListItem:
+        text: "Settings"
+        on_release:
+            app.open_settings()
+        IconLeftSampleWidget:
+            icon: 'settings-box'
+
+    TwoLineIconListItem:
+        text: "Clear chat"
+        on_release:
+            root.parent.parent.parent.clear_log()
+        secondary_text:
+            "[color=%s]Empty the chat[/color]" \
+            % get_hex_from_color(app.theme_cls.primary_color)
+        IconLeftSampleWidget:
+            icon: 'notification-clear-all'
+
+    TwoLineIconListItem:
+        text: "Delete messages"
+        on_release:
+            root.parent.parent.parent.delete_logs()
+        secondary_text:
+            "[color=%s]Permanently removes the messages from device[/color]" \
+            % get_hex_from_color(app.theme_cls.primary_color)
+        IconLeftSampleWidget:
+            icon: 'delete-forever'
+
+    OneLineIconListItem:
+        text: "Tinkle"
+        on_release:
+            root.parent.parent.parent.show_about()
+        IconLeftSampleWidget:
+            icon: 'worker'
+
+    Widget:

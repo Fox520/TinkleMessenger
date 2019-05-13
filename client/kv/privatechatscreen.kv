@@ -10,7 +10,7 @@
             background_hue: '500'
             elevation: 10
             right_action_items:
-                [['dots-vertical', lambda x: root.show_bottom_sheet()]]
+                [['dots-vertical', lambda x: root.show_bottom_popup()]]
 
 
         GridLayout:
@@ -34,3 +34,68 @@
                 multiline: False
                 valign: 'bottom'
                 on_text_validate: root.send_msg()
+
+<PopupScreenPrivateChat@BoxLayout>:
+    orientation: 'vertical'
+
+    BoxLayout:
+        size_hint_y: None
+        height: self.minimum_height
+
+        Widget:
+        MDRoundFlatButton:
+            text: "Send file"
+            on_release:
+                root.parent.parent.parent.callback_for_menu_items("for_selecting_docs")
+        Widget:
+        MDRoundFlatButton:
+            text: "Send audio file"
+            on_release:
+                root.parent.parent.parent.callback_for_menu_items("for_selecting_audio")
+        Widget:
+
+        Widget:
+        MDRoundFlatButton:
+            text: "Send image"
+            on_release:
+                root.parent.parent.parent.decide_share_image()
+        Widget:
+
+    TwoLineIconListItem:
+        text: "Refresh"
+        secondary_text:
+            "[color=%s]Reload texts[/color]" \
+            % get_hex_from_color(app.theme_cls.primary_color)
+        on_release:
+            root.parent.parent.parent.refresh_msgs()
+        IconLeftSampleWidget:
+            icon: 'refresh'
+
+    TwoLineIconListItem:
+        text: "Clear chat"
+        on_release:
+            root.parent.parent.parent.clear_log()
+        secondary_text:
+            "[color=%s]Empty the chat [not permanent][/color]" \
+            % get_hex_from_color(app.theme_cls.primary_color)
+        IconLeftSampleWidget:
+            icon: 'notification-clear-all'
+
+    TwoLineIconListItem:
+        text: "Delete messages"
+        on_release:
+            root.parent.parent.parent.delete_logs()
+        secondary_text:
+            "[color=%s]Deletes all messages in this chat[/color]" \
+            % get_hex_from_color(app.theme_cls.primary_color)
+        IconLeftSampleWidget:
+            icon: 'delete-forever'
+
+    OneLineIconListItem:
+        text: "Back"
+        on_release:
+            root.parent.parent.parent.show_about()
+        IconLeftSampleWidget:
+            icon: 'step-backward'
+
+    Widget:

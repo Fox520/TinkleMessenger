@@ -541,8 +541,10 @@ Builder.load_string("""
     
     """)
 
+
 class IconLeftSampleWidget(ILeftBodyTouch, MDIconButton):
     pass
+
 
 # Name: advanced_screen
 
@@ -652,7 +654,7 @@ class GroupMembers(Screen):
         self.ml.add_widget(magnet, index=randint(0, len(self.ml.children)))
 
     def popup_menu(self, member_name, *args):
-        #TODO: Fix this
+        # TODO: Fix this
         txt = "1. Make admin\n2. Remove admin\n3. Remove from group"
 
         content = MDLabel(font_style='Subhead',
@@ -1481,7 +1483,7 @@ class Conversation(Screen):
         global IS_GROUP_MEDIA
         IS_GROUP_MEDIA = False
         threading.Thread(target=self.insert_data).start()
-        threading.Thread(target=self.initial_conditions).start()
+        # threading.Thread(target=self.initial_conditions).start()
 
     def handle_msg1(self, *args):
         global new_data_to_add
@@ -1547,6 +1549,14 @@ class Conversation(Screen):
                 lambda x: self.callback_for_menu_items(
                     "Chat"))
         self.bs_menu_1.open()
+
+    def show_bottom_popup(self):
+        popup_screen = Factory.PopupScreenPrivateChat()
+        root = PopupScreen(screen=popup_screen,
+                           background_color=[.3, .3, .3, 1])
+        root.max_height = self.ids.toolbar.height * 3
+        self.add_widget(root)
+        root.show()
 
     def callback_for_menu_items(self, scn):
         try:
@@ -2247,6 +2257,7 @@ class StatusComments(Screen):
 class PopupScreen(MDPopupScreen):
     pass
 
+
 # Name: Chat
 
 class Chat(Screen):
@@ -2273,10 +2284,9 @@ class Chat(Screen):
         popup_screen = Factory.MyPopupScreenOne()
         root = PopupScreen(screen=popup_screen,
                            background_color=[.3, .3, .3, 1])
-        root.max_height = self.ids.toolbar.height*3
+        root.max_height = self.ids.toolbar.height * 3
         self.add_widget(root)
         root.show()
-
 
     def get_groups_list(self):
         template = {}
@@ -2308,6 +2318,7 @@ class Chat(Screen):
         # leave this here
         # else will crash as dialog expects a callback
         pass
+
     def show_about(self):
         about_text = "Made with love from my room ;-)\nSend reports, issues or improvements to:\n[insertemail]@gmail.com OR +26481XXXX"
 
@@ -2699,7 +2710,7 @@ class Chat(Screen):
     # def on_enter(self):
     #     self.add_one_line("From this is my texthttp://127.0.0.1/display/default.png")
 
-    def _on_enter(self):
+    def on_enter(self):
         global chat_was_on
 
         if chat_was_on == False:
@@ -3491,8 +3502,8 @@ class Tinkle(App):
             from moretransitions import TileTransition
             sm = ScreenManager(transition=TileTransition())
 
-        # sm.add_widget(SignInScreen(name="signin_screen"))
-        sm.add_widget(Chat(name="registration_screen"))
+        sm.add_widget(SignInScreen(name="signin_screen"))
+        sm.add_widget(Registration(name="registration_screen"))
         return sm
 
     def post_build_init(self, ev):
