@@ -13,6 +13,7 @@ Built using the Kivy framework.
 ## Prerequisites
 * Python 3 (tested with v3.7.3)
 * Kivy (tested with v1.10.1)
+* Plyer
 
 ## Server
 * Have a webserver installed
