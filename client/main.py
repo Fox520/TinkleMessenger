@@ -37,7 +37,7 @@ from kivy.properties import StringProperty
 from kivy.resources import resource_add_path  # To compile to exe
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
-from kivy.uix.colorpicker import ColorPicker
+from kivy.uix.modalview import ModalView
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.image import AsyncImage, Image
 from kivy.uix.label import Label
@@ -47,11 +47,11 @@ from kivy.uix.filechooser import FileChooserIconView
 #
 from kivy.utils import get_color_from_hex, get_hex_from_color
 
-from kivymd.toast import toast
 from kivymd.bottomsheet import MDListBottomSheet
 from kivymd.theming import ThemeManager
 from kivymd.button import MDRaisedButton
 from kivymd.dialog import MDDialog
+from kivymd.filemanager import MDFileManager
 from kivymd.list import OneLineListItem, TwoLineListItem, TwoLineAvatarListItem, ThreeLineAvatarListItem, MDList
 from kivymd.textfields import MDTextField
 from kivymd.label import MDLabel
@@ -59,11 +59,14 @@ from kivymd.snackbars import Snackbar
 from kivymd.popupscreen import MDPopupScreen
 from kivymd.button import MDIconButton
 from kivymd.list import ILeftBodyTouch
+from kivymd.toast import toast
 
 from spin_load import ProgressSpinner
 
 from magnet import Magnet
 from random import sample, randint
+
+from plyer import filechooser
 
 os.environ['KIVY_GL_BACKEND'] = 'sdl2'
 
@@ -111,10 +114,14 @@ resource_folder = "resources"
 receiver_name = ""
 group_name = "null"
 OLD_GROUP_ID = ""
+DP_EXT = ".png"  # Profile pictures are stored in png format
 DEFAULT_ACCOUNT = False
-DEFAULT_STATUS = "cat.jpg"
+DEFAULT_STATUS = "cat.jpg"  # Image to display when no status has been set
 MAX_FILE_SIZE = 15000000
 MSG_CHECK_DELAY = 0.5
+OPTION_SELECTION_IMG = "option-img"
+OPTION_SELECTION_FILE = "option-file"
+OPTION_SELECTION_AUD = "option-aud"
 LOADING_IMAGE = os.path.join(resource_folder, "tinkle_loading.png")
 client_file = os.path.join(other_files, "s2adwkbje2gbxhh4yi0k")
 save_messages_file = os.path.join(other_files, "ydr6yxohmvy92o0ex1ql")
@@ -126,6 +133,7 @@ was_on = False
 ishere = False
 
 color_file = os.path.join(other_files, "fi9a494os0tn22gelfxt")
+current_image_selected = ""
 global_status_pic = ""
 global_status_text = ""
 update_convo = False
@@ -173,9 +181,16 @@ avail_aud_ext = [".mp3", ".wav", ".ogg"]
 avail_doc_ext = [".doc", ".pdf", ".xls", ".docx", ".zip", ".rar", ".apk"]
 #########
 fil_avail_img_ext = ["*.jpg", "*.png", "*.gif"]
+fil_avail_profile_ext_plyer = [["Picture","*.jpg", "*.png"]]
+fil_avail_image_ext_plyer = [["Picture","*.jpg", "*.png", "*.gif"]]
+
 fil_avail_aud_ext = ["*.mp3", "*.wav", "*.ogg"]
+fil_avail_aud_ext_plyer = [["Audio","*.mp3", "*.wav", "*.ogg"]]
+
 fil_avail_doc_ext = ["*.doc", "*.pdf", "*.xls",
                      "*.docx", "*.zip", "*.rar", "*.apk"]
+fil_avail_doc_ext_plyer = [["File","*.doc", "*.pdf", "*.xls",
+                     "*.docx", "*.zip", "*.rar", "*.apk"]]
 try:
     if os.path.isfile(color_file):
         with open(color_file, "rb") as f:
@@ -249,13 +264,13 @@ if not os.path.exists(other_files):
     os.makedirs(other_files)
 
 WEB_ADDR = "http://127.0.0.1/"
-
+dp_path = None
 _web_address = None
 _server_ip = None
 
 
 def return_site_web_address():
-    return "127.0.0.1"
+    return "http://127.0.0.1/"
     global _web_address
     # fetch address from web and write it
     if _web_address != None:
@@ -282,6 +297,10 @@ def return_server_address():
         return p
     except Exception as e:
         print(e)
+
+
+def profile_img_link():
+    return dp_path + A().get_the_name() + DP_EXT
 
 
 def create_file_sent_req(name_client):
@@ -499,6 +518,8 @@ Builder.load_string("""
 #:import MDTab kivymd.tabs.MDTab
 #:import MDTabbedPanel kivymd.tabs.MDTabbedPanel
 #:import MDRoundFlatButton kivymd.button.MDRoundFlatButton
+#:import SmartTileWithLabel kivymd.imagelists.SmartTileWithLabel
+#:import MDRoundFlatIconButton kivymd.button.MDRoundFlatIconButton
 
 <MyImageButton@ButtonBehavior+AsyncImage>:
 
@@ -919,11 +940,11 @@ class Registration(Screen):
             data = json.loads(tdata)
             if data["state"] == "success":
                 with open(client_file, "wb") as f:
-                    f.write(name_reg)
+                    f.write(bytes(name_reg, "utf-8"))
                 return True
             elif data["state"] == "fail":
                 return False
-        except Exception as e:
+        except BaseException as e:
             return None
 
     def test_name_chars(self, string_to_test):
@@ -1167,10 +1188,8 @@ class GetNamesForFindFriendsScreen(Screen):
         if was_here_find_friends:
             self.event.cancel()
             self.ids.ldml.clear_widgets()
-            print(current_find_friends)
             for each_user in current_find_friends:
-                if len(each_user) >= 4:  # and A().get_the_name() not in each_user:
-                    print(each_user)
+                if len(each_user) >= 4 and A().get_the_name() != each_user:
                     self.add_one_line(each_user)
 
             print("done wif refreshing mate")
@@ -1419,6 +1438,9 @@ class Conversation(Screen):
         self.message = self.ids["message"]
         self.mld = self.ids["mld"]
         self.prev_msg = ""
+        self.f_manager_open = False
+        self.f_manager = None
+        self.selection_type = None # differentiate image, file and doc
 
     def initial_conditions(self):
         try:
@@ -1438,6 +1460,7 @@ class Conversation(Screen):
         threading.Thread(target=self.insert_data).start()
 
     def on_back_pressed(self, *args):
+        Tinkle().manage_screens("convo","remove")
         Tinkle().change_screen("Chat")
 
     def on_menu_pressed(self, *args):
@@ -1482,7 +1505,7 @@ class Conversation(Screen):
     def on_enter(self):
         global IS_GROUP_MEDIA
         IS_GROUP_MEDIA = False
-        threading.Thread(target=self.insert_data).start()
+        # threading.Thread(target=self.insert_data).start()
         # threading.Thread(target=self.initial_conditions).start()
 
     def handle_msg1(self, *args):
@@ -1560,10 +1583,46 @@ class Conversation(Screen):
 
     def callback_for_menu_items(self, scn):
         try:
-            # Tinkle().manage_screens(scn, "add")
+            # Attempt to add, won't add if already exists
+            Tinkle().manage_screens(scn, "add")
             Tinkle().change_screen(scn)
         except:
             print(traceback.format_exc())
+
+    def prepare_file_share(self):
+        filechooser.open_file(on_selection=self.handle_selection_file, path=path_docs, filters=fil_avail_doc_ext_plyer)
+
+    def handle_selection_file(self, selection):
+        '''
+        Callback function for handling the selection response from Activity.
+        '''
+        self.selection = selection
+        try:
+            if os.path.isfile(self.selection[0]):
+                ShareDocument().send_it(self.selection[0])
+        except:
+            # print(traceback.format_exc())
+            pass
+    def prepare_audio_share(self):
+        filechooser.open_file(on_selection=self.handle_selection_audio, path=path_music, filters=fil_avail_aud_ext_plyer)
+
+    def handle_selection_audio(self, selection):
+        '''
+        Callback function for handling the selection response from Activity.
+        '''
+        self.selection = selection
+        try:
+            if os.path.isfile(self.selection[0]):
+                ShareAudio().send_it_audio(self.selection[0])
+        except:
+            # print(traceback.format_exc())
+            pass
+
+    def on_selection(self, *a, **k):
+        '''
+        Update TextInput.text after FileChoose.selection is changed
+        via FileChoose.handle_selection.
+        '''
 
     def decide_share_image(self):
         if isAndroid():
@@ -1677,7 +1736,65 @@ class Conversation(Screen):
         except:
             pass
 
-    def on_leave(self):
+    def file_manager_open(self, selection_type):
+        self.selection_type = selection_type
+        if isAndroid() and selection_type == OPTION_SELECTION_IMG:
+            self.android_share_image()
+            return
+
+        if self.selection_type == OPTION_SELECTION_IMG:
+            Tinkle().manage_screens("for_selecting", "add")
+            Tinkle().change_screen("for_selecting")
+            return
+
+        if self.selection_type == OPTION_SELECTION_FILE:
+            threading.Thread(target=self.prepare_file_share).start()
+            return
+
+        if self.selection_type == OPTION_SELECTION_AUD:
+            threading.Thread(target=self.prepare_audio_share).start()
+            return
+
+    def select_path(self, path):
+        '''It will be called when you click on the file name
+        or the catalog selection button.
+
+        :type path: str;
+        :param path: path to the selected directory or file;
+        '''
+
+        self.exit_manager()
+        if self.selection_type == OPTION_SELECTION_IMG and os.path.splitext(path)[1] in avail_img_ext:
+            pass
+        elif self.selection_type == OPTION_SELECTION_AUD and os.path.splitext(path)[1] in avail_aud_ext:
+            pass
+        elif self.selection_type == OPTION_SELECTION_FILE and os.path.splitext(path)[1] in avail_doc_ext:
+            pass
+        else:
+            toast("File type not supported")
+
+    def exit_manager(self, *args):
+        '''Called when the user reaches the root of the directory tree.'''
+
+        self.f_manager.dismiss()
+        self.f_manager_open = False
+
+    def events(self, instance, keyboard, keycode, text, modifiers):
+        '''Called when buttons are pressed on the mobile device..'''
+
+        if keyboard in (1001, 27):
+            if self.f_manager_open:
+                try:
+                    self.file_manager.back()
+                except BaseException as e:
+                    print(e)
+                    toast("Can't go back")
+
+        return True
+
+    # Probably shouldn't be called as it will be destroyed
+    # when going back to Chat
+    def _on_leave(self):
         global new_data_to_add
         self.prev_msg = ""
         try:
@@ -1691,7 +1808,7 @@ class Conversation(Screen):
         except Exception as e:
             print(traceback.format_exc())
         new_data_to_add = ""
-        Tinkle().manage_screens("names_for_friends_accept", "add")
+        # Tinkle().manage_screens("names_for_friends_accept", "add")
         self.ids.mld.clear_widgets()
 
 
@@ -1722,6 +1839,7 @@ class GroupConversation(Screen):
         threading.Thread(target=self.insert_data).start()
 
     def on_back_pressed(self, *args):
+        Tinkle().manage_screens("group_convo", "remove")
         Tinkle().change_screen("Chat")
 
     def on_menu_pressed(self, *args):
@@ -1741,10 +1859,7 @@ class GroupConversation(Screen):
 
     # group texts not saved yet so won't work
     def delete_logs(self):
-        try:
-            os.remove(self.full_path)
-        except Exception as e:
-            print(e)
+        pass
 
     def insert_data(self):
         self.event = Clock.schedule_interval(self.handle_msg1, MSG_CHECK_DELAY)
@@ -1816,6 +1931,12 @@ class GroupConversation(Screen):
         self.bs_menu_1.open()
 
     def callback_for_menu_items(self, scn):
+        if scn == "for_selecting_docs":
+            threading.Thread(target=self.prepare_file_share).start()
+            return
+        if scn == "for_selecting_docs":
+            threading.Thread(target=self.prepare_audio_share).start()
+            return
         try:
             Tinkle().manage_screens(scn, "add")
             Tinkle().change_screen(scn)
@@ -1826,6 +1947,8 @@ class GroupConversation(Screen):
         if isAndroid():
             self.android_share_image()
         else:
+            global IS_GROUP_MEDIA
+            IS_GROUP_MEDIA = True
             Tinkle().manage_screens("for_selecting", "add")
             Tinkle().change_screen("for_selecting")
 
@@ -1928,6 +2051,42 @@ class GroupConversation(Screen):
         threading.Thread(target=global_notify,
                          args=("upload complete",)).start()
         self.remove_file(fname)
+
+    def prepare_file_share(self):
+        filechooser.open_file(on_selection=self.handle_selection, path=path_docs, filters=fil_avail_doc_ext_plyer)
+
+    def handle_selection(self, selection):
+        '''
+        Callback function for handling the selection response from Activity.
+        '''
+        self.selection = selection
+        try:
+            if os.path.isfile(self.selection[0]):
+                print(self.selection[0])
+                ShareDocument().send_it(self.selection[0])
+        except:
+            print(traceback.format_exc())
+
+    def prepare_audio_share(self):
+        filechooser.open_file(on_selection=self.handle_selection_audio, path=path_music, filters=fil_avail_aud_ext_plyer)
+
+    def handle_selection_audio(self, selection):
+        '''
+        Callback function for handling the selection response from Activity.
+        '''
+        self.selection = selection
+        try:
+            if os.path.isfile(self.selection[0]):
+                ShareAudio().send_it_audio(self.selection[0])
+        except:
+            # print(traceback.format_exc())
+            pass
+
+    def on_selection(self, *a, **k):
+        '''
+        Update TextInput.text after FileChoose.selection is changed
+        via FileChoose.handle_selection.
+        '''
 
     def remove_file(self, fname):
         try:
@@ -2270,7 +2429,7 @@ class Chat(Screen):
         self.bs_menu_2 = None
 
     def callback_for_menu_items(self, sc):
-        if sc == "profile_Pic":
+        if sc == "profile_pic":
             if isAndroid():
                 pass
             else:
@@ -2712,6 +2871,7 @@ class Chat(Screen):
 
     def on_enter(self):
         global chat_was_on
+        global dp_path
 
         if chat_was_on == False:
             chat_was_on = True
@@ -2731,6 +2891,8 @@ class Chat(Screen):
                 s.send(bytes(json.dumps(tpa), "utf-8"))
                 initial = s.recv(512).decode("utf-8")  # the server greeting
                 initial = json.loads(initial)
+                dp_path = return_site_web_address() + "display/"
+
                 self.add_two_line(
                     initial["from"], initial["greeting"], initial["img_link"])
                 threading.Thread(target=global_notify, args=(
@@ -2767,15 +2929,18 @@ class Chat(Screen):
 
 
 # Name: for_selecting
-class ShareImage(BoxLayout, Screen):
+class ImagePreviewShare(Screen):
     # only called on desktop
     global s
 
     def __init__(self, **kwargs):
-        self.filename = ""
         self.register_event_type('on_back_pressed')
         self.register_event_type('on_menu_pressed')
-        super(ShareImage, self).__init__(**kwargs)
+        super(ImagePreviewShare, self).__init__(**kwargs)
+        self.f_manager_open = False
+        self.f_manager = None
+        self.image_preview = self.ids["image_preview"]
+        self.filename = ""
 
     def on_back_pressed(self, *args):
         if IS_GROUP_MEDIA:
@@ -2795,18 +2960,14 @@ class ShareImage(BoxLayout, Screen):
             print(traceback.format_exc())
 
     def preview_img(self, src):
-        popup = Popup(title="Preview",
-                      content=Image(source=src),
-                      size_hint=(.9, .7), pos_hint={'x': .2, 'y': .2})
-        popup.open()
+        pass
 
     def upload_image(self, fname, urlll, dumped_list):
         with open(fname, "rb") as f:
             files = {'testname': f}
             r = requests.post(urlll, files=files)
         s.send(bytes(json.dumps(dumped_list), "utf-8"))
-        threading.Thread(target=global_notify,
-                         args=("upload complete",)).start()
+        toast("upload complete")
         self.remove_file(fname)
 
     def remove_file(self, fname):
@@ -2816,25 +2977,26 @@ class ShareImage(BoxLayout, Screen):
             pass
 
     # OUTPUT: random string of specified length
-    def id_generator(size=7, chars=string.ascii_lowercase + string.digits):
+    def id_generator(self, size=7, chars=string.ascii_lowercase + string.digits):
         return ''.join(random.choice(chars) for _ in range(size))
 
     # LOGIC: create temp copy of image, upload, delete
 
-    def send_it(self):
+    def prepare_send_it(self,filename):
+        threading.Thread(target=self.send_it, args=(filename,)).start()
+    def send_it(self, filename):
         global receiver_name, IS_GROUP_MEDIA
         if IS_GROUP_MEDIA:
             self.recvr = group_name
         else:
             self.recvr = receiver_name
-        if len(self.filename) > 5:
+        if len(filename) > 5:
             try:
                 try:
-                    if exceedLimit(self.filename):
-                        threading.Thread(target=global_notify,
-                                         args=("File exceeds 15MB limit",)).start()
+                    if exceedLimit(filename):
+                        toast("File exceeds 15MB limit")
                         return
-                    condition = doHashCheckServer(self.filename, "image")
+                    condition = doHashCheckServer(filename, "image")
                     if condition[0]:
                         should_do_upload = False
                         complete_link = condition[1]
@@ -2845,7 +3007,7 @@ class ShareImage(BoxLayout, Screen):
                 person_to = self.recvr
                 url_for_img = return_site_web_address() + "man_images.php"
                 url_for_img_no_php = return_site_web_address() + "img/"
-                c_extension = os.path.splitext(self.filename)[1]
+                c_extension = os.path.splitext(filename)[1]
                 if c_extension in avail_img_ext:
                     extension = c_extension
                     # create temp_file for randomness of filename
@@ -2853,7 +3015,7 @@ class ShareImage(BoxLayout, Screen):
                     tempo_img_file = my_name + "-" + \
                                      ''.join(random.choice(string.ascii_lowercase + string.digits)
                                              for _ in range(7)) + extension
-                    with open(self.filename, "rb") as f:
+                    with open(filename, "rb") as f:
                         orag = f.read()
                     with open(tempo_img_file, "wb") as fb:
                         fb.write(orag)
@@ -2886,11 +3048,56 @@ class ShareImage(BoxLayout, Screen):
                         Tinkle().change_screen("convo")
 
             except BaseException as e:
-                print(traceback.format_exc())
-                threading.Thread(target=global_notify,
-                                 args=("Unable to send",)).start()
-                IS_GROUP_MEDIA = False
-                Tinkle().change_screen("Chat")
+                # print(traceback.format_exc())
+                toast("Unable to send")
+                if IS_GROUP_MEDIA:
+                    Tinkle().change_screen("group_convo")
+                else:
+                    Tinkle().change_screen("convo")
+
+    def file_manager_open(self):
+        threading.Thread(target=self._actual_image_select).start()
+
+    def select_path(self, path):
+        '''It will be called when you click on the file name
+        or the catalog selection button.
+
+        :type path: str;
+        :param path: path to the selected directory or file;
+        '''
+
+        self.exit_manager()
+        if os.path.splitext(path)[1] in avail_img_ext:
+            self.image_preview.source = path
+        else:
+            toast("File type not supported")
+
+    def _actual_image_select(self):
+        filechooser.open_file(on_selection=self.handle_selection, path=path_docs, filters=fil_avail_profile_ext_plyer)
+
+    def handle_selection(self, selection):
+        '''
+        Callback function for handling the selection response from Activity.
+        '''
+        self.selection = selection
+        try:
+            if os.path.isfile(self.selection[0]):
+                self.image_preview.source = self.selection[0]
+        except:
+            # print(traceback.format_exc())
+            pass
+
+    def on_selection(self, *a, **k):
+        '''
+        Update TextInput.text after FileChoose.selection is changed
+        via FileChoose.handle_selection.
+        '''
+
+    def go_back(self):
+        if IS_GROUP_MEDIA:
+            Tinkle().change_screen("group_convo")
+        else:
+            Tinkle().change_screen("convo")
 
     def on_leave(self):
         Tinkle().manage_screens("for_selecting", "remove")
@@ -2899,22 +3106,8 @@ class ShareImage(BoxLayout, Screen):
 # Name: for_selecting_audio
 
 
-class ShareAudio(BoxLayout, Screen):
+class ShareAudio:
     global s
-
-    def __init__(self, **kwargs):
-        self.register_event_type('on_back_pressed')
-        self.register_event_type('on_menu_pressed')
-        super(ShareAudio, self).__init__(**kwargs)
-
-    def on_back_pressed(self, *args):
-        if IS_GROUP_MEDIA:
-            Tinkle().change_screen("group_convo")
-        else:
-            Tinkle().change_screen("convo")
-
-    def on_menu_pressed(self, *args):
-        pass
 
     def stop_sound(self):
         self.tmp.unload()
@@ -2929,20 +3122,11 @@ class ShareAudio(BoxLayout, Screen):
         play_time = self.percent_to_play(10, self.tmp)
         Clock.schedule_once(lambda dt: self.stop_sound(), play_time)
 
-    def select(self, filename):
-        try:
-            self.filename = filename[0]
-            # self.play_percent()#freezes program when loading file into memory
-        except Exception as e:
-            pass
-
     def upload_audio(self, fname, urlll, dumped_list):
         global s
-        # files = {"testname":open(fname,"rb")}
-        # r = requests.post(urlll,files=files)
         with open(fname, "rb") as f:
             files = {'testname': f}
-            r = requests.post(urlll, files=files)
+            requests.post(urlll, files=files)
         s.send(bytes(json.dumps(dumped_list), "utf-8"))
         self.remove_file(fname)
 
@@ -2952,28 +3136,29 @@ class ShareAudio(BoxLayout, Screen):
         except BaseException as e:
             pass
 
-    def id_generator(size=7, chars=string.ascii_lowercase + string.digits):
+    def id_generator(self, size=7, chars=string.ascii_lowercase + string.digits):
         # do from random import choice
         return ''.join(random.choice(chars) for _ in range(size))
 
-    def send_it_audio(self):  # this is upload part
+    def send_it_audio(self, filename):  # this is upload part
         global receiver_name, IS_GROUP_MEDIA
         if IS_GROUP_MEDIA:
             self.recvr = group_name
         else:
             self.recvr = receiver_name
-        if len(self.filename) > 5:
+        if len(filename) > 5:
             try:
                 try:
-                    if exceedLimit(self.filename):
+                    if exceedLimit(filename):
                         threading.Thread(target=global_notify,
                                          args=("File exceeds 15MB limit",)).start()
                         return
-                    condition = doHashCheckServer(self.filename, "audio")
+                    condition = doHashCheckServer(filename, "audio")
                     if condition[0]:
                         should_do_upload = False
                         complete_link = condition[1]
                     else:
+                        complete_link = ""
                         should_do_upload = True
                 except:
                     should_do_upload = True
@@ -2981,23 +3166,19 @@ class ShareAudio(BoxLayout, Screen):
                 host = return_site_web_address()
                 url_for_aud = host + "man_audio.php"
                 url_for_aud_no_php = host + "aud/"
-                c_extension = os.path.splitext(self.filename)[1]
+                c_extension = os.path.splitext(filename)[1]
                 if c_extension in avail_aud_ext:
                     extension = c_extension
-                    # msg_to_server_my_name = str(A().get_the_name())#add name first
-                    # msg_to_server_img = str(file_buffer_string)#add the image
-                    # create temp_file for randomness of filename
                     my_name = str(A().get_the_name())
                     tempo_aud_file = my_name + "_" + \
                                      ''.join(random.choice(string.ascii_lowercase + string.digits)
                                              for _ in range(7)) + extension
-                    with open(self.filename, "rb") as f:
+                    with open(filename, "rb") as f:
                         orag = f.read()
                     with open(tempo_aud_file, "wb") as fb:
                         fb.write(orag)
 
                     link_aud = url_for_aud_no_php + tempo_aud_file
-                    # dumped_list = my_name+"|"+to_who_aud+"~"+link_aud#my_name,to_who_img,link_img
                     bibo = {}
                     bibo["type"] = "audio"
                     bibo["link"] = link_aud
@@ -3010,55 +3191,21 @@ class ShareAudio(BoxLayout, Screen):
                     if should_do_upload:
                         threading.Thread(target=self.upload_audio, args=(
                             tempo_aud_file, url_for_aud, bibo)).start()
-                        threading.Thread(target=global_notify, args=(
-                            "Sharing in background",)).start()
+                        toast("Sharing in background")
                     else:
                         bibo["link"] = complete_link
                         s.send(bytes(json.dumps(bibo), "utf-8"))
                         self.remove_file(tempo_aud_file)
-                        threading.Thread(target=global_notify, args=(
-                            "Upload complete, used cache",)).start()
-                    if IS_GROUP_MEDIA:
-                        Tinkle().change_screen("group_convo")
-                        IS_GROUP_MEDIA = False
-                    else:
-                        Tinkle().change_screen("convo")
+                        toast("Upload complete, used cache")
 
             except BaseException as e:
-                threading.Thread(target=global_notify,
-                                 args=("Unable to send",)).start()
-                IS_GROUP_MEDIA = False
-                Tinkle().change_screen("Chat")
-
-    def on_leave(self):
-        Tinkle().manage_screens("for_selecting_audio", "remove")
-
+                toast("Unable to send")
 
 # Name: for_selecting_docs
 
 
-class ShareDocument(BoxLayout, Screen):
+class ShareDocument:
     global s
-
-    def __init__(self, **kwargs):
-        self.register_event_type('on_back_pressed')
-        self.register_event_type('on_menu_pressed')
-        super(ShareDocument, self).__init__(**kwargs)
-
-    def on_back_pressed(self, *args):
-        if IS_GROUP_MEDIA:
-            Tinkle().change_screen("group_convo")
-        else:
-            Tinkle().change_screen("convo")
-
-    def on_menu_pressed(self, *args):
-        pass
-
-    def select(self, filename):
-        try:
-            self.filename = filename[0]
-        except Exception as e:
-            print(e)
 
     def upload_doc(self, fname, urlll, dumped_list):
         global s
@@ -3079,23 +3226,23 @@ class ShareDocument(BoxLayout, Screen):
         except Exception as e:
             pass
 
-    def id_generator(size=7, chars=string.ascii_lowercase + string.digits):
+    def id_generator(self, size=7, chars=string.ascii_lowercase + string.digits):
         # do from random import choice
         return ''.join(random.choice(chars) for _ in range(size))
 
-    def send_it(self):  # this is upload part
+    def send_it(self, filename):  # this is upload part
         global receiver_name, IS_GROUP_MEDIA
         if IS_GROUP_MEDIA:
             self.recvr = group_name
         else:
             self.recvr = receiver_name
-        if len(self.filename) > 5:
+        if len(filename) > 5:
             try:
-                if exceedLimit(self.filename):
+                if exceedLimit(filename):
                     threading.Thread(target=global_notify,
                                      args=("File exceeds 15MB limit",)).start()
                     return
-                condition = doHashCheckServer(self.filename, "document")
+                condition = doHashCheckServer(filename, "document")
                 if condition[0]:
                     should_do_upload = False
                     complete_link = condition[1]
@@ -3105,7 +3252,7 @@ class ShareDocument(BoxLayout, Screen):
                 host = return_site_web_address()
                 url_for_doc = host + "man_documents.php"
                 url_for_doc_no_php = host + "docs/"
-                c_extension = os.path.splitext(self.filename)[1]
+                c_extension = os.path.splitext(filename)[1]
                 if c_extension in avail_doc_ext:
                     extension = c_extension
                     # create temp_file for randomness of filename
@@ -3113,7 +3260,7 @@ class ShareDocument(BoxLayout, Screen):
                     tempo_doc_file = my_name + "_" + \
                                      ''.join(random.choice(string.ascii_lowercase + string.digits)
                                              for _ in range(7)) + extension
-                    with open(self.filename, "rb") as f:
+                    with open(filename, "rb") as f:
                         orag = f.read()
                     with open(tempo_doc_file, "wb") as fb:
                         fb.write(orag)
@@ -3133,29 +3280,23 @@ class ShareDocument(BoxLayout, Screen):
                     if should_do_upload:
                         threading.Thread(target=self.upload_doc, args=(
                             tempo_doc_file, url_for_doc, bibo)).start()
-                        threading.Thread(target=global_notify, args=(
-                            "Sharing in the background",)).start()
+                        toast("Sharing in the background")
                     else:
                         bibo["link"] = complete_link
                         s.send(bytes(json.dumps(bibo), "utf-8"))
                         self.remove_file(tempo_doc_file)
-                        threading.Thread(target=global_notify, args=(
-                            "Upload complete, used cache",)).start()
-                    if IS_GROUP_MEDIA:
-                        Tinkle().change_screen("group_convo")
-                        IS_GROUP_MEDIA = False
-                    else:
-                        Tinkle().change_screen("convo")
+                        toast("Upload complete, used cache")
+                    # if IS_GROUP_MEDIA:
+                    #     Tinkle().change_screen("group_convo")
+                    #     IS_GROUP_MEDIA = False
+                    # else:
+                    #     Tinkle().change_screen("convo")
 
             except BaseException as e:
                 print(e)
-                threading.Thread(target=global_notify,
-                                 args=("Unable to send",)).start()
-                IS_GROUP_MEDIA = False
-                Tinkle().change_screen("Chat")
-
-    def on_leave(self):
-        Tinkle().manage_screens("for_selecting_docs", "remove")
+                toast("Unable to send")
+                # IS_GROUP_MEDIA = False
+                # Tinkle().change_screen("Chat")
 
 
 # change profile pic android specific
@@ -3285,14 +3426,17 @@ class ChangeProPic:
             print("No image selected")
 
 
-# Name: profile_Pic
+# Name: profile_pic
 
 
-class Profile_Pic(BoxLayout, Screen):
+class ProfilePicture(Screen):
     def __init__(self, **kwargs):
         self.register_event_type('on_back_pressed')
         self.register_event_type('on_menu_pressed')
-        super(Profile_Pic, self).__init__(**kwargs)
+        super(ProfilePicture, self).__init__(**kwargs)
+        self.profile_pic_preview = self.ids["profile_pic_preview"]
+        self.f_manager_open = False
+        self.f_manager = None
 
     def on_back_pressed(self, *args):
         Tinkle().change_screen("Chat")
@@ -3300,17 +3444,81 @@ class Profile_Pic(BoxLayout, Screen):
     def on_menu_pressed(self, *args):
         pass
 
-    def select(self, filename):
+    def on_enter(self, *args):
+        self.profile_pic_preview.reload()
+        self.profile_pic_preview.source = profile_img_link()
+
+    def _get_the_image(self):
+        self.prepare_share()
+
+    def prepare_share(self):
+        filechooser.open_file(on_selection=self.handle_selection, path=path_images, filters=fil_avail_profile_ext_plyer)
+
+    def handle_selection(self, selection):
+        '''
+        Callback function for handling the selection response from Activity.
+        '''
+        self.selection = selection
         try:
-            self.filename = filename[0]
-            self.preview_img(self.filename)
-        except Exception as e:
-            print(e)
+            if os.path.isfile(self.selection[0]):
+                self.profile_pic_preview.source = self.selection[0]
+        except:
+            # print(traceback.format_exc())
+            pass
+
+    def on_selection(self, *a, **k):
+        '''
+        Update TextInput.text after FileChoose.selection is changed
+        via FileChoose.handle_selection.
+        '''
+
+    def file_manager_open(self):
+        threading.Thread(target=self._get_the_image).start()
+        # if not self.f_manager:
+        #     self.f_manager = ModalView(size_hint=(1, 1), auto_dismiss=False)
+        #     self.file_manager = MDFileManager(
+        #         exit_manager=self.exit_manager, select_path=self.select_path)
+        #     self.f_manager.add_widget(self.file_manager)
+        #     self.file_manager.show(path_images)  # output manager to the screen
+        # self.f_manager_open = True
+        # self.f_manager.open()
+
+    def select_path(self, path):
+        '''It will be called when you click on the file name
+        or the catalog selection button.
+
+        :type path: str;
+        :param path: path to the selected directory or file;
+        '''
+
+        self.exit_manager()
+        if os.path.splitext(path)[1] != ".gif" and os.path.splitext(path)[1] in avail_img_ext:
+            self.profile_pic_preview.source = path
+        else:
+            toast("File type not supported")
+
+    def exit_manager(self, *args):
+        '''Called when the user reaches the root of the directory tree.'''
+
+        self.f_manager.dismiss()
+        self.f_manager_open = False
+
+    def events(self, instance, keyboard, keycode, text, modifiers):
+        '''Called when buttons are pressed on the mobile device..'''
+
+        if keyboard in (1001, 27):
+            if self.f_manager_open:
+                try:
+                    self.file_manager.back()
+                except BaseException as e:
+                    print(e)
+                    toast("Can't go back")
+
+        return True
 
     def preview_img(self, src):
         popup = Popup(title="Preview",
-                      content=Image(source=src),
-                      size_hint=(.9, .7))
+                      content=AsyncImage(source=src))
         popup.open()
 
     def upload_image(self, fname, urlll):
@@ -3365,25 +3573,27 @@ class Profile_Pic(BoxLayout, Screen):
         # do from random import choice
         return ''.join(random.choice(chars) for _ in range(size))
 
-    def send_it(self):  # this is upload part
-
+    def send_it(self, filename):  # this is upload part
+        if filename == profile_img_link():
+            toast("No image selected")
+            return
         host = return_site_web_address()
         url_for_img = host + "man_display.php"
         url_for_img_no_php = host + "display/"
-        c_extension = os.path.splitext(self.filename)[1]
+        c_extension = os.path.splitext(filename)[1]
         if c_extension in avail_img_ext:
-            if exceedLimit(self.filename):
+            if exceedLimit(filename):
                 threading.Thread(target=global_notify,
                                  args=("File exceeds 15MB limit",)).start()
                 return
-            threading.Thread(target=global_notify, args=("Uploading",)).start()
+            toast("Uploading")
             extension = c_extension
             # create temp_file for randomness of filename
             my_name = str(A().get_the_name())
             tempo_img_file = my_name + "-" + \
                              ''.join(random.choice(string.ascii_lowercase + string.digits)
                                      for _ in range(7)) + extension
-            with open(self.filename, "rb") as f:
+            with open(filename, "rb") as f:
                 orag = f.read()
             with open(tempo_img_file, "wb") as fb:
                 fb.write(orag)
@@ -3392,11 +3602,10 @@ class Profile_Pic(BoxLayout, Screen):
                 tempo_img_file, url_for_img)).start()
             self.manager.current = "Chat"
         else:
-            threading.Thread(target=global_notify, args=(
-                "File type not supported",)).start()
+            toast("File type not supported")
 
     def on_leave(self):
-        Tinkle().manage_screens("profile_Pic", "remove")
+        Tinkle().manage_screens("profile_pic", "remove")
 
 
 class Tinkle(App):
@@ -3417,7 +3626,7 @@ class Tinkle(App):
     def manage_screens(self, screen_name, action):
         scns = {
             "dump_screen": DumpScreen,
-            "profile_Pic": Profile_Pic,
+            "profile_pic": ProfilePicture,
             "advanced_screen": AdvancedScreen,
             "Chat": Chat,
             "convo": Conversation,
@@ -3426,7 +3635,7 @@ class Tinkle(App):
             "view_status_comments": StatusComments,
             "create_group_screen": CreateGroupScreen,
             "status_screen": Status,
-            "for_selecting": ShareImage,
+            "for_selecting": ImagePreviewShare,
             "for_selecting_audio": ShareAudio,
             "for_selecting_docs": ShareDocument,
             "names_for_status": GetNamesForStatusScreen,
@@ -3462,8 +3671,8 @@ class Tinkle(App):
         if isAndroid():
             ChangeProPic().get_rolling()
         else:
-            self.manage_screens("profile_Pic", "add")
-            Tinkle().change_screen("profile_Pic")
+            self.manage_screens("profile_pic", "add")
+            Tinkle().change_screen("profile_pic")
 
     def on_pause(self):
         return True
@@ -3504,6 +3713,7 @@ class Tinkle(App):
 
         sm.add_widget(SignInScreen(name="signin_screen"))
         sm.add_widget(Registration(name="registration_screen"))
+        # sm.add_widget(Conversation(name="convo"))
         return sm
 
     def post_build_init(self, ev):
