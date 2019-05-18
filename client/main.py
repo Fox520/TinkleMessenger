@@ -5,7 +5,6 @@
 from __future__ import division
 
 import codecs
-import simplejson as json
 import os
 import re
 import os.path
@@ -20,6 +19,7 @@ import hashlib
 import traceback
 import dataset
 import requests
+import json
 
 from functools import partial
 from kivy import Config
@@ -868,7 +868,6 @@ class SignInScreen(Screen):
     def do_android(self):
         if isAndroid():
             import android_image_select
-            reload(android_image_select)
             android_image_select.user_select_image(self.img_callback)
         else:
             print("not android")
@@ -1635,10 +1634,8 @@ class Conversation(Screen):
         try:
             if isAndroid():
                 import android_image_select
-                reload(android_image_select)
                 android_image_select.user_select_image(
                     self.start_callback_in_thread)
-                reload(android_image_select)
             else:
                 print("Not Android")
 
@@ -1934,7 +1931,7 @@ class GroupConversation(Screen):
         if scn == "for_selecting_docs":
             threading.Thread(target=self.prepare_file_share).start()
             return
-        if scn == "for_selecting_docs":
+        if scn == "for_selecting_audio":
             threading.Thread(target=self.prepare_audio_share).start()
             return
         try:
@@ -1956,10 +1953,8 @@ class GroupConversation(Screen):
         try:
             if isAndroid():
                 import android_image_select
-                reload(android_image_select)
                 android_image_select.user_select_image(
                     self.start_callback_in_thread)
-                reload(android_image_select)
             else:
                 print("Not Android")
 
@@ -2163,9 +2158,7 @@ class Status(Screen):
         text_to_send = ssa
         if isAndroid():
             import android_image_select
-            reload(android_image_select)
             android_image_select.user_select_image(self.begin_after_gallery)
-            reload(android_image_select)
 
         else:
             popup = Popup(title='Select File',
@@ -3636,8 +3629,6 @@ class Tinkle(App):
             "create_group_screen": CreateGroupScreen,
             "status_screen": Status,
             "for_selecting": ImagePreviewShare,
-            "for_selecting_audio": ShareAudio,
-            "for_selecting_docs": ShareDocument,
             "names_for_status": GetNamesForStatusScreen,
             "names_for_find_friends": GetNamesForFindFriendsScreen,
             "names_for_friend_req": GetNamesForFriendRequestsScreen,
@@ -3711,9 +3702,9 @@ class Tinkle(App):
             from moretransitions import TileTransition
             sm = ScreenManager(transition=TileTransition())
 
-        sm.add_widget(SignInScreen(name="signin_screen"))
-        sm.add_widget(Registration(name="registration_screen"))
-        # sm.add_widget(Conversation(name="convo"))
+        # sm.add_widget(SignInScreen(name="signin_screen"))
+        # sm.add_widget(Registration(name="registration_screen"))
+        sm.add_widget(GroupConversation(name="group_convo"))
         return sm
 
     def post_build_init(self, ev):
