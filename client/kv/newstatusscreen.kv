@@ -13,31 +13,32 @@
         GridLayout:
             rows: 2
             orientation: 'vertical'
-            padding: [10,50,10,50]
-            #spacing: 50
+            padding: dp(15)#[10,50,10,50]
             GridLayout:
                 cols:1
 
-                Image:
+                AsyncImage:
                     id: pic_day
                     source: "img/cam_stat.png"
-                    font_size: sp(27)
                     halign: "center"
             GridLayout:
-                rows:3
+                rows:2
                 cols:1
                 orientation: "vertical"
                 MDTextField:
                     id: txt_input
                     multiline: False
-                    font_size: sp(17)
                     hint_text: "Caption (optional)"
                     write_tab: False
-                MDLabel:
-                    text: ""
-                MDRaisedButton:
-                    id: btn_set_pic
-                    font_size: sp(17)
-                    text: "Select status picture"
-                    on_release:
-                        root.select_pic(txt_input.text)
+                BoxLayout:
+                    Widget:
+                    MDRaisedButton:
+                        text: "Select status picture"
+                        on_release:
+                            root.select_pic()
+                    Widget:
+                    MDRaisedButton:
+                        id: send_status
+                        text: "Set new picture"
+                        on_release: root.upload_status(pic_day.source, txt_input.text)
+                    Widget:

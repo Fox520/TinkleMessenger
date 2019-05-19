@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 # encoding=utf-8
-# TODO: Work on `about` dialog
 
 from __future__ import division
 
 import codecs
 import os
+
+os.environ['KIVY_GL_BACKEND'] = 'sdl2'
 import re
 import os.path
 import random
@@ -23,6 +24,9 @@ import json
 
 from functools import partial
 from kivy import Config
+
+Config.set('graphics', 'multisamples', '0')  # sdl error
+Config.set('kivy', 'window_icon', 'img/tinkle_logo.png')  # the icon in top-left of window
 from kivy.app import App
 from kivy.clock import Clock
 
@@ -30,28 +34,25 @@ from kivy.core.window import Window
 from kivy.factory import Factory
 
 Window.softinput_mode = "below_target"  # resize to accomodate keyboard
+Window.keyboard_anim_args = {'d': 0.5, 't': 'in_out_quart'}
 from kivy.effects.opacityscroll import OpacityScrollEffect
 from kivy.lang import Builder
 from kivy.metrics import dp, sp
 from kivy.properties import StringProperty
+from kivy.properties import ListProperty
 from kivy.resources import resource_add_path  # To compile to exe
-from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
-from kivy.uix.modalview import ModalView
 from kivy.uix.gridlayout import GridLayout
-from kivy.uix.image import AsyncImage, Image
+from kivy.uix.image import AsyncImage
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen, ScreenManager
-from kivy.uix.filechooser import FileChooserIconView
-#
 from kivy.utils import get_color_from_hex, get_hex_from_color
 
 from kivymd.bottomsheet import MDListBottomSheet
 from kivymd.theming import ThemeManager
 from kivymd.button import MDRaisedButton
 from kivymd.dialog import MDDialog
-from kivymd.filemanager import MDFileManager
 from kivymd.list import OneLineListItem, TwoLineListItem, TwoLineAvatarListItem, ThreeLineAvatarListItem, MDList
 from kivymd.textfields import MDTextField
 from kivymd.label import MDLabel
@@ -64,14 +65,9 @@ from kivymd.toast import toast
 from spin_load import ProgressSpinner
 
 from magnet import Magnet
-from random import sample, randint
+from random import sample, randint  # used at displaying group members
 
 from plyer import filechooser
-
-os.environ['KIVY_GL_BACKEND'] = 'sdl2'
-
-Config.set('graphics', 'multisamples', '0')  # sdl error
-Config.set('kivy', 'window_icon', 'img/tinkle_logo.png')
 
 json_settings = json.dumps([
     {
@@ -84,6 +80,7 @@ json_settings = json.dumps([
     }
 
 ])
+home = os.path.expanduser('~')
 
 
 def isAndroid():
@@ -95,17 +92,6 @@ def isAndroid():
     else:
         return False
 
-
-home = os.path.expanduser('~')
-if isAndroid():
-    path_music = os.path.join('/sdcard', 'Download')
-    path_images = os.path.join('/sdcard', 'Download')
-    path_docs = os.path.join('/sdcard', 'Download')
-
-else:
-    path_music = os.path.join(home, "Music")
-    path_images = os.path.join(home, "Pictures")
-    path_docs = os.path.join(home, "Desktop")
 
 ALL_GROUPS = None
 
@@ -150,7 +136,6 @@ aud_file = os.path.join(other_files, "la79qqkrkznjx0450hrb")
 doc_file = os.path.join(other_files, "hhwq11qr7n2l0mmvhmgm")
 status_file = os.path.join(other_files, "kjagsdfhkasgidfhka1")
 dm_file = os.path.join(other_files, "dgffq8jryv7lp6mrr6v2")
-backup_file = os.path.join(path_docs, "Tinkle_Backup.dat")
 priv = os.path.join(other_files, "wcuy1gvvpglye1s77lgi")
 comments_file = os.path.join(other_files, "jsdahfvkusafgdilaksbf")
 
@@ -181,16 +166,16 @@ avail_aud_ext = [".mp3", ".wav", ".ogg"]
 avail_doc_ext = [".doc", ".pdf", ".xls", ".docx", ".zip", ".rar", ".apk"]
 #########
 fil_avail_img_ext = ["*.jpg", "*.png", "*.gif"]
-fil_avail_profile_ext_plyer = [["Picture","*.jpg", "*.png"]]
-fil_avail_image_ext_plyer = [["Picture","*.jpg", "*.png", "*.gif"]]
+fil_avail_profile_ext_plyer = [["Picture", "*.jpg", "*.png"]]
+fil_avail_image_ext_plyer = [["Picture", "*.jpg", "*.png", "*.gif"]]
 
 fil_avail_aud_ext = ["*.mp3", "*.wav", "*.ogg"]
-fil_avail_aud_ext_plyer = [["Audio","*.mp3", "*.wav", "*.ogg"]]
+fil_avail_aud_ext_plyer = [["Audio", "*.mp3", "*.wav", "*.ogg"]]
 
 fil_avail_doc_ext = ["*.doc", "*.pdf", "*.xls",
                      "*.docx", "*.zip", "*.rar", "*.apk"]
-fil_avail_doc_ext_plyer = [["File","*.doc", "*.pdf", "*.xls",
-                     "*.docx", "*.zip", "*.rar", "*.apk"]]
+fil_avail_doc_ext_plyer = [["File", "*.doc", "*.pdf", "*.xls",
+                            "*.docx", "*.zip", "*.rar", "*.apk"]]
 try:
     if os.path.isfile(color_file):
         with open(color_file, "rb") as f:
@@ -402,7 +387,7 @@ def write_name(foo_name, should_write=True, pwda=""):
         return None, None
 
 
-def exceedLimit(f):
+def exceed_limit(f):
     try:
         if os.stat(f).st_size > MAX_FILE_SIZE:
             return True
@@ -413,37 +398,13 @@ def exceedLimit(f):
         return False
 
 
-def global_notify(msg):
-    toast(msg)
-
-
-if isAndroid():
-    from jnius import autoclass, PythonJavaClass, java_method, cast
-    from android import activity
-    from android.runnable import run_on_ui_thread
-
-    autoclass('org.jnius.NativeInvocationHandler')
-
-
-    @run_on_ui_thread
-    def _toast(text, length_long=False):
-        Toast = autoclass('android.widget.Toast')
-        context = autoclass('org.kivy.android.PythonActivity').mActivity
-        duration = Toast.LENGTH_LONG if length_long else Toast.LENGTH_SHORT
-        String = autoclass('java.lang.String')
-        c = cast('java.lang.CharSequence', String(text))
-        t = Toast.makeText(context, c, duration)
-        t.show()
-
-
-def global_snackbar(msg):
-    Snackbar(text=msg).show()
-
-
-class A:
-    def get_the_name(self):
-        global name
-        return name
+def check_read_permission():
+    from android.permissions import request_permissions, check_permission, Permission
+    request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE])
+    if check_permission(Permission.READ_EXTERNAL_STORAGE):
+        return True
+    else:
+        return False
 
 
 def write_status_comments(name, msg, link):
@@ -455,7 +416,7 @@ def write_status_comments(name, msg, link):
         print("Error writing:", e)
 
 
-def doHashCheckServer(fname, media_type):
+def do_hash_check_server(fname, media_type):
     fhash = md5(fname)
     try:
         template = {}
@@ -475,8 +436,25 @@ def doHashCheckServer(fname, media_type):
         return [False, ""]
 
 
+class A:
+    def get_the_name(self):
+        global name
+        return name
+
+
 generate_key()
 
+if isAndroid():
+    path_music = os.path.join('/sdcard', 'Download')
+    path_images = os.path.join('/sdcard', 'Download')
+    path_docs = os.path.join('/sdcard', 'Download')
+else:
+    # Windows/Linux/Mac
+    path_music = os.path.join(home, "Music")
+    path_images = os.path.join(home, "Pictures")
+    path_docs = os.path.join(home, "Desktop")
+
+backup_file = os.path.join(path_docs, "Tinkle_Backup.dat")
 ##########################################################
 
 
@@ -611,11 +589,8 @@ class AdvancedScreen(Screen):
                 template["type"] = "group_info"
                 template["group_id"] = current_group_id
                 s.send(bytes(json.dumps(template), "utf-8"))
-                threading.Thread(target=global_notify,
-                                 args=("Not yet implemented.",)).start()
             except:
-                threading.Thread(target=global_notify,
-                                 args=("Error while getting info",)).start()
+                toast("Error while getting info")
 
 
 # Name: group_members
@@ -830,12 +805,10 @@ class SignInScreen(Screen):
             self.manager.current = "Chat"
         elif result[0] == False:
             self.prg_spin.stop_spinning()
-            threading.Thread(target=global_notify, args=(
-                "Invalid signin credentials",)).start()
+            toast("Invalid signin credentials")
         elif result[0] == None:
             self.prg_spin.stop_spinning()
-            threading.Thread(target=global_notify, args=(
-                "unable to connect",)).start()
+            toast("unable to connect")
 
     def show_bottom_sheet(self):
         if not self.bs_menu_1:
@@ -849,12 +822,17 @@ class SignInScreen(Screen):
     def export_key(self):
 
         try:
-            shutil.copy2(priv, home)
-            threading.Thread(target=global_notify, args=(
-                "Saved: " + os.path.join(home, priv),)).start()
+            if isAndroid():
+                if check_read_permission():
+                    shutil.copy2(priv, home)
+                    toast("Saved: " + os.path.join(home, priv))
+                else:
+                    toast("Permission to access external storage denied")
+            else:
+                shutil.copy2(priv, home)
+                toast("Saved: " + os.path.join(home, priv))
         except Exception as e:
-            threading.Thread(target=global_notify, args=(
-                "Failed, check permissions",)).start()
+            toast("Failed, check permissions")
             self.display_password(get_password())
 
     def write_new_data(self, new_name, new_key):
@@ -865,26 +843,29 @@ class SignInScreen(Screen):
             f.write(new_key)
             the_key = ""
 
-    def do_android(self):
-        if isAndroid():
-            import android_image_select
-            android_image_select.user_select_image(self.img_callback)
-        else:
-            print("not android")
-
-    def img_callback(self, path):
-        print(path)
-
     def recover_backup(self):
-        if os.path.isfile(backup_file):
-            with open(backup_file, "rb") as f:
-                data = f.read()
-                _n, _p = data.split("\n")
-                self.write_new_data(_n, _p)
-                self.alias.text = _n
+        if isAndroid():
+            if check_read_permission():
+                if os.path.isfile(backup_file):
+                    with open(backup_file, "rb") as f:
+                        data = f.read()
+                        _n, _p = data.split("\n")
+                        self.write_new_data(_n, _p)
+                        self.alias.text = _n
+                else:
+                    toast("Backup file not found")
+                    return None, None
+            else:
+                toast("Permission to access external storage denied.")
         else:
-            threading.Thread(target=global_notify, args=(
-                "Backup file not found",)).start()
+            if os.path.isfile(backup_file):
+                with open(backup_file, "rb") as f:
+                    data = f.read()
+                    _n, _p = data.split("\n")
+                    self.write_new_data(_n, _p)
+                    self.alias.text = _n
+            else:
+                toast("Backup file not found")
             return None, None
 
     def display_password(self, themsg):
@@ -912,17 +893,6 @@ class Registration(Screen):
 
     def on_menu_pressed(self, *args):
         pass
-
-    # def on_enter(self):
-    #     if isAndroid():
-    #         import permission_helper
-    #         perms = ["android.permission.READ_EXTERNAL_STORAGE",
-    #                  "android.permission.WRITE_EXTERNAL_STORAGE"]
-
-    #         haveperms = permission_helper.acquire_permissions(perms)
-    #         print(haveperms)
-    #         threading.Thread(target=global_notify, args=(
-    #             "perms: "+str(haveperms),)).start()
 
     def register_user(self, name_reg, pwd):
         # reg them
@@ -969,11 +939,9 @@ class Registration(Screen):
             char_result = self.test_name_chars(self.temp_name.text)
             if len(tt_name) < 4 or char_result or len(tt_name) > 12:
                 if char_result:
-                    threading.Thread(target=global_notify, args=(
-                        "Illegal symbol in username",)).start()
+                    toast("Illegal symbol in username")
                 else:
-                    threading.Thread(target=global_notify, args=(
-                        "Invalid username length",)).start()
+                    toast("Invalid username length")
                 # self.temp_name.text = ""
                 self.prg_spin.stop_spinning()
                 self.manager.current = "registration_screen"
@@ -997,35 +965,28 @@ class Registration(Screen):
                             self.ChangeScreen()
                         elif answer == False:
                             self.prg_spin.stop_spinning()
-                            threading.Thread(target=global_notify, args=(
-                                "Username already taken",)).start()
+                            toast("Username already taken")
                         elif answer == None:
                             self.prg_spin.stop_spinning()
-                            threading.Thread(target=global_notify, args=(
-                                "Oops! connection issue",)).start()
+                            toast("Oops! connection issue")
                     else:
-                        threading.Thread(target=global_notify, args=(
-                            "Enter valid email address",)).start()
+                        toast("Enter valid email address")
                     self.prg_spin.stop_spinning()
 
                 else:
                     if len(self.email_address.text) < 8:
-                        threading.Thread(target=global_notify, args=(
-                            "Email address too short",)).start()
+                        toast("Email address too short")
                     elif len(self.full_name) < 5:
-                        threading.Thread(target=global_notify, args=(
-                            "first/second name too short",)).start()
+                        toast("first/second name too short")
                     else:
-                        threading.Thread(target=global_notify, args=(
-                            "Username taken",)).start()
+                        toast("Username taken")
 
                     self.prg_spin.stop_spinning()
                     self.manager.current = "registration_screen"
 
         except Exception as e:
             print(traceback.format_exc())
-            threading.Thread(target=global_notify, args=(
-                "Oops! Connection issue :-|",)).start()
+            toast("Oops! Connection issue :-|")
 
     def ChangeScreen(self):
         self.prg_spin.stop_spinning()
@@ -1045,6 +1006,7 @@ class Registration(Screen):
             print(e)
 
     def delete_client_file(self):
+        # Overwrite the previous client signed in
         try:
             os.remove(client_file)
         except Exception as e:
@@ -1070,11 +1032,9 @@ class CreateGroupScreen(Screen):
     def create_group(self, group_name, group_description):
         global s
         if len(group_name) < 4:
-            threading.Thread(target=global_notify,
-                             args=("name too short",)).start()
+            toast("Group name too short")
         elif len(group_name) > 12:
-            threading.Thread(target=global_notify,
-                             args=("name too long",)).start()
+            toast("Group name too long")
         else:
             try:
                 template = {}
@@ -1221,8 +1181,7 @@ class GetNamesForFindFriendsScreen(Screen):
         if args[0] == "Yes":
             a = {"type": "new_request", "req_name": img_client}
             s.send(bytes(json.dumps(a), "utf-8"))
-            threading.Thread(target=global_notify, args=(
-                "Request sent to " + img_client,)).start()
+            toast("Request sent")
             create_file_sent_req(img_client)
 
 
@@ -1428,6 +1387,7 @@ class PopGetGroups(Popup):
 
 class Conversation(Screen):
     global s
+    selection = ListProperty([])
 
     def __init__(self, **kwargs):
         self.register_event_type('on_back_pressed')
@@ -1439,7 +1399,8 @@ class Conversation(Screen):
         self.prev_msg = ""
         self.f_manager_open = False
         self.f_manager = None
-        self.selection_type = None # differentiate image, file and doc
+        self.selection_type = None  # differentiate image, file and doc
+        self.audio_or_file = None  # to differentiate since on_selection is used for both
 
     def initial_conditions(self):
         try:
@@ -1459,7 +1420,7 @@ class Conversation(Screen):
         threading.Thread(target=self.insert_data).start()
 
     def on_back_pressed(self, *args):
-        Tinkle().manage_screens("convo","remove")
+        Tinkle().manage_screens("convo", "remove")
         Tinkle().change_screen("Chat")
 
     def on_menu_pressed(self, *args):
@@ -1538,9 +1499,7 @@ class Conversation(Screen):
                 s.send(bytes(json.dumps(template), "utf-8"))  # get the name
                 self.message.text = ""
         except Exception as e:
-            # self.data.text += "An error occured while sending."
-            threading.Thread(target=global_notify, args=(
-                "Unable to send message",)).start()
+            toast("Unable to send message")
             print(traceback.format_exc())
 
     def show_bottom_sheet(self):
@@ -1581,6 +1540,14 @@ class Conversation(Screen):
         root.show()
 
     def callback_for_menu_items(self, scn):
+        if scn == "for_selecting_docs":
+            self.audio_or_file = "file"
+            self.prepare_file_share()
+            return
+        if scn == "for_selecting_audio":
+            self.audio_or_file = "audio"
+            self.prepare_audio_share()
+            return
         try:
             # Attempt to add, won't add if already exists
             Tinkle().manage_screens(scn, "add")
@@ -1589,142 +1556,59 @@ class Conversation(Screen):
             print(traceback.format_exc())
 
     def prepare_file_share(self):
-        filechooser.open_file(on_selection=self.handle_selection_file, path=path_docs, filters=fil_avail_doc_ext_plyer)
+        if isAndroid():
+            if check_read_permission():
+                filechooser.open_file(on_selection=self.handle_selection)
+            else:
+                toast("Permission to access external storage denied")
+        else:
+            filechooser.open_file(on_selection=self.handle_selection, path=path_docs, filters=fil_avail_doc_ext_plyer)
 
-    def handle_selection_file(self, selection):
+    def handle_selection(self, selection):
         '''
         Callback function for handling the selection response from Activity.
         '''
         self.selection = selection
-        try:
-            if os.path.isfile(self.selection[0]):
-                ShareDocument().send_it(self.selection[0])
-        except:
-            # print(traceback.format_exc())
-            pass
+
     def prepare_audio_share(self):
-        filechooser.open_file(on_selection=self.handle_selection_audio, path=path_music, filters=fil_avail_aud_ext_plyer)
-
-    def handle_selection_audio(self, selection):
-        '''
-        Callback function for handling the selection response from Activity.
-        '''
-        self.selection = selection
-        try:
-            if os.path.isfile(self.selection[0]):
-                ShareAudio().send_it_audio(self.selection[0])
-        except:
-            # print(traceback.format_exc())
-            pass
+        if isAndroid():
+            if check_read_permission():
+                # filter does not apply on android
+                filechooser.open_file(on_selection=self.handle_selection)
+            else:
+                toast("Permission to access external storage denied")
+        else:
+            filechooser.open_file(on_selection=self.handle_selection, path=path_music, filters=fil_avail_aud_ext_plyer)
 
     def on_selection(self, *a, **k):
         '''
         Update TextInput.text after FileChoose.selection is changed
         via FileChoose.handle_selection.
         '''
-
-    def decide_share_image(self):
-        if isAndroid():
-            self.android_share_image()
-        else:
-            Tinkle().manage_screens("for_selecting", "add")
-            Tinkle().change_screen("for_selecting")
-
-    def android_share_image(self):
         try:
-            if isAndroid():
-                import android_image_select
-                android_image_select.user_select_image(
-                    self.start_callback_in_thread)
-            else:
-                print("Not Android")
-
+            if os.path.isfile(self.selection[0]):
+                if self.audio_or_file == "audio":
+                    print("audio")
+                    ShareAudio().send_it_audio(self.selection[0])
+                elif self.audio_or_file == "file":
+                    print("file")
+                    ShareDocument().send_it(self.selection[0])
+                else:
+                    toast("unknown selection")
         except:
             print(traceback.format_exc())
+            pass
 
-    def start_callback_in_thread(self, path):
-        if path != None:
-            bx = GridLayout(rows=2, cols=1)
-            bx.add_widget(Image(source=path))
-            btns_layout = GridLayout(
-                rows=1, cols=2, size_hint_y=None, height=60)
-            btns_layout.add_widget(MDRaisedButton(size_hint_y=None, height=self.parent.height * 0.111,
-                                                  text="Cancel", on_release=self.can))
-            btns_layout.add_widget(MDRaisedButton(size_hint_y=None, height=self.parent.height * 0.111,
-                                                  text="Send", on_release=partial(self.pro, path)))
-            bx.add_widget(btns_layout)
-            self.bagPop = Popup(title="Back to cancel",
-                                content=bx)
-
-            self.bagPop.open()
-
-        else:
-            print("No image selected.")
-
-    def pro(self, path, *args):
-        print("proceed")
-        threading.Thread(target=self._gallery_callback, args=(path,)).start()
-        self.bagPop.dismiss()
-
-    def can(self, *args):
-        print("cancel")
-        self.bagPop.dismiss()
-
-    def _gallery_callback(self, path):
-        self.filename = path
-        try:
-            if exceedLimit(self.filename):
-                threading.Thread(target=global_notify,
-                                 args=("File exceeds 15MB limit",)).start()
-                return
-            condition = doHashCheckServer(self.filename, "image")
-            if condition[0]:
-                should_do_upload = False
-                complete_link = condition[1]
-            else:
-                should_do_upload = True
-        except:
-            should_do_upload = True
-
-        url_for_img = return_site_web_address() + "man_images.php"
-        url_for_img_no_php = return_site_web_address() + "img/"
-        c_extension = os.path.splitext(self.filename)[1]
-
-        if c_extension in avail_img_ext:
-            extension = c_extension
-            my_name = str(A().get_the_name())
-            tempo_img_file = my_name + "-" + \
-                             ''.join(random.choice(string.ascii_lowercase + string.digits)
-                                     for _ in range(7)) + extension
-
-            with open(self.filename, "rb") as f:
-                orag = f.read()
-            with open(tempo_img_file, "wb") as fb:
-                fb.write(orag)
-            link_img = url_for_img_no_php + tempo_img_file
-            bibo = {}
-            bibo["type"] = "image"
-            bibo["link"] = link_img
-            bibo["to"] = receiver_name
-            if should_do_upload:
-                threading.Thread(target=self.upload_image, args=(
-                    tempo_img_file, url_for_img, bibo)).start()
-                threading.Thread(target=global_notify, args=(
-                    "Sharing in background",)).start()
-            else:
-                bibo["link"] = complete_link
-                s.send(bytes(json.dumps(bibo), "utf-8"))
-                self.remove_file(tempo_img_file)
-                threading.Thread(target=global_notify, args=(
-                    "Upload complete, used cache",)).start()
+    def decide_share_image(self):
+        Tinkle().manage_screens("for_selecting", "add")
+        Tinkle().change_screen("for_selecting")
 
     def upload_image(self, fname, urlll, dumped_list):
         with open(fname, "rb") as f:
             files = {'testname': f}
             r = requests.post(urlll, files=files)
         s.send(bytes(json.dumps(dumped_list), "utf-8"))
-        threading.Thread(target=global_notify,
-                         args=("upload complete",)).start()
+        toast("upload complete")
         self.remove_file(fname)
 
     def remove_file(self, fname):
@@ -1752,50 +1636,9 @@ class Conversation(Screen):
             threading.Thread(target=self.prepare_audio_share).start()
             return
 
-    def select_path(self, path):
-        '''It will be called when you click on the file name
-        or the catalog selection button.
-
-        :type path: str;
-        :param path: path to the selected directory or file;
-        '''
-
-        self.exit_manager()
-        if self.selection_type == OPTION_SELECTION_IMG and os.path.splitext(path)[1] in avail_img_ext:
-            pass
-        elif self.selection_type == OPTION_SELECTION_AUD and os.path.splitext(path)[1] in avail_aud_ext:
-            pass
-        elif self.selection_type == OPTION_SELECTION_FILE and os.path.splitext(path)[1] in avail_doc_ext:
-            pass
-        else:
-            toast("File type not supported")
-
-    def exit_manager(self, *args):
-        '''Called when the user reaches the root of the directory tree.'''
-
-        self.f_manager.dismiss()
-        self.f_manager_open = False
-
-    def events(self, instance, keyboard, keycode, text, modifiers):
-        '''Called when buttons are pressed on the mobile device..'''
-
-        if keyboard in (1001, 27):
-            if self.f_manager_open:
-                try:
-                    self.file_manager.back()
-                except BaseException as e:
-                    print(e)
-                    toast("Can't go back")
-
-        return True
-
-    # Probably shouldn't be called as it will be destroyed
-    # when going back to Chat
-    def _on_leave(self):
-        global new_data_to_add
-        self.prev_msg = ""
+    # Cancel the scheduled events and close the socket connection
+    def on_leave(self):
         try:
-
             self.event2.cancel()
             self.event3.cancel()
         except Exception as e:
@@ -1804,9 +1647,6 @@ class Conversation(Screen):
             self.soc.close()
         except Exception as e:
             print(traceback.format_exc())
-        new_data_to_add = ""
-        # Tinkle().manage_screens("names_for_friends_accept", "add")
-        self.ids.mld.clear_widgets()
 
 
 # Name: group_convo
@@ -1814,6 +1654,7 @@ class Conversation(Screen):
 
 class GroupConversation(Screen):
     global s
+    selection = ListProperty([])
 
     def __init__(self, **kwargs):
         self.register_event_type('on_back_pressed')
@@ -1823,6 +1664,7 @@ class GroupConversation(Screen):
         self.mld = self.ids["mld"]
         self.prev_msg = ""
         self.bs_menu_1 = None
+        self.audio_or_file = None  # to differentiate since on_selection is used for both
 
     def on_enter(self):
         global IS_GROUP_MEDIA
@@ -1894,8 +1736,7 @@ class GroupConversation(Screen):
                 s.send(bytes(json.dumps(template), "utf-8"))  # get the name
                 self.message.text = ""
         except Exception as e:
-            threading.Thread(target=global_notify, args=(
-                "Unable to send message",)).start()
+            toast("Unable to send message")
 
     def show_bottom_sheet(self):
         if not self.bs_menu_1:
@@ -1929,10 +1770,12 @@ class GroupConversation(Screen):
 
     def callback_for_menu_items(self, scn):
         if scn == "for_selecting_docs":
-            threading.Thread(target=self.prepare_file_share).start()
+            self.audio_or_file = "file"
+            self.prepare_file_share()
             return
         if scn == "for_selecting_audio":
-            threading.Thread(target=self.prepare_audio_share).start()
+            self.audio_or_file = "audio"
+            self.prepare_audio_share()
             return
         try:
             Tinkle().manage_screens(scn, "add")
@@ -1941,147 +1784,60 @@ class GroupConversation(Screen):
             print(traceback.format_exc())
 
     def decide_share_image(self):
-        if isAndroid():
-            self.android_share_image()
-        else:
-            global IS_GROUP_MEDIA
-            IS_GROUP_MEDIA = True
-            Tinkle().manage_screens("for_selecting", "add")
-            Tinkle().change_screen("for_selecting")
-
-    def android_share_image(self):
-        try:
-            if isAndroid():
-                import android_image_select
-                android_image_select.user_select_image(
-                    self.start_callback_in_thread)
-            else:
-                print("Not Android")
-
-        except:
-            print(traceback.format_exc())
-
-    def start_callback_in_thread(self, path):
-        if path != None:
-            bx = GridLayout(rows=2, cols=1)
-            bx.add_widget(Image(source=path))
-            btns_layout = GridLayout(
-                rows=1, cols=2, size_hint_y=None, height=60)
-            btns_layout.add_widget(MDRaisedButton(size_hint_y=None, height=self.parent.height * 0.111,
-                                                  text="Cancel", on_release=self.can))
-            btns_layout.add_widget(MDRaisedButton(size_hint_y=None, height=self.parent.height * 0.111,
-                                                  text="Send", on_release=partial(self.pro, path)))
-            bx.add_widget(btns_layout)
-            self.bagPop = Popup(title="Back to cancel",
-                                content=bx)
-
-            self.bagPop.open()
-
-        else:
-            print("No image selected.")
-
-    def pro(self, path, *args):
-        print("proceed")
-        threading.Thread(target=self._gallery_callback, args=(path,)).start()
-        self.bagPop.dismiss()
-
-    def can(self, *args):
-        print("cancel")
-        self.bagPop.dismiss()
-
-    def _gallery_callback(self, path):
-        self.filename = path
-        try:
-            if exceedLimit(self.filename):
-                threading.Thread(target=global_notify,
-                                 args=("File exceeds 15MB limit",)).start()
-                return
-            condition = doHashCheckServer(self.filename, "image")
-            if condition[0]:
-                should_do_upload = False
-                complete_link = condition[1]
-            else:
-                should_do_upload = True
-        except:
-            should_do_upload = True
-
-        url_for_img = return_site_web_address() + "man_images.php"
-        url_for_img_no_php = return_site_web_address() + "img/"
-        c_extension = os.path.splitext(self.filename)[1]
-
-        if c_extension in avail_img_ext:
-            extension = c_extension
-            my_name = str(A().get_the_name())
-            tempo_img_file = my_name + "_" + \
-                             ''.join(random.choice(string.ascii_lowercase + string.digits)
-                                     for _ in range(7)) + extension
-
-            with open(self.filename, "rb") as f:
-                orag = f.read()
-            with open(tempo_img_file, "wb") as fb:
-                fb.write(orag)
-            link_img = url_for_img_no_php + tempo_img_file
-            bibo = {}
-            bibo["type"] = "image"
-            bibo["link"] = link_img
-            bibo["group_based"] = True
-            bibo["group_id"] = current_group_id
-            if should_do_upload:
-                threading.Thread(target=self.upload_image, args=(
-                    tempo_img_file, url_for_img, bibo)).start()
-                threading.Thread(target=global_notify, args=(
-                    "Sharing in background",)).start()
-            else:
-                bibo["link"] = complete_link
-                s.send(bytes(json.dumps(bibo), "utf-8"))
-                self.remove_file(tempo_img_file)
-                threading.Thread(target=global_notify, args=(
-                    "Upload complete, used cache",)).start()
+        Tinkle().manage_screens("for_selecting", "add")
+        Tinkle().change_screen("for_selecting")
 
     def upload_image(self, fname, urlll, dumped_list):
         with open(fname, "rb") as f:
             files = {'testname': f}
-            r = requests.post(urlll, files=files)
+            requests.post(urlll, files=files)
         s.send(bytes(json.dumps(dumped_list), "utf-8"))
-        threading.Thread(target=global_notify,
-                         args=("upload complete",)).start()
+        toast("upload complete")
         self.remove_file(fname)
 
     def prepare_file_share(self):
-        filechooser.open_file(on_selection=self.handle_selection, path=path_docs, filters=fil_avail_doc_ext_plyer)
+        if isAndroid():
+            if check_read_permission():
+                filechooser.open_file(on_selection=self.handle_selection)
+            else:
+                toast("Permission to access external storage denied")
+        else:
+            filechooser.open_file(on_selection=self.handle_selection, path=path_docs, filters=fil_avail_doc_ext_plyer)
 
     def handle_selection(self, selection):
         '''
         Callback function for handling the selection response from Activity.
         '''
         self.selection = selection
-        try:
-            if os.path.isfile(self.selection[0]):
-                print(self.selection[0])
-                ShareDocument().send_it(self.selection[0])
-        except:
-            print(traceback.format_exc())
 
     def prepare_audio_share(self):
-        filechooser.open_file(on_selection=self.handle_selection_audio, path=path_music, filters=fil_avail_aud_ext_plyer)
-
-    def handle_selection_audio(self, selection):
-        '''
-        Callback function for handling the selection response from Activity.
-        '''
-        self.selection = selection
-        try:
-            if os.path.isfile(self.selection[0]):
-                ShareAudio().send_it_audio(self.selection[0])
-        except:
-            # print(traceback.format_exc())
-            pass
+        if isAndroid():
+            if check_read_permission():
+                # filter does not apply on android
+                filechooser.open_file(on_selection=self.handle_selection)
+            else:
+                toast("Permission to access external storage denied")
+        else:
+            filechooser.open_file(on_selection=self.handle_selection, path=path_music, filters=fil_avail_aud_ext_plyer)
 
     def on_selection(self, *a, **k):
         '''
         Update TextInput.text after FileChoose.selection is changed
         via FileChoose.handle_selection.
         '''
+        try:
+            if os.path.isfile(self.selection[0]):
+                if self.audio_or_file == "audio":
+                    print("audio")
+                    ShareAudio().send_it_audio(self.selection[0])
+                elif self.audio_or_file == "file":
+                    print("file")
+                    ShareDocument().send_it(self.selection[0])
+                else:
+                    toast("unknown selection")
+        except:
+            print(traceback.format_exc())
+            pass
 
     def remove_file(self, fname):
         try:
@@ -2092,11 +1848,6 @@ class GroupConversation(Screen):
     def on_leave(self):
         global new_data_to_add, OLD_GROUP_ID
         OLD_GROUP_ID = current_group_id
-        # self.prev_msg = ""
-        # new_data_to_add = ""
-
-        # Tinkle().manage_screens("group_convo", "remove")
-        # Tinkle().manage_screens("advanced_screen", "remove")
         Tinkle().manage_screens("group_members", "remove")
         Tinkle().manage_screens("names_friends_group", "remove")
         try:
@@ -2104,35 +1855,12 @@ class GroupConversation(Screen):
         except:
             pass
 
-        # self.ids.mld.clear_widgets()
-
 
 class GenericPop:
     def pop_it(self):
         popup = Popup(title="Stopped",
                       content=Label(text="Tap outside"),
                       size_hint=(.6, .6), pos_hint={'x': .2, 'y': .2})
-        popup.open()
-
-
-class MyFileChooser(FileChooserIconView):
-    filters = fil_avail_img_ext
-    rootpath = home
-
-    # FileChooserIconView.filters = fil_avail_img_ext
-
-    def on_selection(self, *args):
-        self.preview_img(args[1][0])
-
-    def on_submit(*args):
-        global fp
-        fp = args[1][0]
-        popup.dismiss()
-        Status().upload_status(fp)
-
-    def preview_img(self, src):
-        popup = Popup(title="Press escape to close",
-                      content=Image(source=src))
         popup.open()
 
 
@@ -2145,7 +1873,7 @@ class Status(Screen):
         self.register_event_type('on_back_pressed')
         self.register_event_type('on_menu_pressed')
         super(Status, self).__init__(**kwargs)
-        self.btn_set_pic = self.ids["btn_set_pic"]
+        self.pic_day = self.ids["pic_day"]
 
     def on_back_pressed(self, *args):
         Tinkle().change_screen("Chat")
@@ -2153,82 +1881,68 @@ class Status(Screen):
     def on_menu_pressed(self, *args):
         pass
 
-    def select_pic(self, ssa):
-        global popup, text_to_send
-        text_to_send = ssa
+    def select_pic(self):
         if isAndroid():
-            import android_image_select
-            android_image_select.user_select_image(self.begin_after_gallery)
-
+            if check_read_permission():
+                filechooser.open_file(on_selection=self.handle_selection)
+            else:
+                toast("Permission to access external storage denied")
         else:
-            popup = Popup(title='Select File',
-                          content=MyFileChooser())
-            popup.open()
+            filechooser.open_file(on_selection=self.handle_selection, path=path_images,
+                                  filters=fil_avail_image_ext_plyer)
+
+    def handle_selection(self, selection):
+        '''
+        Callback function for handling the selection response from Activity.
+        '''
+        self.selection = selection
+        try:
+            if os.path.isfile(self.selection[0]) and os.path.splitext(self.selection[0])[1] in avail_img_ext:
+                self.pic_day.source = self.selection[0]
+        except:
+            toast("can't select file")
+
+    def on_selection(self, *a, **k):
+        '''
+        Update TextInput.text after FileChoose.selection is changed
+        via FileChoose.handle_selection.
+        '''
+        try:
+            if os.path.isfile(self.selection[0]) and os.path.splitext(self.selection[0])[1] in avail_img_ext:
+                self.pic_day.source = self.selection[0]
+        except:
+            toast("can't select file")
 
     def id_generator(self, size=10, chars=string.ascii_lowercase + string.digits):
         return ''.join(random.choice(chars) for _ in range(size))
 
-    def begin_after_gallery(self, path):
-        if path != None:
-            # Confirming
-            bx = BoxLayout()
-            bx.add_widget(Image(source=path))
-            bx.add_widget(MDRaisedButton(size_hint=(0.1, 0.1),
-                                         text="cancel", on_release=self.can))
-            bx.add_widget(MDRaisedButton(size_hint=(0.1, 0.1),
-                                         text="send", on_release=self.pro))
-            self.bagPop = Popup(title="Press back to close",
-                                content=bx)
-
-            self.bagPop.open()
-
-        else:
-            print("No image selected.")
-
-    def pro(self, *args):
-        print("proceed")
-        threading.Thread(target=self.upload_status, args=(path,)).start()
-        self.bagPop.dismiss()
-
-    def can(self, *args):
-        print("cancel")
-        self.bagPop.dismiss()
-
-    def upload_status(self, fname):
-        global text_to_send
+    def upload_status(self, fname, caption):
         extension = os.path.splitext(fname)[1]
         new_name = "status_" + self.id_generator() + extension
-        if exceedLimit(fname):
-            threading.Thread(target=global_notify,
-                             args=("File exceeds 15MB limit",)).start()
+        if exceed_limit(fname):
+            toast("File exceeds 15MB limit")
             return
         with open(new_name, "wb") as temp:
             with open(fname, "rb") as temp2:
                 temp.write(temp2.read())
 
-        with open(new_name, "rb") as f:
-            files = {'testname': f}
-            r = requests.post(return_site_web_address() +
-                              "man_status.php", files=files)
-        site_path = return_site_web_address() + "status/" + new_name
-
-        template = {"type": "status_update",
-                    "text": text_to_send,
-                    "from": A().get_the_name(),
-                    "link": site_path}
         try:
+            with open(new_name, "rb") as f:
+                files = {'testname': f}
+                r = requests.post(return_site_web_address() +
+                                  "man_status.php", files=files)
+            site_path = return_site_web_address() + "status/" + new_name
+
+            template = {"type": "status_update",
+                        "text": caption,
+                        "link": site_path}
             s.send(bytes(json.dumps(template), "utf-8"))
-            threading.Thread(target=global_notify, args=(
-                "status update complete",)).start()
+            toast("Update complete")
         except BaseException as e:
             print(traceback.format_exc())
-            threading.Thread(target=global_notify, args=(
-                "status failed to update",)).start()
+            toast("Update failed, check your internet connection")
         self.remove_file(new_name)
-        if isAndroid():
-            pass
-        else:
-            Tinkle().change_screen("Chat")
+        Tinkle().change_screen("Chat")
 
     def remove_file(self, filename):
         try:
@@ -2271,8 +1985,7 @@ class DisplayStatus(Screen):
     def send_status_comment(self):
         try:
             if len(self.comment.text) > 0:
-                threading.Thread(target=global_notify,
-                                 args=("sending reply...",)).start()
+                toast("sending reply...")
                 template = {}
                 template["type"] = "status_comment"
                 template["to"] = self.the_target_name
@@ -2283,11 +1996,9 @@ class DisplayStatus(Screen):
                     pass
                 self.comment.text = ""
             else:
-                threading.Thread(target=global_notify, args=(
-                    "enter valid text",)).start()
+                toast("invalid text found")
         except Exception as e:
-            threading.Thread(target=global_notify, args=(
-                "can't send comment",)).start()
+            toast("Can't send comment")
 
     def on_enter(self):
         template = {}
@@ -2341,11 +2052,9 @@ class DisplayStatus(Screen):
                     for chunk in r.iter_content(chunk_size=1024):
                         if chunk:  # filter out keep-alive new chunks
                             f.write(chunk)
-                threading.Thread(target=global_notify, args=(
-                    "Saved:" + abs_local_filename,)).start()
+                toast("Saved: " + abs_local_filename)
             except:
-                threading.Thread(target=global_notify, args=(
-                    "Error while saving status",)).start()
+                toast("Error while saving status")
 
     def on_leave(self):
         try:
@@ -2420,17 +2129,7 @@ class Chat(Screen):
         self.ml = self.ids["ml"]
         self.bs_menu_1 = None
         self.bs_menu_2 = None
-
-    def callback_for_menu_items(self, sc):
-        if sc == "profile_pic":
-            if isAndroid():
-                pass
-            else:
-                Tinkle().manage_screens(sc, "add")
-                Tinkle().change_screen(sc)
-        else:
-            Tinkle().manage_screens(sc, "add")
-            Tinkle().change_screen(sc)
+        self.this_is_a_counter_and_wont_be_used_again = 0
 
     def show_bottom_popup(self):
         popup_screen = Factory.MyPopupScreenOne()
@@ -2453,6 +2152,7 @@ class Chat(Screen):
 
     def change_convo(self, name_from):
         global receiver_name
+        # Name of current person having a private chat with
         receiver_name = name_from
         Tinkle().manage_screens("convo", "add")
         Tinkle().change_screen("convo")
@@ -2533,16 +2233,14 @@ class Chat(Screen):
             location_audio = self.download_file_arbi(url_audio, "audio")
 
         except BaseException as e:
-            threading.Thread(target=global_notify, args=(
-                "Error occured while downloading audio file",)).start()
+            toast("Error occured while downloading audio file")
 
     def download_doc(self, url_doc, doc_name):
         try:
             global path_docs
             self.download_file_arbi(url_doc, "document")
         except BaseException as e:
-            threading.Thread(target=global_notify, args=(
-                "Unable to download document",)).start()
+            toast("Unable to download document")
 
     def download_image(self, url_img, img_name_new):
         try:
@@ -2559,8 +2257,7 @@ class Chat(Screen):
 
         except BaseException as e:
             print(traceback.format_exc())
-            threading.Thread(target=global_notify, args=(
-                "Unable to save image",)).start()
+            toast("Unable to save image")
 
     def PlayAudio(self, audio_name):
         global tmp
@@ -2594,8 +2291,7 @@ class Chat(Screen):
                 self.message.text = ""
         except Exception as e:
             # self.data.text += "An error occured while sending."
-            threading.Thread(target=global_notify, args=(
-                "Error: Unable to send message",)).start()
+            toast("Error: Unable to send message")
 
     def split_data(self, data):
         point = data.find("-")
@@ -2616,11 +2312,9 @@ class Chat(Screen):
         global save_messages_file
         try:
             os.remove(save_messages_file)
-            threading.Thread(target=global_notify,
-                             args=("logs removed",)).start()
+            toast("logs removed")
         except Exception as e:
-            threading.Thread(target=global_notify, args=(
-                "unable to delete file",)).start()
+            toast("unable to delete file")
         try:
             self.dialog.dismiss()
         except:
@@ -2660,9 +2354,6 @@ class Chat(Screen):
         Tinkle().manage_screens("create_group_screen", "add")
         self.dialog.dismiss()
         Tinkle().change_screen("create_group_screen")
-
-    def call_change_profile_pic(self, *args):
-        threading.Thread(target=ChangeProPic().get_rolling).start()
 
     def msgg(self):
         global s, name
@@ -2758,8 +2449,7 @@ class Chat(Screen):
                     from_who_aud = data["from"]
                     url_aud = data["link"]
                     aud_name = data["link"][:-7]
-                    threading.Thread(target=global_notify, args=(
-                        "Receiving soundclip from" + from_who_aud,)).start()
+                    toast("Downloading audio clip from " + from_who_aud)
                     aud_name_new = from_who_aud + "-" + aud_name
                     threading.Thread(target=self.download_audio, args=(
                         url_aud, aud_name_new)).start()
@@ -2768,8 +2458,7 @@ class Chat(Screen):
                     from_who_doc = data["from"]
                     url_doc = data["link"]
                     doc_name = data["link"][:-7]
-                    threading.Thread(target=global_notify, args=(
-                        "Receiving document from" + from_who_doc,)).start()
+                    toast("Downloading file from" + from_who_doc)
                     doc_name_new = from_who_doc + "-" + doc_name
                     threading.Thread(target=self.download_doc,
                                      args=(url_doc, doc_name_new)).start()
@@ -2846,11 +2535,9 @@ class Chat(Screen):
                     except Exception as e:
                         print(traceback.format_exc())
             except ConnectionResetError as e:
-                self.this_is_a_counter_and_wont_be_used_again = 0
                 if self.this_is_a_counter_and_wont_be_used_again == 0:
                     print(traceback.format_exc())
-                    threading.Thread(target=global_notify, args=(
-                        "Connection lost; Check status website or restarting",)).start()
+                    toast("Connection lost; Check status website or restarting")
                     self.this_is_a_counter_and_wont_be_used_again = 1
 
             except Exception as e:
@@ -2888,16 +2575,14 @@ class Chat(Screen):
 
                 self.add_two_line(
                     initial["from"], initial["greeting"], initial["img_link"])
-                threading.Thread(target=global_notify, args=(
-                    "Keep Calm and Tinkle on...",)).start()
+                toast("Keep Calm and Tinkle on...")
 
                 threading.Thread(target=self.load_previous_msg).start()
                 threading.Thread(target=self.msgg).start()
                 Clock.schedule_once(self.get_missed, 6)
             except BaseException as e:
                 print(traceback.format_exc())
-                threading.Thread(target=global_notify, args=(
-                    "Unable to connect",)).start()
+                toast("Unable to connect")
 
     def load_previous_msg(self):
         if DEFAULT_ACCOUNT:
@@ -2913,6 +2598,7 @@ class Chat(Screen):
                         self.apply_correct(tx_name, tx_message, tx_prof_link)
 
     def get_missed(self, *args):
+        # Retrieves messages that were sent during offline period
         global s
         template = {
             "type": ""
@@ -2975,8 +2661,9 @@ class ImagePreviewShare(Screen):
 
     # LOGIC: create temp copy of image, upload, delete
 
-    def prepare_send_it(self,filename):
+    def prepare_send_it(self, filename):
         threading.Thread(target=self.send_it, args=(filename,)).start()
+
     def send_it(self, filename):
         global receiver_name, IS_GROUP_MEDIA
         if IS_GROUP_MEDIA:
@@ -2986,10 +2673,10 @@ class ImagePreviewShare(Screen):
         if len(filename) > 5:
             try:
                 try:
-                    if exceedLimit(filename):
+                    if exceed_limit(filename):
                         toast("File exceeds 15MB limit")
                         return
-                    condition = doHashCheckServer(filename, "image")
+                    condition = do_hash_check_server(filename, "image")
                     if condition[0]:
                         should_do_upload = False
                         complete_link = condition[1]
@@ -3026,14 +2713,11 @@ class ImagePreviewShare(Screen):
                     if should_do_upload:
                         threading.Thread(target=self.upload_image, args=(
                             tempo_img_file, url_for_img, bibo)).start()
-                        # threading.Thread(target=global_notify, args=(
-                        #     "Sharing in background",)).start()
                     else:
                         bibo["link"] = complete_link
                         s.send(bytes(json.dumps(bibo), "utf-8"))
                         self.remove_file(tempo_img_file)
-                        threading.Thread(target=global_notify, args=(
-                            "Upload complete, used cache",)).start()
+                        toast("Upload complete, used cache")
                     if IS_GROUP_MEDIA:
                         Tinkle().change_screen("group_convo")
                         IS_GROUP_MEDIA = False
@@ -3049,48 +2733,32 @@ class ImagePreviewShare(Screen):
                     Tinkle().change_screen("convo")
 
     def file_manager_open(self):
-        threading.Thread(target=self._actual_image_select).start()
-
-    def select_path(self, path):
-        '''It will be called when you click on the file name
-        or the catalog selection button.
-
-        :type path: str;
-        :param path: path to the selected directory or file;
-        '''
-
-        self.exit_manager()
-        if os.path.splitext(path)[1] in avail_img_ext:
-            self.image_preview.source = path
+        if isAndroid():
+            if check_read_permission():
+                filechooser.open_file(on_selection=self.handle_selection)
+            else:
+                toast("Permission to access external storage denied")
         else:
-            toast("File type not supported")
-
-    def _actual_image_select(self):
-        filechooser.open_file(on_selection=self.handle_selection, path=path_docs, filters=fil_avail_profile_ext_plyer)
+            filechooser.open_file(on_selection=self.handle_selection, path=path_images,
+                                  filters=fil_avail_image_ext_plyer)
 
     def handle_selection(self, selection):
         '''
         Callback function for handling the selection response from Activity.
         '''
         self.selection = selection
-        try:
-            if os.path.isfile(self.selection[0]):
-                self.image_preview.source = self.selection[0]
-        except:
-            # print(traceback.format_exc())
-            pass
 
     def on_selection(self, *a, **k):
         '''
         Update TextInput.text after FileChoose.selection is changed
         via FileChoose.handle_selection.
         '''
-
-    def go_back(self):
-        if IS_GROUP_MEDIA:
-            Tinkle().change_screen("group_convo")
-        else:
-            Tinkle().change_screen("convo")
+        try:
+            if os.path.isfile(self.selection[0]) and os.path.splitext(self.selection[0])[1] in avail_img_ext:
+                self.image_preview.source = self.selection[0]
+        except:
+            toast("can't select file")
+            print(self.selection)
 
     def on_leave(self):
         Tinkle().manage_screens("for_selecting", "remove")
@@ -3110,6 +2778,7 @@ class ShareAudio:
         return a
 
     def play_percent(self):
+        from kivy.core.audio import SoundLoader
         self.tmp = SoundLoader.load(self.filename)
         self.tmp.play()
         play_time = self.percent_to_play(10, self.tmp)
@@ -3142,11 +2811,10 @@ class ShareAudio:
         if len(filename) > 5:
             try:
                 try:
-                    if exceedLimit(filename):
-                        threading.Thread(target=global_notify,
-                                         args=("File exceeds 15MB limit",)).start()
+                    if exceed_limit(filename):
+                        toast("File exceeds 15MB limit")
                         return
-                    condition = doHashCheckServer(filename, "audio")
+                    condition = do_hash_check_server(filename, "audio")
                     if condition[0]:
                         should_do_upload = False
                         complete_link = condition[1]
@@ -3194,6 +2862,7 @@ class ShareAudio:
             except BaseException as e:
                 toast("Unable to send")
 
+
 # Name: for_selecting_docs
 
 
@@ -3219,10 +2888,6 @@ class ShareDocument:
         except Exception as e:
             pass
 
-    def id_generator(self, size=7, chars=string.ascii_lowercase + string.digits):
-        # do from random import choice
-        return ''.join(random.choice(chars) for _ in range(size))
-
     def send_it(self, filename):  # this is upload part
         global receiver_name, IS_GROUP_MEDIA
         if IS_GROUP_MEDIA:
@@ -3231,11 +2896,10 @@ class ShareDocument:
             self.recvr = receiver_name
         if len(filename) > 5:
             try:
-                if exceedLimit(filename):
-                    threading.Thread(target=global_notify,
-                                     args=("File exceeds 15MB limit",)).start()
+                if exceed_limit(filename):
+                    toast("File exceeds 15MB limit")
                     return
-                condition = doHashCheckServer(filename, "document")
+                condition = do_hash_check_server(filename, "document")
                 if condition[0]:
                     should_do_upload = False
                     complete_link = condition[1]
@@ -3292,133 +2956,6 @@ class ShareDocument:
                 # Tinkle().change_screen("Chat")
 
 
-# change profile pic android specific
-
-class ChangeProPic:
-
-    def get_rolling(self):
-        if isAndroid():
-            import android_image_select
-            from jnius import autoclass
-            autoclass('org.kivy.android.PythonActivity$ActivityResultListener')
-            android_image_select.user_select_image(self.start_send_in_thread)
-        else:
-            threading.Thread(target=global_notify,
-                             args=("Android only!",)).start()
-
-    def start_send_in_thread(self, path):
-        if path != None:
-            bx = GridLayout(rows=2, cols=1)
-            bx.add_widget(Image(source=path))
-            btns_layout = GridLayout(
-                rows=1, cols=2, size_hint_y=None, height=60)
-            btns_layout.add_widget(MDRaisedButton(size_hint_y=None, height=self.parent.height * 0.111,
-                                                  text="Cancel", on_release=self.can))
-            btns_layout.add_widget(MDRaisedButton(size_hint_y=None, height=self.parent.height * 0.111,
-                                                  text="Send", on_release=partial(self.pro, path)))
-            bx.add_widget(btns_layout)
-            self.bagPop = Popup(title="Back to cancel",
-                                content=bx)
-
-            self.bagPop.open()
-
-        else:
-            print("No image selected.")
-
-    def pro(self, path, *args):
-        print("proceed")
-        threading.Thread(target=self.send_it, args=(path,)).start()
-        self.bagPop.dismiss()
-
-    def can(self, *args):
-        print("cancel")
-        self.bagPop.dismiss()
-
-    def upload_image(self, fname, urlll):
-        with open(fname, "rb") as f:
-            files = {'testname': f}
-            r = requests.post(urlll, files=files)
-        threading.Thread(target=global_notify, args=(
-            "Upload complete, now updating",)).start()
-        self.remove_file(fname)
-        new_display_link = return_site_web_address() + "display/" + fname + ".png"
-        old_link = return_site_web_address() + "display/" + fname
-        result = self.do_something(
-            new_display_link, A().get_the_name(), get_password(), old_link)
-        if result[0]:
-            threading.Thread(target=global_notify,
-                             args=("Update complete",)).start()
-        elif result[0] == False:
-            threading.Thread(target=global_notify,
-                             args=("Update failed",)).start()
-        elif result[0] == None:
-            threading.Thread(target=global_notify, args=(
-                "Connection error",)).start()
-
-    def do_something(self, image_link, my_name, my_pass, old_link):
-        some_soc = socket.socket()
-        host = return_server_address()
-        port = port_profile_pic
-        try:
-            some_soc.connect((host, port))
-            template = {"type": "update_pic", "name": my_name,
-                        "password": my_pass, "link": image_link, "original_link": old_link}
-            some_soc.send(bytes(json.dumps(template), "utf-8"))
-            temp_data = some_soc.recv(1024).decode("utf-8")
-            temp = json.loads(temp_data)
-            if temp["update_reply"] == "success":
-                new_link = temp["new_link"]
-                return True, new_link
-            elif temp["update_reply"] == "fail":
-                return False, False
-
-        except Exception as e:
-            return None, None
-
-    def remove_file(self, fname):
-        try:
-            os.remove(fname)
-        except Exception as e:
-            pass
-
-    def id_generator(size=7, chars=string.ascii_lowercase + string.digits):
-        # do from random import choice
-        return ''.join(random.choice(chars) for _ in range(size))
-
-    def send_it(self, path):  # this is upload part
-        if path != None:
-            self.filename = path
-            if exceedLimit(self.filename):
-                threading.Thread(target=global_notify,
-                                 args=("File exceeds 15MB limit",)).start()
-                return
-            host = return_site_web_address()
-            url_for_img = host + "man_display.php"
-            url_for_img_no_php = host + "display/"
-            c_extension = os.path.splitext(self.filename)[1]
-            if c_extension in avail_img_ext:
-                threading.Thread(target=global_notify,
-                                 args=("Uploading",)).start()
-                extension = c_extension
-                # create temp_file for randomness of filename
-                my_name = str(A().get_the_name())
-                tempo_img_file = my_name + "-" + \
-                                 ''.join(random.choice(string.ascii_lowercase + string.digits)
-                                         for _ in range(7)) + extension
-                with open(self.filename, "rb") as f:
-                    orag = f.read()
-                with open(tempo_img_file, "wb") as fb:
-                    fb.write(orag)
-
-                threading.Thread(target=self.upload_image, args=(
-                    tempo_img_file, url_for_img)).start()
-            else:
-                threading.Thread(target=global_notify, args=(
-                    "File type not supported",)).start()
-        else:
-            print("No image selected")
-
-
 # Name: profile_pic
 
 
@@ -3441,73 +2978,34 @@ class ProfilePicture(Screen):
         self.profile_pic_preview.reload()
         self.profile_pic_preview.source = profile_img_link()
 
-    def _get_the_image(self):
-        self.prepare_share()
-
-    def prepare_share(self):
-        filechooser.open_file(on_selection=self.handle_selection, path=path_images, filters=fil_avail_profile_ext_plyer)
-
     def handle_selection(self, selection):
         '''
         Callback function for handling the selection response from Activity.
         '''
         self.selection = selection
-        try:
-            if os.path.isfile(self.selection[0]):
-                self.profile_pic_preview.source = self.selection[0]
-        except:
-            # print(traceback.format_exc())
-            pass
 
     def on_selection(self, *a, **k):
         '''
         Update TextInput.text after FileChoose.selection is changed
         via FileChoose.handle_selection.
         '''
+        try:
+            if os.path.isfile(self.selection[0]) and os.path.splitext(self.selection[0])[1] != ".gif":
+                self.profile_pic_preview.source = self.selection[0]
+        except:
+            toast("Unable to select file")
+            pass
 
     def file_manager_open(self):
-        threading.Thread(target=self._get_the_image).start()
-        # if not self.f_manager:
-        #     self.f_manager = ModalView(size_hint=(1, 1), auto_dismiss=False)
-        #     self.file_manager = MDFileManager(
-        #         exit_manager=self.exit_manager, select_path=self.select_path)
-        #     self.f_manager.add_widget(self.file_manager)
-        #     self.file_manager.show(path_images)  # output manager to the screen
-        # self.f_manager_open = True
-        # self.f_manager.open()
-
-    def select_path(self, path):
-        '''It will be called when you click on the file name
-        or the catalog selection button.
-
-        :type path: str;
-        :param path: path to the selected directory or file;
-        '''
-
-        self.exit_manager()
-        if os.path.splitext(path)[1] != ".gif" and os.path.splitext(path)[1] in avail_img_ext:
-            self.profile_pic_preview.source = path
+        if isAndroid():
+            if check_read_permission():
+                filechooser.open_file(on_selection=self.handle_selection)
+            else:
+                toast("Permission to access external storage denied")
         else:
-            toast("File type not supported")
-
-    def exit_manager(self, *args):
-        '''Called when the user reaches the root of the directory tree.'''
-
-        self.f_manager.dismiss()
-        self.f_manager_open = False
-
-    def events(self, instance, keyboard, keycode, text, modifiers):
-        '''Called when buttons are pressed on the mobile device..'''
-
-        if keyboard in (1001, 27):
-            if self.f_manager_open:
-                try:
-                    self.file_manager.back()
-                except BaseException as e:
-                    print(e)
-                    toast("Can't go back")
-
-        return True
+            filechooser.open_file(on_selection=self.handle_selection,
+                                  path=path_images,
+                                  filters=fil_avail_profile_ext_plyer)
 
     def preview_img(self, src):
         popup = Popup(title="Preview",
@@ -3518,22 +3016,18 @@ class ProfilePicture(Screen):
         with open(fname, "rb") as f:
             files = {'testname': f}
             r = requests.post(urlll, files=files)
-        threading.Thread(target=global_notify, args=(
-            "Upload complete, now updating",)).start()
+        toast("Upload complete, now updating")
         self.remove_file(fname)
         new_display_link = return_site_web_address() + "display/" + fname + ".png"
         old_link = return_site_web_address() + "display/" + fname
         result = self.do_something(
             new_display_link, A().get_the_name(), get_password(), old_link)
         if result[0]:
-            threading.Thread(target=global_notify,
-                             args=("Update complete",)).start()
+            toast("Update complete")
         elif result[0] == False:
-            threading.Thread(target=global_notify,
-                             args=("Update failed",)).start()
+            toast("Update failed")
         elif result[0] == None:
-            threading.Thread(target=global_notify, args=(
-                "Connection error",)).start()
+            toast("Connection error")
 
     def do_something(self, image_link, my_name, my_pass, old_link):
         some_soc = socket.socket()
@@ -3562,7 +3056,7 @@ class ProfilePicture(Screen):
         except Exception as e:
             pass
 
-    def id_generator(size=7, chars=string.ascii_lowercase + string.digits):
+    def id_generator(self, size=7, chars=string.ascii_lowercase + string.digits):
         # do from random import choice
         return ''.join(random.choice(chars) for _ in range(size))
 
@@ -3575,9 +3069,8 @@ class ProfilePicture(Screen):
         url_for_img_no_php = host + "display/"
         c_extension = os.path.splitext(filename)[1]
         if c_extension in avail_img_ext:
-            if exceedLimit(filename):
-                threading.Thread(target=global_notify,
-                                 args=("File exceeds 15MB limit",)).start()
+            if exceed_limit(filename):
+                toast("File exceeds 15MB limit")
                 return
             toast("Uploading")
             extension = c_extension
@@ -3658,12 +3151,8 @@ class Tinkle(App):
         sm.current = sc
 
     def decide_change_dp(self):
-        # if android: use gallery
-        if isAndroid():
-            ChangeProPic().get_rolling()
-        else:
-            self.manage_screens("profile_pic", "add")
-            Tinkle().change_screen("profile_pic")
+        self.manage_screens("profile_pic", "add")
+        Tinkle().change_screen("profile_pic")
 
     def on_pause(self):
         return True
@@ -3675,8 +3164,7 @@ class Tinkle(App):
         with open(backup_file, "wb") as f:
             f.write(A().get_the_name() + "\n")
             f.write(get_password())
-            threading.Thread(target=global_notify, args=(
-                "Backup file: " + backup_file,)).start()
+            toast("Backup file: " + backup_file)
 
     def display_settings(self, settings):
         try:
@@ -3702,9 +3190,8 @@ class Tinkle(App):
             from moretransitions import TileTransition
             sm = ScreenManager(transition=TileTransition())
 
-        # sm.add_widget(SignInScreen(name="signin_screen"))
-        # sm.add_widget(Registration(name="registration_screen"))
-        sm.add_widget(GroupConversation(name="group_convo"))
+        sm.add_widget(SignInScreen(name="signin_screen"))
+        sm.add_widget(Registration(name="registration_screen"))
         return sm
 
     def post_build_init(self, ev):

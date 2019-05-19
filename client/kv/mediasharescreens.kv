@@ -1,78 +1,33 @@
-<ShareImage>:
+<ImagePreviewShare>:
     GridLayout:
-        rows: 2
         cols:1
+        padding: dp(4), dp(4)
+        spacing: dp(4)
+        GridLayout:
+            rows: 1
+            cols: 3
+            SmartTileWithLabel:
+                id: image_preview
+                text: "[size=15]Preview of image to share[/size]"
+                on_release:
+                    root.preview_img(image_preview.source)
 
-        BoxLayout:
-            
-            FileChooserIconView:
-                id: filechooser
-                path: path_images
-                filters: fil_avail_img_ext
-                on_selection: root.select(filechooser.selection)
-                #FileChooserIconLayout
-                #FileChooserListLayout
-
-        BoxLayout:
+        MDRoundFlatIconButton:
+            text: "Change"
+            icon: "folder"
+            pos_hint: {'center_x': .5, 'center_y': .6}
+            on_release:
+                root.file_manager_open()
+        GridLayout:
             size_hint_y: None
-            height: 30
-            spacing: 10
-
+            spacing: dp(10)
+            rows: 1
+            Widget:
+            MDRaisedButton:
+                text: "Cancel"
+                on_release:
+                    root.on_back_pressed()
             MDRaisedButton:
                 text: "Send"
-                on_press: root.send_it()
-
-
-
-
-<ShareAudio>:
-    GridLayout:
-        rows: 2
-        cols:1
-        BoxLayout:
-            FileChooserIconView:
-                id: filechooser
-                path: path_music
-                filters: fil_avail_aud_ext
-                on_selection: root.select(filechooser.selection)
-        BoxLayout:
-            size_hint_y: None
-            height: 30
-            spacing: 10
-
-            MDRaisedButton:
-                text: "Send"
-                on_press: root.send_it_audio()
-
-
-
-<ShareDocument>:
-    GridLayout:
-        rows: 3
-        cols:1
-        BoxLayout:
-            size_hint_y: None
-            height: sp(52)
-
-            MDRaisedButton:
-                text: 'Icon View'
-                on_press: filechooser.view_mode = 'icon'
-            MDRaisedButton:
-                text: 'List View'
-                on_press: filechooser.view_mode = 'list'
-        BoxLayout:
-            FileChooser:
-                id: filechooser
-                path: path_docs
-                filters: fil_avail_doc_ext
-                on_selection: root.select(filechooser.selection)
-                FileChooserIconLayout
-                FileChooserListLayout
-
-        BoxLayout:
-            size_hint_y: None
-            height: 30
-            spacing: 10
-            MDRaisedButton:
-                text: "Share"
-                on_press: root.send_it()
+                on_release: root.prepare_send_it(image_preview.source)
+            Widget:

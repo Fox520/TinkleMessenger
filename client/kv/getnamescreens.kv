@@ -11,9 +11,19 @@
                 id: ldml
 
 <GetNamesForFriendRequestsScreen>:
+
     GridLayout:
         cols: 1
-        rows: 2
+        rows: 3
+        MDToolbar:
+            id: toolbar
+            title: "Tinkle"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            left_action_items:
+                [['arrow-left', lambda x: app.change_screen("Chat")]]
         MDRaisedButton:
             text: "reload"
             on_release: root.refresh_screen()

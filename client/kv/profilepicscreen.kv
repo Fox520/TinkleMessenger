@@ -1,24 +1,40 @@
-<Profile_Pic>:
+<ProfilePicture>:
     GridLayout:
-        rows: 2
         cols:1
-
-        BoxLayout:
-            FileChooserIconView:
-                id: filechooser
-                path: path_images
-                filters: fil_avail_img_ext
-                on_selection: root.select(filechooser.selection)
-        BoxLayout:
+        padding: dp(4), dp(4)
+        spacing: dp(4)
+        GridLayout:
+            rows: 1
+            cols: 3
+            Widget:
+            SmartTileWithLabel:
+                id: profile_pic_preview
+                text: "[size=15]Display picture[/size]"
+                on_release:
+                    root.preview_img(profile_pic_preview.source)
+            Widget:
+        MDLabel:
+            text_size: self.size
+            halign: 'center'
+            valign: 'middle'
+            text: "This is your current profile picture. Anyone is able to see it."
+        MDRoundFlatIconButton:
+            text: "Change"
+            icon: "folder"
+            pos_hint: {'center_x': .5, 'center_y': .6}
+            on_release:
+                root.file_manager_open()
+        GridLayout:
             size_hint_y: None
-            height: 30
-            spacing: 10
-
-            MDRaisedButton:
-                text: "Set"
-                on_press: root.send_it()
+            spacing: dp(10)
+            rows: 1
+            Widget:
             MDRaisedButton:
                 text: "Cancel"
-                on_press:
+                on_release:
                     root.manager.current = "Chat"
-                    app.manage_screens("profile_Pic","remove")
+                    app.manage_screens("profile_pic","remove")
+            MDRaisedButton:
+                text: "Set"
+                on_release: root.send_it(profile_pic_preview.source)
+            Widget:

@@ -46,19 +46,22 @@
         MDRoundFlatButton:
             text: "Send file"
             on_release:
-                root.parent.parent.parent.callback_for_menu_items("for_selecting_docs")
+                root.parent.parent.parent.file_manager_open("option-file")
+#                root.parent.parent.parent.callback_for_menu_items("for_selecting_docs")
         Widget:
         MDRoundFlatButton:
             text: "Send audio file"
             on_release:
-                root.parent.parent.parent.callback_for_menu_items("for_selecting_audio")
+                root.parent.parent.parent.file_manager_open("option-aud")
+#                root.parent.parent.parent.callback_for_menu_items("for_selecting_audio")
         Widget:
 
         Widget:
         MDRoundFlatButton:
             text: "Send image"
             on_release:
-                root.parent.parent.parent.decide_share_image()
+                root.parent.parent.parent.file_manager_open("option-img")
+#                root.parent.parent.parent.decide_share_image()
         Widget:
 
     TwoLineIconListItem:
