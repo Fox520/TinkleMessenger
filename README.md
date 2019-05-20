@@ -22,7 +22,7 @@ Built using the Kivy framework.
     * Place the files in [server](server) into the newly created directory
     * Run [initiate_address.py](server/initiate_address.py) and specify the website address (e.g. http://mysite.com/ or http://192.168.178.20/)
 ##
-Short description of what the server .py files do is found [here](server/readme.md).
+Short description of what the server .py files do is found [here](server/README.md).
 ##
 Run
 ```
