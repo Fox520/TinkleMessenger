@@ -48,6 +48,9 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen, ScreenManager
 from kivy.utils import get_color_from_hex, get_hex_from_color
+from kivy.properties import BooleanProperty, StringProperty
+from kivy.event import EventDispatcher
+from kivy.network.urlrequest import UrlRequest
 
 from kivymd.bottomsheet import MDListBottomSheet
 from kivymd.theming import ThemeManager
@@ -214,10 +217,10 @@ def generate_key():
 def get_password():
     global the_key
     if the_key != "":
-        return the_key
+        return the_key.decode("utf-8")
     with open(priv, "rb") as f:
         the_key = f.read()
-        return the_key
+        return the_key.decode("utf-8")
 
 
 def md5(fname):
@@ -348,6 +351,8 @@ def check_name():
 def write_name(foo_name, should_write=True, pwda=""):
     # ASK FOR NAME
     global name, DEFAULT_ACCOUNT
+    if name == None:
+        return [False]
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     nhost = return_server_address()
     nport = port_name
@@ -436,6 +441,9 @@ def do_hash_check_server(fname, media_type):
         return [False, ""]
 
 
+name = ""
+
+
 class A:
     def get_the_name(self):
         global name
@@ -460,7 +468,6 @@ backup_file = os.path.join(path_docs, "Tinkle_Backup.dat")
 
 Builder.load_string("""
 #:include kv/signinscreen.kv
-#:include kv/registrationscreen.kv
 #:include kv/creategroupscreen.kv
 #:include kv/getnamescreens.kv
 #:include kv/advancedscreen.kv
@@ -498,6 +505,7 @@ Builder.load_string("""
 #:import MDRoundFlatButton kivymd.button.MDRoundFlatButton
 #:import SmartTileWithLabel kivymd.imagelists.SmartTileWithLabel
 #:import MDRoundFlatIconButton kivymd.button.MDRoundFlatIconButton
+#:import MDCheckbox kivymd.selectioncontrols.MDCheckbox
 
 <MyImageButton@ButtonBehavior+AsyncImage>:
 
@@ -536,8 +544,7 @@ Builder.load_string("""
                 pos: self.pos
                 size: self.size
                 source: LOADING_IMAGE
-
-    
+                
     """)
 
 
@@ -779,238 +786,271 @@ class GetFriendsAddGroup(Screen):
             print(traceback.format_exc())
 
 
-class SignInScreen(Screen):
+class SignInScreen(Screen, EventDispatcher):
+    """Use this widget as a complete module to incorporate Firebase user
+    authentication in your app. To use this module, instantiate the login screen
+    in the KV language like so:
+    FirebaseLoginScreen:
+        web_api_key: "your_firebase_web_api_key"
+        debug: True # Not necessary, but will print out debug information
+        on_login_success:
+            # do something here
+
+    In your main App class, set the three following fields to dictate the color
+    scheme of the login screens. Example:
+
+    class MainApp(App):
+        primary_color: (1, 0, 0, 1)
+        secondary_color: (0, 1, 0, 1)
+        tertiary_color: (0, 0, 1, 1)
+        pass
+
+    NOTES:
+    1) You MUST set the web api key or it is impossible for the login screen to
+    function properly.
+    2) You probably want to wrap the FirebaseLoginScreen in a ScreenManager.
+    3) You probably want to switch screens to a Screen in your project once the
+    user has logged in (write that code in the on_login_success function shown
+    in the example above).
+    4) You can set the colors (primary_color, secondary_color, tertiary_color)
+    to be whatever you like.
+    """
+
+    # Firebase Project meta info - MUST BE CONFIGURED BY DEVELOPER
+    web_api_key = StringProperty()  # From Settings tab in Firebase project
+
+    # Firebase Authentication Credentials - what developers want to retrieve
+    refresh_token = ""
+    localId = ""
+    idToken = ""
+
+    # Properties used to send events to update some parts of the UI
+    login_success = BooleanProperty(False)  # Called upon successful sign in
+    sign_up_msg = StringProperty()
+    sign_in_msg = StringProperty()
+    email_exists = BooleanProperty(False)
+    email_not_found = BooleanProperty(False)
+
+    debug = True
 
     def __init__(self, **kwargs):
         super(SignInScreen, self).__init__(**kwargs)
-        self.alias = self.ids["alias"]
-        self.prg_spin = self.ids["prg_spin"]
-        self.bs_menu_1 = None
-        if os.path.isfile(client_file):
-            with open(client_file, "rb") as f:
-                temp_string = f.read()
-                self.alias.text = temp_string
+        self.toolbar = self.ids["toolbar"]
+        self.proceed_button = self.ids["proceed_button"]
 
-    def on_enter(self):
-        Tinkle().manage_screens("dump_screen", "remove")
+    def on_login_success(self, *args):
+        """Overwrite this method to switch to your app's home screen.
+        """
+        Tinkle().manage_screens("Chat", "add")
+        Tinkle().change_screen("Chat")
+        Tinkle().manage_screens("signin_screen", "remove")
+        print("Logged in successfully", args)
 
-    def _signin(self):
-        temp_pw = ""
-        result = write_name(self.alias.text, False, temp_pw)
-        if result[0]:
-            self.prg_spin.stop_spinning()
-            global name
-            name = self.alias.text
-            Tinkle().manage_screens("Chat", "add")
-            self.manager.current = "Chat"
-        elif result[0] == False:
-            self.prg_spin.stop_spinning()
-            toast("Invalid signin credentials")
-        elif result[0] == None:
-            self.prg_spin.stop_spinning()
-            toast("unable to connect")
+    def on_web_api_key(self, *args):
+        """When the web api key is set, look for an existing account in local
+        memory.
+        """
+        # Try to load the users info if they've already created an account
+        self.refresh_token_file = os.path.join(App.get_running_app().user_data_dir, "refresh_token.txt")
+        self.email_file = os.path.join(App.get_running_app().user_data_dir, "email.txt")
 
-    def show_bottom_sheet(self):
-        if not self.bs_menu_1:
-            self.bs_menu_1 = MDListBottomSheet()
-            self.bs_menu_1.add_item(
-                "Recover account from backup file",
-                lambda x: self.recover_backup())
+        if self.debug:
+            print("Looking for a refresh token in:", self.refresh_token_file)
+        if os.path.exists(self.refresh_token_file) and os.path.exists(self.email_file):
+            with open(self.email_file, "r") as f:
+                global name
+                name = f.read()
+                print(name)
+            self.load_saved_account()
 
-        self.bs_menu_1.open()
+    def sign_up(self, email, password):
+        """If you don't want to use Firebase, just overwrite this method and
+        do whatever you need to do to sign the user up with their email and
+        password.
+        """
+        if self.debug:
+            print("Attempting to create a new account: ", email, password)
+        signup_url = "https://www.googleapis.com/identitytoolkit/v3/relyingparty/signupNewUser?key=" + self.web_api_key
+        signup_payload = json.dumps(
+            {"email": email, "password": password, "returnSecureToken": "true"})
 
-    def export_key(self):
+        UrlRequest(signup_url, req_body=signup_payload,
+                   on_success=self.successful_login,
+                   on_failure=self.sign_up_failure,
+                   on_error=self.sign_up_error)
 
-        try:
-            if isAndroid():
-                if check_read_permission():
-                    shutil.copy2(priv, home)
-                    toast("Saved: " + os.path.join(home, priv))
-                else:
-                    toast("Permission to access external storage denied")
-            else:
-                shutil.copy2(priv, home)
-                toast("Saved: " + os.path.join(home, priv))
-        except Exception as e:
-            toast("Failed, check permissions")
-            self.display_password(get_password())
+    def successful_login(self, urlrequest, log_in_data):
+        """Collects info from Firebase upon successfully registering a new user.
+        """
+        global name
+        self.hide_loading_screen()
+        self.refresh_token = log_in_data['refreshToken']
+        self.localId = log_in_data['localId']
+        self.idToken = log_in_data['idToken']
+        self.save_refresh_token(self.refresh_token)
+        self.login_success = True
+        with open(self.email_file, "w") as f:
+            f.write(log_in_data["email"])
+        name = log_in_data["email"]
+        if self.debug:
+            print("Successfully logged in a user: ", log_in_data)
 
-    def write_new_data(self, new_name, new_key):
-        global the_key
-        with open(client_file, "wb") as f:
-            f.write(new_name)
-        with open(priv, "wb") as f:
-            f.write(new_key)
-            the_key = ""
+    def sign_up_failure(self, urlrequest, failure_data):
+        """Displays an error message to the user if their attempt to log in was
+        invalid.
+        """
+        self.hide_loading_screen()
+        self.email_exists = False  # Triggers hiding the sign in button
+        print(failure_data)
+        msg = failure_data['error']['message'].replace("_", " ").capitalize()
+        # Check if the error msg is the same as the last one
+        toast(msg)
+        if msg == self.sign_up_msg:
+            # Need to modify it somehow to make the error popup display
+            msg = " " + msg + " "
+        self.sign_up_msg = msg
+        if msg == "Email exists":
+            self.email_exists = True
+        if self.debug:
+            print("Couldn't sign the user up: ", failure_data)
 
-    def recover_backup(self):
-        if isAndroid():
-            if check_read_permission():
-                if os.path.isfile(backup_file):
-                    with open(backup_file, "rb") as f:
-                        data = f.read()
-                        _n, _p = data.split("\n")
-                        self.write_new_data(_n, _p)
-                        self.alias.text = _n
-                else:
-                    toast("Backup file not found")
-                    return None, None
-            else:
-                toast("Permission to access external storage denied.")
-        else:
-            if os.path.isfile(backup_file):
-                with open(backup_file, "rb") as f:
-                    data = f.read()
-                    _n, _p = data.split("\n")
-                    self.write_new_data(_n, _p)
-                    self.alias.text = _n
-            else:
-                toast("Backup file not found")
-            return None, None
+    def sign_up_error(self, *args):
+        self.hide_loading_screen()
+        if self.debug:
+            print("Sign up Error: ", args)
 
-    def display_password(self, themsg):
-        box = GridLayout(rows=2)
-        box.add_widget(
-            MDTextField(readonly=True, text=themsg, multiline=True, background_color=get_color_from_hex(chat_clr_value),
-                        background_normal="",
-                        auto_dismiss=True))
-        box.add_widget(MDRaisedButton(
-            text="dismiss", on_release=lambda *args: popup.dismiss()))
+    def sign_in(self, email, password):
+        """Called when the "Log in" button is pressed.
 
-        popup = Popup(title="your key", content=box)
-        popup.open()
+        Sends the user's email and password in an HTTP request to the Firebase
+        Authentication service.
+        """
+        print("SIGN IN METHOD")
+        if self.debug:
+            print("Attempting to sign user in: ", email, password)
+        sign_in_url = "https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyPassword?key=" + self.web_api_key
+        sign_in_payload = json.dumps(
+            {"email": email, "password": password, "returnSecureToken": True})
 
+        UrlRequest(sign_in_url, req_body=sign_in_payload,
+                   on_success=self.successful_login,
+                   on_failure=self.sign_in_failure,
+                   on_error=self.sign_in_error)
 
-class Registration(Screen):
-    def __init__(self, **kwargs):
-        self.register_event_type('on_back_pressed')
-        self.register_event_type('on_menu_pressed')
-        super(Registration, self).__init__(**kwargs)
-        self.prg_spin = self.ids["prg_spin"]
+    def sign_in_failure(self, urlrequest, failure_data):
+        """Displays an error message to the user if their attempt to create an
+        account was invalid.
+        """
+        self.hide_loading_screen()
+        self.email_not_found = False  # Triggers hiding the sign in button
+        print(failure_data)
+        msg = failure_data['error']['message'].replace("_", " ").capitalize()
+        # Check if the error msg is the same as the last one
+        if msg == self.sign_in_msg:
+            # Need to modify it somehow to make the error popup display
+            msg = " " + msg + " "
+        toast(msg)
+        self.sign_in_msg = msg
+        if msg == "Email not found":
+            self.email_not_found = True
+        if self.debug:
+            print("Couldn't sign the user in: ", failure_data)
 
-    def on_back_pressed(self, *args):
-        Tinkle().change_screen("signin_screen")
+    def sign_in_error(self, *args):
+        self.hide_loading_screen()
+        if self.debug:
+            print("Sign in error", args)
 
-    def on_menu_pressed(self, *args):
+    def reset_password(self, email):
+        """Called when the "Reset password" button is pressed.
+
+        Sends an automated email on behalf of your Firebase project to the user
+        with a link to reset the password. This email can be customized to say
+        whatever you want. Simply change the content of the template by going to
+        Authentication (in your Firebase project) -> Templates -> Password reset
+        """
+        if self.debug:
+            print("Attempting to send a password reset email to: ", email)
+        reset_pw_url = "https://www.googleapis.com/identitytoolkit/v3/relyingparty/getOobConfirmationCode?key=" + self.web_api_key
+        reset_pw_data = json.dumps({"email": email, "requestType": "PASSWORD_RESET"})
+
+        UrlRequest(reset_pw_url, req_body=reset_pw_data,
+                   on_success=self.successful_reset,
+                   on_failure=self.sign_in_failure,
+                   on_error=self.sign_in_error)
+
+    def successful_reset(self, urlrequest, reset_data):
+        """Notifies the user that a password reset email has been sent to them.
+        """
+        self.hide_loading_screen()
+        if self.debug:
+            print("Successfully sent a password reset email", reset_data)
+        toast("Successfully sent a password reset email")
+        self.sign_in_msg = "Reset password instructions sent to your email."
+
+    def save_refresh_token(self, refresh_token):
+        """Saves the refresh token in a local file to enable automatic sign in
+        next time the app is opened.
+        """
+        if self.debug:
+            print("Saving the refresh token to file: ", self.refresh_token_file)
+        with open(self.refresh_token_file, "w") as f:
+            f.write(refresh_token)
+
+    def load_refresh_token(self):
+        """Reads the refresh token from local storage.
+        """
+        if self.debug:
+            print("Loading refresh token from file: ", self.refresh_token_file)
+        with open(self.refresh_token_file, "r") as f:
+            self.refresh_token = f.read()
+
+    def load_saved_account(self):
+        """Uses the refresh token to get the user's idToken and localId by
+        sending it as a request to Google/Firebase's REST API.
+
+        Called immediately when a web_api_key is set and if the refresh token
+        file exists.
+        """
+        if self.debug:
+            print("Attempting to log in a user automatically using a refresh token.")
+        self.load_refresh_token()
+        refresh_url = "https://securetoken.googleapis.com/v1/token?key=" + self.web_api_key
+        refresh_payload = json.dumps({"grant_type": "refresh_token", "refresh_token": self.refresh_token})
+        UrlRequest(refresh_url, req_body=refresh_payload,
+                   on_success=self.successful_account_load,
+                   on_failure=self.failed_account_load,
+                   on_error=self.failed_account_load)
+
+    def successful_account_load(self, urlrequest, loaded_data):
+        """Sets the idToken and localId variables upon successfully loading an
+        account using the refresh token.
+        """
+        self.hide_loading_screen()
+        if self.debug:
+            print("Successfully logged a user in automatically using the refresh token")
+        self.idToken = loaded_data['id_token']
+        self.localId = loaded_data['user_id']
+        self.login_success = True
+
+    def failed_account_load(self, *args):
+        self.hide_loading_screen()
+        if self.debug:
+            print("Failed to load an account.", args)
+
+    def display_loading_screen(self, *args):
         pass
 
-    def register_user(self, name_reg, pwd):
-        # reg them
-        # if true write file
-        # else call login screen again and notify user
-        try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            nhost = return_server_address()
-            nport = port_name
-            sock.connect((nhost, nport))
-            temp = {"type": "register", "name": name_reg, "password": pwd}
-            sock.send(bytes(json.dumps(temp), "utf-8"))
-            tdata = sock.recv(1024).decode("utf-8")
-            data = json.loads(tdata)
-            if data["state"] == "success":
-                with open(client_file, "wb") as f:
-                    f.write(bytes(name_reg, "utf-8"))
-                return True
-            elif data["state"] == "fail":
-                return False
-        except BaseException as e:
-            return None
+    def hide_loading_screen(self, *args):
+        pass
 
-    def test_name_chars(self, string_to_test):
-        inv_chars = [" ", "`", "~", "!", "@", "$", "%",
-                     "(", ")", "[", "]", "{", "}", "\\", ",", ".", "<", ">", "?"]
-        for l in string_to_test:
-            if l in inv_chars:
-                return True
-        return False
-
-    def call_check_name_function(self):
-        global name
-
-        self.temp_name = self.ids["username"]
-        self.full_name = self.ids["first_name"].text + \
-                         " " + self.ids["last_name"].text
-        self.email_address = self.ids["email_address"]
-        tt_name = self.temp_name.text
-        b = tt_name.lstrip(" ")  # strip first only
-        tt_name = b.replace("\\", "")
-        self.temp_name.text = tt_name
-        try:
-            char_result = self.test_name_chars(self.temp_name.text)
-            if len(tt_name) < 4 or char_result or len(tt_name) > 12:
-                if char_result:
-                    toast("Illegal symbol in username")
-                else:
-                    toast("Invalid username length")
-                # self.temp_name.text = ""
-                self.prg_spin.stop_spinning()
-                self.manager.current = "registration_screen"
-
-            else:
-                if len(self.full_name) >= 5 and len(self.email_address.text) > 7:
-                    # re to match email
-                    email_valid = False
-                    pattern = re.compile(
-                        r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+')
-                    if len(pattern.findall(self.email_address.text)) > 0:
-                        email_valid = True
-                    if email_valid:
-
-                        answer = self.register_user(
-                            self.temp_name.text, get_password())
-                        if answer:
-                            threading.Thread(target=self.upload_data).start()
-                            name = self.temp_name.text
-                            self.prg_spin.stop_spinning()
-                            self.ChangeScreen()
-                        elif answer == False:
-                            self.prg_spin.stop_spinning()
-                            toast("Username already taken")
-                        elif answer == None:
-                            self.prg_spin.stop_spinning()
-                            toast("Oops! connection issue")
-                    else:
-                        toast("Enter valid email address")
-                    self.prg_spin.stop_spinning()
-
-                else:
-                    if len(self.email_address.text) < 8:
-                        toast("Email address too short")
-                    elif len(self.full_name) < 5:
-                        toast("first/second name too short")
-                    else:
-                        toast("Username taken")
-
-                    self.prg_spin.stop_spinning()
-                    self.manager.current = "registration_screen"
-
-        except Exception as e:
-            print(traceback.format_exc())
-            toast("Oops! Connection issue :-|")
-
-    def ChangeScreen(self):
-        self.prg_spin.stop_spinning()
-        Tinkle().manage_screens("Chat", "add")
-        self.manager.current = "Chat"
-
-    def upload_data(self):
-        try:
-            soc = socket.socket()
-            host = return_server_address()
-            list_of_data = [self.temp_name.text,
-                            self.full_name, self.email_address.text]
-            dupped_list = json.dumps(list_of_data)
-            soc.connect((host, port_data))
-            soc.send(bytes(dupped_list, "utf-8"))
-        except Exception as e:
-            print(e)
-
-    def delete_client_file(self):
-        # Overwrite the previous client signed in
-        try:
-            os.remove(client_file)
-        except Exception as e:
-            print(traceback.format_exc())
+    def change_title(self, state):
+        if state == "down":
+            self.toolbar.title = "Create Account"
+            self.proceed_button.text = "Create account"
+        else:
+            self.toolbar.title = "Sign in"
+            self.proceed_button.text = "Sign in"
 
 
 ###############################################################
@@ -1362,10 +1402,6 @@ class PopGetGroups(Popup):
         msg_to_add = group_name + ": " + group_description
         a = TwoLineListItem(text=msg_to_add,
                             secondary_text=group_id,
-                            markup=True,
-                            text_size=(self.width, None),
-                            size_hint_y=None,
-                            font_style="Body1",
                             on_release=partial(self.change_to_group_chat, group_name, group_description, group_id))
         self.ml.add_widget(a)
 
@@ -2352,7 +2388,6 @@ class Chat(Screen):
 
     def change_to_create_group(self, *args):
         Tinkle().manage_screens("create_group_screen", "add")
-        self.dialog.dismiss()
         Tinkle().change_screen("create_group_screen")
 
     def msgg(self):
@@ -2563,11 +2598,12 @@ class Chat(Screen):
                 print(traceback.format_exc())
             try:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                tpa = [A().get_the_name(), get_password()]
                 host = return_server_address()
                 port = port_chat
                 s.connect((host, port))
                 # self.send_init_msg()
-                tpa = [name, the_key]
+
                 s.send(bytes(json.dumps(tpa), "utf-8"))
                 initial = s.recv(512).decode("utf-8")  # the server greeting
                 initial = json.loads(initial)
@@ -2747,6 +2783,10 @@ class ImagePreviewShare(Screen):
         Callback function for handling the selection response from Activity.
         '''
         self.selection = selection
+        try:
+            self.image_preview.source = self.selection[0]
+        except Exception as e:
+            print(e)
 
     def on_selection(self, *a, **k):
         '''
@@ -3191,7 +3231,6 @@ class Tinkle(App):
             sm = ScreenManager(transition=TileTransition())
 
         sm.add_widget(SignInScreen(name="signin_screen"))
-        sm.add_widget(Registration(name="registration_screen"))
         return sm
 
     def post_build_init(self, ev):
