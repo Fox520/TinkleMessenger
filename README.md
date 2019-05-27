@@ -9,6 +9,9 @@ Built using the Kivy framework.
 * Status
 * File sharing
 
+## Aim of branch
+* Attempt to use firebase for authentication and and file storage
+
 # Usage
 ## Prerequisites
 * Python 3 (tested with v3.7.3)

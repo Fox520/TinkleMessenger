@@ -1,4 +1,5 @@
 <SignInScreen>:
+    web_api_key: "WEB API KEY"
     GridLayout:
         rows: 2
         MDToolbar:
@@ -11,7 +12,7 @@
             right_action_items: [['dots-vertical', lambda x: root.show_bottom_sheet()]]
 
         GridLayout:
-            rows: 3
+            rows: 2
             orientation: 'vertical'
             padding: [10,50,10,50]
             #spacing: 50
@@ -21,60 +22,39 @@
                     halign: "center"
                     source: "img/tinkle_logo.png"
             GridLayout:
-                rows:3
+#                rows:3
                 cols:3
                 orientation: "vertical"
-                MDLabel:
+                Widget:
                 MDTextField:
-                    hint_text: "Username"
-                    max_text_length: 12
-                    id: alias
+                    id: email_input
+                    hint_text: "Email"
                     multiline: False
                     write_tab: False
-                MDLabel:
-                MDLabel:
-                MDLabel:
-                MDLabel:
+                Widget:
+                Widget:
+                MDTextField:
+                    id: password_input
+                    hint_text: "Password"
+                    password: True
+                Widget:
+                Widget:
 
-                MDLabel:
+                Widget:
                 MDRaisedButton:
-                    #text_size: self.size
-                    font_size: sp(20)
-                    text:"Proceed"
+                    id: proceed_button
+                    text: "Sign in"
                     on_release:
-                        prg_spin.start_spinning()
-                        Clock.schedule_once(lambda dt: root._signin(), 2)
-                        
-                MDLabel:
-
-            GridLayout:
-                rows:4
-                cols:3
-                MDLabel:
-                    text: ""
-                MDLabel:
-                    text: ""
-                MDLabel:
-                    text: ""
-                MDLabel:
-                    text: ""
-
-                BoxLayout:
-                    orientation: 'vertical'
-
-                    BoxLayout:
-
-                        ProgressSpinner:
-                            auto_start: False
-                            id:prg_spin
-                            speed: 2
-                            color: get_color_from_hex("#4285f4")
-                            stroke_width: 1.6
-                MDRaisedButton:
-                    font_size: sp(23)
-                    text:"Register!"
-                    on_release:
-                        root.manager.current = "registration_screen"
-
-                MDLabel:
-                    text: ""
+                        root.sign_up(email_input.text, password_input.text) if decide_create_account.state == "down"\
+                        else root.sign_in(email_input.text, password_input.text)
+                GridLayout:
+                    rows: 2
+                    cols: 2
+                    MDCheckbox:
+                        id: decide_create_account
+                        size_hint: None, None
+                        size: dp(48), dp(48)
+                        on_state:
+                            root.change_title(self.state)
+                    MDLabel:
+                        text: "Create account?"
