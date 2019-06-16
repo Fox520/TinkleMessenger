@@ -5,10 +5,7 @@ from __future__ import division
 
 import codecs
 import os
-
-os.environ['KIVY_GL_BACKEND'] = 'sdl2'
 import re
-import os.path
 import random
 import shutil
 import socket
@@ -22,9 +19,8 @@ import dataset
 import requests
 import json
 
-from functools import partial
 from kivy import Config
-
+os.environ['KIVY_GL_BACKEND'] = 'sdl2'
 Config.set('graphics', 'multisamples', '0')  # sdl error
 Config.set('kivy', 'window_icon', 'img/tinkle_logo.png')  # the icon in top-left of window
 from kivy.app import App
@@ -33,11 +29,9 @@ from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.factory import Factory
 
-Window.softinput_mode = "below_target"  # resize to accomodate keyboard
-Window.keyboard_anim_args = {'d': 0.5, 't': 'in_out_quart'}
 from kivy.effects.opacityscroll import OpacityScrollEffect
 from kivy.lang import Builder
-from kivy.metrics import dp, sp
+from kivy.metrics import dp
 from kivy.properties import StringProperty
 from kivy.properties import ListProperty
 from kivy.resources import resource_add_path  # To compile to exe
@@ -53,7 +47,7 @@ from kivymd.bottomsheet import MDListBottomSheet
 from kivymd.theming import ThemeManager
 from kivymd.button import MDRaisedButton
 from kivymd.dialog import MDDialog
-from kivymd.list import OneLineListItem, TwoLineListItem, TwoLineAvatarListItem, ThreeLineAvatarListItem, MDList
+from kivymd.list import OneLineListItem, TwoLineListItem, TwoLineAvatarListItem, ThreeLineAvatarListItem
 from kivymd.textfields import MDTextField
 from kivymd.label import MDLabel
 from kivymd.snackbars import Snackbar
@@ -61,12 +55,13 @@ from kivymd.popupscreen import MDPopupScreen
 from kivymd.button import MDIconButton
 from kivymd.list import ILeftBodyTouch
 from kivymd.toast import toast
+from kivymd.useranimationcard import MDUserAnimationCard
 
 from spin_load import ProgressSpinner
 
 from magnet import Magnet
 from random import sample, randint  # used at displaying group members
-
+from functools import partial
 from plyer import filechooser
 
 json_settings = json.dumps([
@@ -82,6 +77,8 @@ json_settings = json.dumps([
 ])
 home = os.path.expanduser('~')
 
+Window.softinput_mode = "below_target"  # resize to accomodate keyboard
+Window.keyboard_anim_args = {'d': 0.5, 't': 'in_out_quart'}
 
 def isAndroid():
     # On Android sys.platform returns 'linux2', so prefer to check the
@@ -103,7 +100,9 @@ OLD_GROUP_ID = ""
 DP_EXT = ".png"  # Profile pictures are stored in png format
 DEFAULT_ACCOUNT = False
 DEFAULT_STATUS = "cat.jpg"  # Image to display when no status has been set
+DEFAULT_PROFILE_PICTURE = "http://127.0.0.1/display/default.png"
 MAX_FILE_SIZE = 15000000
+# Time before checking for new message in private/group chat
 MSG_CHECK_DELAY = 0.5
 OPTION_SELECTION_IMG = "option-img"
 OPTION_SELECTION_FILE = "option-file"
@@ -118,7 +117,6 @@ was_here = False
 was_on = False
 ishere = False
 
-color_file = os.path.join(other_files, "fi9a494os0tn22gelfxt")
 current_image_selected = ""
 global_status_pic = ""
 global_status_text = ""
@@ -134,10 +132,8 @@ thecurrentonline = ""
 img_file = os.path.join(other_files, "yqx53umh1ozf5mqc623t")
 aud_file = os.path.join(other_files, "la79qqkrkznjx0450hrb")
 doc_file = os.path.join(other_files, "hhwq11qr7n2l0mmvhmgm")
-status_file = os.path.join(other_files, "kjagsdfhkasgidfhka1")
-dm_file = os.path.join(other_files, "dgffq8jryv7lp6mrr6v2")
+current_status_view = ""
 priv = os.path.join(other_files, "wcuy1gvvpglye1s77lgi")
-comments_file = os.path.join(other_files, "jsdahfvkusafgdilaksbf")
 
 should_do_bak = True
 was_here_img = False
@@ -176,24 +172,15 @@ fil_avail_doc_ext = ["*.doc", "*.pdf", "*.xls",
                      "*.docx", "*.zip", "*.rar", "*.apk"]
 fil_avail_doc_ext_plyer = [["File", "*.doc", "*.pdf", "*.xls",
                             "*.docx", "*.zip", "*.rar", "*.apk"]]
-try:
-    if os.path.isfile(color_file):
-        with open(color_file, "rb") as f:
-            chat_clr_value = f.read()
-    else:
-        chat_clr_value = "#ffffff"
-except Exception as e:
-    print(e)
+
 ACTION = "#ff5722"
 NAV_COLOR = "#00A1F1"
 IS_TYPING = False
 
+the_key = ""
 
 def sec_generator(size=50, chars=string.ascii_lowercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
-
-
-the_key = ""
 
 
 def generate_key():
@@ -218,6 +205,11 @@ def get_password():
     with open(priv, "rb") as f:
         the_key = f.read()
         return the_key
+
+
+def id_generator(size=7, chars=string.ascii_lowercase + string.digits):
+    # do from random import choice
+    return ''.join(random.choice(chars) for _ in range(size))
 
 
 def md5(fname):
@@ -255,7 +247,7 @@ _server_ip = None
 
 
 def return_site_web_address():
-    return "http://127.0.0.1/"
+    global DEFAULT_PROFILE_PICTURE
     global _web_address
     # fetch address from web and write it
     if _web_address != None:
@@ -264,13 +256,13 @@ def return_site_web_address():
         a = requests.get(WEB_ADDR + "navigation/web_address")
         p = a.text.strip()
         _web_address = p
+        DEFAULT_PROFILE_PICTURE = _web_address + "/display/default.png"
         return p
     except Exception as e:
         print(e)
 
 
 def return_server_address():
-    return "127.0.0.1"
     global _server_ip
     if _server_ip != None:
         return _server_ip
@@ -474,13 +466,14 @@ Builder.load_string("""
 #:include kv/mediasharescreens.kv
 #:include kv/mainscreen.kv
 #:include kv/variouspopups.kv
+#:include kv/showuserprofile.kv
+
 #:import path_music __main__.path_music
 #:import path_images __main__.path_images
 #:import path_docs __main__.path_docs
 #:import fil_avail_doc_ext __main__.fil_avail_doc_ext
 #:import fil_avail_aud_ext __main__.fil_avail_aud_ext
 #:import fil_avail_img_ext __main__.fil_avail_img_ext
-#:import chat_clr_value __main__.chat_clr_value
 #:import ACTION __main__.ACTION
 #:import NAV_COLOR __main__.NAV_COLOR
 #:import LOADING_IMAGE __main__.LOADING_IMAGE 
@@ -536,7 +529,6 @@ Builder.load_string("""
                 pos: self.pos
                 size: self.size
                 source: LOADING_IMAGE
-
     
     """)
 
@@ -871,7 +863,7 @@ class SignInScreen(Screen):
     def display_password(self, themsg):
         box = GridLayout(rows=2)
         box.add_widget(
-            MDTextField(readonly=True, text=themsg, multiline=True, background_color=get_color_from_hex(chat_clr_value),
+            MDTextField(readonly=True, text=themsg, multiline=True, background_color=get_color_from_hex("#505050"),
                         background_normal="",
                         auto_dismiss=True))
         box.add_widget(MDRaisedButton(
@@ -1113,8 +1105,8 @@ class GetNamesForStatusScreen(Screen):
                                                  data)))  # data is the clients' name
 
     def change_to_doc(self, status_client):
-        with open(status_file, "wb") as f:
-            f.write(status_client)
+        global current_status_view
+        current_status_view = status_client
         Tinkle().manage_screens("display_status", "add")
         self.manager.current = "display_status"
 
@@ -1396,11 +1388,17 @@ class Conversation(Screen):
         self.bs_menu_1 = None
         self.message = self.ids["message"]
         self.mld = self.ids["mld"]
+        # Picture to show while getting current
+        self.friend_profile_picture_link = DEFAULT_PROFILE_PICTURE
+        # Only update when a change has occured
+        self.has_profile_link_changed = False
+        self.friend_name = "Null"
         self.prev_msg = ""
         self.f_manager_open = False
         self.f_manager = None
         self.selection_type = None  # differentiate image, file and doc
         self.audio_or_file = None  # to differentiate since on_selection is used for both
+        self.user_animation_card = None
 
     def initial_conditions(self):
         try:
@@ -1475,13 +1473,21 @@ class Conversation(Screen):
                 new_data_to_add["from"], new_data_to_add["msg"], new_data_to_add["link"])
             self.prev_msg = new_data_to_add
 
-    def apply_correct(self, the_name, the_message, prof_img=DEFAULT_STATUS):
+    def apply_correct(self, the_name, the_message, prof_img=DEFAULT_PROFILE_PICTURE):
         if the_name == A().get_the_name():
             the_name = "You"
-        if len(the_message) > 80:
-            self.add_three_line(the_name, the_message, prof_img)
         else:
-            self.add_two_line(the_name, the_message, prof_img)
+            self.friend_name = the_name
+
+        if self.has_profile_link_changed:
+            self.friend_profile_picture_link = prof_img
+        else:
+            self.has_profile_link_changed = True
+
+            if len(the_message) > 80:
+                self.add_three_line(the_name, the_message, prof_img)
+            else:
+                self.add_two_line(the_name, the_message, prof_img)
 
     def send_msg(self):
         global s
@@ -1501,6 +1507,19 @@ class Conversation(Screen):
         except Exception as e:
             toast("Unable to send message")
             print(traceback.format_exc())
+
+    def show_user_profile(self):
+        def main_back_callback():
+            pass
+
+        if not self.user_animation_card:
+            self.user_animation_card = MDUserAnimationCard(
+                user_name=self.friend_name,
+                path_to_avatar=self.friend_profile_picture_link,
+                callback=main_back_callback)
+            self.user_animation_card.box_content.add_widget(
+                Factory.ProfileAnimationCard())
+        self.user_animation_card.open()
 
     def show_bottom_sheet(self):
         if not self.bs_menu_1:
@@ -1913,12 +1932,9 @@ class Status(Screen):
         except:
             toast("can't select file")
 
-    def id_generator(self, size=10, chars=string.ascii_lowercase + string.digits):
-        return ''.join(random.choice(chars) for _ in range(size))
-
     def upload_status(self, fname, caption):
         extension = os.path.splitext(fname)[1]
-        new_name = "status_" + self.id_generator() + extension
+        new_name = "status_" + id_generator(10) + extension
         if exceed_limit(fname):
             toast("File exceeds 15MB limit")
             return
@@ -1977,7 +1993,7 @@ class DisplayStatus(Screen):
     def on_menu_pressed(self, *args):
         pass
 
-    def calling(self, *args):
+    def go_to_comments(self, *args):
         Tinkle().manage_screens("view_status_comments", "add")
         # open replies screen
         Tinkle().change_screen("view_status_comments")
@@ -2005,17 +2021,19 @@ class DisplayStatus(Screen):
         Tinkle().manage_screens("names_for_status", "remove")
         from kivy.uix.actionbar import ActionBar  # crashes if import outside
         from kivy.uix.actionbar import ActionButton
-        with open(status_file, "rb") as f:
-            self.the_target_name = f.read()
-        if self.the_target_name == A().get_the_name():
-            self.reps_button = ActionButton(
-                size_hint_x=None, size=self.size, text="replies", font_size=sp(18))
-            self.reps_button.bind(on_release=self.calling)
-            self.act_view.add_widget(self.reps_button)
-        template["type"] = "status_get"
-        template["which_user"] = self.the_target_name
-        s.send(bytes(json.dumps(template), "utf-8"))
-        self.event = Clock.schedule_interval(self.update_things, 2)
+        try:
+            self.the_target_name = current_status_view
+            if self.the_target_name == A().get_the_name():
+                self.reps_button = ActionButton(
+                    size_hint_x=None, size=self.size, text="Replies", font_size=dp(18))
+                self.reps_button.bind(on_release=self.go_to_comments())
+                self.act_view.add_widget(self.reps_button)
+            template["type"] = "status_get"
+            template["which_user"] = self.the_target_name
+            s.send(bytes(json.dumps(template), "utf-8"))
+            self.event = Clock.schedule_interval(self.update_things, 2)
+        except:
+            pass
 
     def update_things(self, dt):
         global ishere
@@ -2142,7 +2160,10 @@ class Chat(Screen):
     def get_groups_list(self):
         template = {}
         template["type"] = "get_groups"
-        s.send(bytes(json.dumps(template), "utf-8"))
+        try:
+            s.send(bytes(json.dumps(template), "utf-8"))
+        except:
+            toast("Error with getting groups")
 
     def add_one_line(self, data):
         self.ml.add_widget(OneLineListItem(text=data))
@@ -2172,7 +2193,7 @@ class Chat(Screen):
         pass
 
     def show_about(self):
-        about_text = "Made with love from my room ;-)\nSend reports, issues or improvements to:\n[insertemail]@gmail.com OR +26481XXXX"
+        about_text = "Made with love from my room <3\nSend issues or improvements to:\n[insertemail]@gmail.com OR +26481XXXX"
 
         dialog = MDDialog(
             title='Tinkle', size_hint=(.8, .4), text_button_ok='OK',
@@ -2184,17 +2205,13 @@ class Chat(Screen):
     def out_quick(self, thefrom, themsg):
         box = GridLayout(rows=2)
         box.add_widget(
-            MDTextField(readonly=True, text=themsg, multiline=True, background_color=get_color_from_hex(chat_clr_value),
-                        background_normal="",
-                        auto_dismiss=False))
+            MDTextField(readonly=True, text=themsg, multiline=True, background_color=get_color_from_hex("#505050"),
+                        background_normal=""))
         box.add_widget(MDRaisedButton(
-            text="dismiss", on_release=lambda *args: popup.dismiss()))
+            text="Dismiss", on_release=lambda *args: popup.dismiss()))
 
         popup = Popup(title=thefrom, content=box)
         popup.open()
-
-    def call_generic_pop_from_kv(self):
-        GenericPop().pop_it()
 
     def clear_log(self):
         self.ids.ml.clear_widgets()
@@ -2352,7 +2369,6 @@ class Chat(Screen):
 
     def change_to_create_group(self, *args):
         Tinkle().manage_screens("create_group_screen", "add")
-        self.dialog.dismiss()
         Tinkle().change_screen("create_group_screen")
 
     def msgg(self):
@@ -2549,7 +2565,7 @@ class Chat(Screen):
     # def on_enter(self):
     #     self.add_one_line("From this is my texthttp://127.0.0.1/display/default.png")
 
-    def on_enter(self):
+    def _on_enter(self):
         global chat_was_on
         global dp_path
 
@@ -2655,10 +2671,6 @@ class ImagePreviewShare(Screen):
         except:
             pass
 
-    # OUTPUT: random string of specified length
-    def id_generator(self, size=7, chars=string.ascii_lowercase + string.digits):
-        return ''.join(random.choice(chars) for _ in range(size))
-
     # LOGIC: create temp copy of image, upload, delete
 
     def prepare_send_it(self, filename):
@@ -2747,6 +2759,8 @@ class ImagePreviewShare(Screen):
         Callback function for handling the selection response from Activity.
         '''
         self.selection = selection
+        # For some reason we need to call it manually
+        self.on_selection()
 
     def on_selection(self, *a, **k):
         '''
@@ -2797,10 +2811,6 @@ class ShareAudio:
             os.remove(fname)
         except BaseException as e:
             pass
-
-    def id_generator(self, size=7, chars=string.ascii_lowercase + string.digits):
-        # do from random import choice
-        return ''.join(random.choice(chars) for _ in range(size))
 
     def send_it_audio(self, filename):  # this is upload part
         global receiver_name, IS_GROUP_MEDIA
@@ -3056,10 +3066,6 @@ class ProfilePicture(Screen):
         except Exception as e:
             pass
 
-    def id_generator(self, size=7, chars=string.ascii_lowercase + string.digits):
-        # do from random import choice
-        return ''.join(random.choice(chars) for _ in range(size))
-
     def send_it(self, filename):  # this is upload part
         if filename == profile_img_link():
             toast("No image selected")
@@ -3097,7 +3103,7 @@ class ProfilePicture(Screen):
 class Tinkle(App):
     global sm
     theme_cls = ThemeManager()
-    theme_cls.primary_palette = 'Blue'
+    theme_cls.primary_palette = 'LightGreen'
     theme_cls.theme_style = "Light"
     sm = ScreenManager()
 

@@ -31,33 +31,27 @@
                     id: alias
                     multiline: False
                     write_tab: False
-                MDLabel:
-                MDLabel:
-                MDLabel:
-                MDLabel:
+                Widget:
+                Widget:
+                Widget:
+                Widget:
 
-                MDLabel:
+                Widget:
                 MDRaisedButton:
-                    #text_size: self.size
-                    font_size: sp(20)
                     text:"Proceed"
                     on_release:
                         prg_spin.start_spinning()
-                        Clock.schedule_once(lambda dt: root._signin(), 2)
+                        Clock.schedule_once(lambda dt: root._signin(), 1.2)
                         
-                MDLabel:
+                Widget:
 
             GridLayout:
                 rows:4
                 cols:3
-                MDLabel:
-                    text: ""
-                MDLabel:
-                    text: ""
-                MDLabel:
-                    text: ""
-                MDLabel:
-                    text: ""
+                Widget:
+                Widget:
+                Widget:
+                Widget:
 
                 BoxLayout:
                     orientation: 'vertical'
@@ -71,8 +65,7 @@
                             color: get_color_from_hex("#4285f4")
                             stroke_width: 1.6
                 MDRaisedButton:
-                    font_size: sp(23)
-                    text:"Register!"
+                    text:"Register"
                     on_release:
                         root.manager.current = "registration_screen"
 

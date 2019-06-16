@@ -1,0 +1,21 @@
+<ProfileAnimationCard@BoxLayout>:
+    orientation: 'vertical'
+    padding: dp(10)
+    spacing: dp(10)
+    size_hint_y: None
+    height: self.minimum_height
+
+    TwoLineIconListItem:
+        text: "View status update"
+        secondary_text: "[color=%s](Note: press back/esc after tapping me)[/color]" % get_hex_from_color(app.theme_cls.primary_color)
+        on_release:
+            app.manage_screens("display_status", "add")
+            app.change_screen("display_status")
+        IconLeftSampleWidget:
+            icon: 'image'
+
+    TwoLineIconListItem:
+        text: "Remove friend"
+        secondary_text: "[color=%s](ineffective)This will remove them from your friend's list[/color]" % get_hex_from_color(app.theme_cls.primary_color)
+        IconLeftSampleWidget:
+            icon: 'block-helper'

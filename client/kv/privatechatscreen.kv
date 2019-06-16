@@ -75,6 +75,16 @@
             icon: 'refresh'
 
     TwoLineIconListItem:
+        text: "Show profile"
+        secondary_text:
+            "[color=%s]Take a sneak peak at friend's profile[/color]" \
+            % get_hex_from_color(app.theme_cls.primary_color)
+        on_release:
+            root.parent.parent.parent.show_user_profile()
+        IconLeftSampleWidget:
+            icon: 'eye'
+
+    TwoLineIconListItem:
         text: "Clear chat"
         on_release:
             root.parent.parent.parent.clear_log()
