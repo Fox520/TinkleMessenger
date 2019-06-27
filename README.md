@@ -16,11 +16,13 @@ Built using the Kivy framework.
 * Plyer
 
 ## Server
-* Have a webserver installed
+* Have a webserver installed (I used [XAMPP](https://www.apachefriends.org/download.html) on Windows)
     * Place the files in [web server](web_server) to the htdocs directory
+
+        [Video assistance  here](_install_help_content/web_server.mp4)
 * Create a directory where you'd like to run the python server from
     * Place the files in [server](server) into the newly created directory
-    * Run [initiate_address.py](server/initiate_address.py) and specify the website address (e.g. http://mysite.com/ or http://192.168.178.20/)
+    * Run [initiate_address.py](server/initiate_address.py) and specify the webserver address (e.g. http://mysite.com/ or http://192.168.178.20/)
 ##
 Short description of what the server .py files do is found [here](server/README.md).
 ##
@@ -38,9 +40,12 @@ Run the following commands
 pip install requests
 pip install dataset
 ``` 
-Edit the address url in ```main.py``` to point your own server
+Edit the address url (variable -> ```WEB_ADDR```) in ```main.py``` to point your own server (use http://localhost/ for testing)
 
 Run ```main.py``` to start up the client
+```
+Note: currently main.spec is not functioning properly. Pull requests are welcomed :)
+```
 #
 
 ## Video tutorial on setting up
