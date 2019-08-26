@@ -16,30 +16,29 @@
             padding: [10,50,10,50]
             #spacing: 50
             BoxLayout:
+                orientation: "vertical"
                 Image:
                     halign: "center"
                     source: "img/tinkle_logo.png"
+                MDLabel:
+                    font_name: "Cursive"
+                    text: "Almost there..."
+                    halign: "center"
+                    font_size: sp(50)
 
             GridLayout:
-                rows:4
-                cols:3
+                cols:1
+                padding: [20,0,20,0]
                 orientation: "vertical"
-                MDLabel:
-                    size_hint:(0.1,0.1) 
                 MDTextField:
                     id: username
+                    hint_text: "Username (no spaces)"
                     multiline: False
                     max_text_length: 12
                     required: True
-                    hint_text: "Username"
-                    helper_text: "min 4 characters; no spaces"
-                    helper_text_mode: "on_focus"
                     write_tab: False
                     on_text_validate: first_name.focus = True
-                MDLabel:
-                    size_hint:(0.1,0.1) 
-                MDLabel:
-                    size_hint:(0.1,0.1) 
+
                 MDTextField:
                     id: first_name
                     multiline: False
@@ -47,39 +46,28 @@
                     required: True
                     write_tab: False
                     on_text_validate: last_name.focus = True
-                MDLabel:
-                    size_hint:(0.1,0.1) 
-                MDLabel:
-                    size_hint:(0.1,0.1) 
+
                 MDTextField:
                     id: last_name
                     multiline: False
                     hint_text: "Surname"
                     write_tab: False
                     on_text_validate: email_address.focus = True
-                MDLabel:
-                    size_hint:(0.1,0.1) 
-                MDLabel:
-                    size_hint:(0.1,0.1) 
+
                 MDTextField:
                     id: email_address
                     multiline: False
                     hint_text: "E-mail"
                     write_tab: False
                     required: True
-                MDLabel:
-                    size_hint:(0.1,0.1) 
+
             GridLayout:
                 rows:4
                 cols:3
-                MDLabel:
-                    text: ""
-                MDLabel:
-                    text: ""
-                MDLabel:
-                    text: ""
-                MDLabel:
-                    text: ""
+                Widget:
+                Widget:
+                Widget:
+                Widget:
 
                 BoxLayout:
                     orientation: 'vertical'
@@ -93,11 +81,9 @@
                             color: get_color_from_hex("#4285f4")
                             stroke_width: 1.6
                 MDRaisedButton:
-                    font_size: sp(20)
                     text: "Proceed"
                     on_release:
                         prg_spin.start_spinning()
                         Clock.schedule_once(lambda dt: root.call_check_name_function(), 2)
 
-                MDLabel:
-                    text: ""
+                Widget:

@@ -20,34 +20,36 @@ import requests
 import json
 
 from kivy import Config
+from kivy.modules import inspector
+from kivy.uix.boxlayout import BoxLayout
+
 os.environ['KIVY_GL_BACKEND'] = 'sdl2'
 Config.set('graphics', 'multisamples', '0')  # sdl error
 Config.set('kivy', 'window_icon', 'img/tinkle_logo.png')  # the icon in top-left of window
 from kivy.app import App
-from kivy.clock import Clock
+from kivy.clock import Clock, mainthread
 
 from kivy.core.window import Window
 from kivy.factory import Factory
 
-from kivy.effects.opacityscroll import OpacityScrollEffect
 from kivy.lang import Builder
-from kivy.metrics import dp
 from kivy.properties import StringProperty
 from kivy.properties import ListProperty
 from kivy.resources import resource_add_path  # To compile to exe
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.image import AsyncImage
-from kivy.uix.label import Label
+from kivy.core.text import LabelBase
 from kivy.uix.popup import Popup
-from kivy.uix.screenmanager import Screen, ScreenManager
+from kivy.uix.screenmanager import Screen, ScreenManager, NoTransition
 from kivy.utils import get_color_from_hex, get_hex_from_color
 
 from kivymd.bottomsheet import MDListBottomSheet
 from kivymd.theming import ThemeManager
 from kivymd.button import MDRaisedButton
 from kivymd.dialog import MDDialog
-from kivymd.list import OneLineListItem, TwoLineListItem, TwoLineAvatarListItem, ThreeLineAvatarListItem
+from kivymd.list import OneLineListItem, TwoLineListItem, ThreeLineAvatarListItem, \
+    ThreeLineListItem
 from kivymd.textfields import MDTextField
 from kivymd.label import MDLabel
 from kivymd.snackbars import Snackbar
@@ -55,9 +57,10 @@ from kivymd.popupscreen import MDPopupScreen
 from kivymd.button import MDIconButton
 from kivymd.list import ILeftBodyTouch
 from kivymd.toast import toast
+from kivymd.cards import MDCardPost
 from kivymd.useranimationcard import MDUserAnimationCard
 
-from spin_load import ProgressSpinner
+from spin_load import ProgressSpinner # Used somewhere
 
 from magnet import Magnet
 from random import sample, randint  # used at displaying group members
@@ -107,6 +110,7 @@ MSG_CHECK_DELAY = 0.5
 OPTION_SELECTION_IMG = "option-img"
 OPTION_SELECTION_FILE = "option-file"
 OPTION_SELECTION_AUD = "option-aud"
+ACTION = "#ff5722"
 LOADING_IMAGE = os.path.join(resource_folder, "tinkle_loading.png")
 client_file = os.path.join(other_files, "s2adwkbje2gbxhh4yi0k")
 save_messages_file = os.path.join(other_files, "ydr6yxohmvy92o0ex1ql")
@@ -173,11 +177,20 @@ fil_avail_doc_ext = ["*.doc", "*.pdf", "*.xls",
 fil_avail_doc_ext_plyer = [["File", "*.doc", "*.pdf", "*.xls",
                             "*.docx", "*.zip", "*.rar", "*.apk"]]
 
-ACTION = "#ff5722"
-NAV_COLOR = "#00A1F1"
-IS_TYPING = False
-
 the_key = ""
+
+
+def initialize_fonts():
+    KIVY_FONTS = [
+        {
+            "name": "Cursive",
+            "fn_regular": "./resources/cursive.ttf"
+        }
+    ]
+
+    for font in KIVY_FONTS:
+        LabelBase.register(**font)
+
 
 def sec_generator(size=50, chars=string.ascii_lowercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
@@ -188,12 +201,16 @@ def generate_key():
     try:
         if os.path.isfile(priv):
             with open(priv, "rb") as f:
-                the_key = f.read()
+                the_key = str(f.read())
+                if len(the_key) < 1:
+                    f.close()
+                    os.remove(priv)
+                    generate_key()
         else:
             with open(priv, "wb") as f:
                 bbq = sec_generator()
-                f.write(bbq)
-                the_key = bbq
+                f.write(bbq.encode("utf-8"))
+                the_key = str(bbq)
     except Exception as e:
         print(e)
 
@@ -201,9 +218,6 @@ def generate_key():
 def get_password():
     global the_key
     if the_key != "":
-        return the_key
-    with open(priv, "rb") as f:
-        the_key = f.read()
         return the_key
 
 
@@ -244,7 +258,8 @@ WEB_ADDR = "http://127.0.0.1/"
 dp_path = None
 _web_address = None
 _server_ip = None
-
+generate_key()
+initialize_fonts()
 
 def return_site_web_address():
     global DEFAULT_PROFILE_PICTURE
@@ -305,7 +320,7 @@ def check_if_exist(filename):
 
 def create_file(filename):
     with open(filename, "wb") as f:
-        f.write("")
+        f.write("".encode("utf-8"))
 
 
 def return_file_log(filename):
@@ -338,8 +353,9 @@ def check_name():
 
 
 def write_name(foo_name, should_write=True, pwda=""):
-    # ASK FOR NAME
     global name, DEFAULT_ACCOUNT
+    if foo_name is "":
+        return
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     nhost = return_server_address()
     nport = port_name
@@ -349,6 +365,8 @@ def write_name(foo_name, should_write=True, pwda=""):
         DEFAULT_ACCOUNT = True
     try:
         sock.connect((nhost, nport))
+        print(foo_name)
+        print(pwda)
         # temp_data = {"type": "login", "name": foo_name, "password": pwda}
         temp_data = {"type": "login", "name": foo_name, "password": pwda}
         sock.send(bytes(json.dumps(temp_data), "utf-8"))
@@ -391,12 +409,16 @@ def exceed_limit(f):
 
 
 def check_read_permission():
-    from android.permissions import request_permissions, check_permission, Permission
-    request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE])
-    if check_permission(Permission.READ_EXTERNAL_STORAGE):
-        return True
-    else:
-        return False
+    # essentially read and write
+    if isAndroid():
+        from android.permissions import request_permissions, check_permission, Permission
+        request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE])
+        if check_permission(Permission.WRITE_EXTERNAL_STORAGE):
+            return True
+        else:
+            return False
+    # desktop
+    return True
 
 
 def write_status_comments(name, msg, link):
@@ -434,7 +456,6 @@ class A:
         return name
 
 
-generate_key()
 
 if isAndroid():
     path_music = os.path.join('/sdcard', 'Download')
@@ -446,7 +467,7 @@ else:
     path_images = os.path.join(home, "Pictures")
     path_docs = os.path.join(home, "Desktop")
 
-backup_file = os.path.join(path_docs, "Tinkle_Backup.dat")
+backup_file = os.path.join(path_docs, "tinkle_Backup.dat")
 ##########################################################
 
 
@@ -460,37 +481,39 @@ Builder.load_string("""
 #:include kv/displaystatusscreen.kv
 #:include kv/privatechatscreen.kv
 #:include kv/groupchatscreen.kv
-#:include kv/statuscommentscreen.kv
 #:include kv/groupextras.kv
 #:include kv/profilepicscreen.kv
 #:include kv/mediasharescreens.kv
 #:include kv/mainscreen.kv
-#:include kv/variouspopups.kv
 #:include kv/showuserprofile.kv
+#:include kv/publicchatscreen.kv
+#:include kv/groupinfo.kv
 
-#:import path_music __main__.path_music
-#:import path_images __main__.path_images
-#:import path_docs __main__.path_docs
-#:import fil_avail_doc_ext __main__.fil_avail_doc_ext
-#:import fil_avail_aud_ext __main__.fil_avail_aud_ext
-#:import fil_avail_img_ext __main__.fil_avail_img_ext
-#:import ACTION __main__.ACTION
-#:import NAV_COLOR __main__.NAV_COLOR
 #:import LOADING_IMAGE __main__.LOADING_IMAGE 
 #:import get_color_from_hex __main__.get_color_from_hex
-#:import ProgressSpinner __main__.ProgressSpinner
 #:import Clock __main__.Clock
-#:import get_random_color kivy.utils.get_random_color
-#:import OpacityScrollEffect __main__.OpacityScrollEffect
+#:import ACTION __main__.ACTION
 
 #:import MDToolbar kivymd.toolbar.MDToolbar
 #:import NavigationLayout kivymd.navigationdrawer.NavigationLayout
 #:import MDThemePicker kivymd.pickers.MDThemePicker
-#:import MDTab kivymd.tabs.MDTab
-#:import MDTabbedPanel kivymd.tabs.MDTabbedPanel
+#:import MDBottomNavigation kivymd.bottomnavigation.MDBottomNavigation
+#:import MDBottomNavigationItem kivymd.bottomnavigation.MDBottomNavigationItem
 #:import MDRoundFlatButton kivymd.button.MDRoundFlatButton
 #:import SmartTileWithLabel kivymd.imagelists.SmartTileWithLabel
 #:import MDRoundFlatIconButton kivymd.button.MDRoundFlatIconButton
+#:import MDFloatingActionButton kivymd.button.MDFloatingActionButton
+#:import MDTextFieldRound kivymd.textfields.MDTextFieldRound
+
+#:set color_shadow [0, 0, 0, .2980392156862745]
+#:set color_lilac [.07058823529411765, .07058823529411765, .14901960784313725, .8]
+
+
+<MyMDTextFieldRound@MDTextFieldRound>:
+    size_hint_x: None
+    normal_color: color_shadow
+    active_color: color_shadow
+    pos_hint: {'center_x': .5}
 
 <MyImageButton@ButtonBehavior+AsyncImage>:
 
@@ -505,11 +528,7 @@ Builder.load_string("""
         text: "Change Profile Picture"
         on_release:
             app.decide_change_dp()
-    MyNavigationDrawerIconButton:
-        text: "New Status"
-        on_release:
-            app.manage_screens("status_screen","add")
-            app.change_screen("status_screen")
+    
     MyNavigationDrawerIconButton:
         text: "Check Statuses"
         on_release:
@@ -520,6 +539,7 @@ Builder.load_string("""
         text: "Change Theme"
         on_release:
             MDThemePicker().open()
+
 
 
 <DumpScreen>:
@@ -556,6 +576,7 @@ class AdvancedScreen(Screen):
     def on_menu_pressed(self, *args):
         pass
 
+    @mainthread
     def add_two_line(self, short_info, long_info):
 
         a = TwoLineListItem(
@@ -607,9 +628,6 @@ class GroupMembers(Screen):
         }
         s.send(bytes(json.dumps(template), "utf-8"))
 
-    def on_leave(self):
-        self.ids.ml.clear_widgets()
-
     def do_checks(self, *args):
         if was_here_members_group:
             self.event.cancel()
@@ -625,13 +643,6 @@ class GroupMembers(Screen):
         threading.Thread(target=self.send_background).start()
         self.event = Clock.schedule_interval(self.do_checks, 0.3)
 
-    def on_leave(self):
-        try:
-            self.event.cancel()
-        except:
-            print(traceback.format_exc())
-        Tinkle().manage_screens("group_members", "remove")
-
     def add_member_name(self, member_name):
         magnet = Magnet(transitions={'pos': sample(transitions, 1)[0],
                                      'size': sample(transitions, 1)[0]},
@@ -642,25 +653,30 @@ class GroupMembers(Screen):
         self.ml.add_widget(magnet, index=randint(0, len(self.ml.children)))
 
     def popup_menu(self, member_name, *args):
-        # TODO: Fix this
-        txt = "1. Make admin\n2. Remove admin\n3. Remove from group"
 
-        content = MDLabel(font_style='Subhead',
-                          text=txt,
-                          size_hint_y=None,
-                          valign='top')
+        content = GridLayout(rows=1)
 
-        content.bind(texture_size=content.setter('size'))
-        self.dialog = MDDialog(title="Options",
-                               content=content,
-                               auto_dismiss=True)
+        box = BoxLayout(orientation="vertical")
+        btn1 = MDRaisedButton(text="Make admin")
+        btn1.bind(on_release=partial(self.begin_method_in_thread, self.make_admin, member_name))
+        box.add_widget(btn1)
 
-        self.dialog.add_action_button("1",
-                                      action=partial(self.begin_method_in_thread, self.make_admin, member_name))
-        self.dialog.add_action_button("2",
-                                      action=partial(self.begin_method_in_thread, self.remove_admin, member_name))
-        self.dialog.add_action_button("3",
-                                      action=partial(self.begin_method_in_thread, self.remove_from_group, member_name))
+        btn2 = MDRaisedButton(text="Remove admin")
+        btn2.bind(on_release=partial(self.begin_method_in_thread, self.remove_admin, member_name))
+        box.add_widget(btn2)
+
+        btn3 = MDRaisedButton(text="Remove from group")
+        btn3.bind(on_release=partial(self.begin_method_in_thread, self.remove_from_group, member_name))
+        box.add_widget(btn3)
+
+        content.add_widget(box)
+
+        self.dialog = Popup(title="Options",
+                            content=content,
+                            auto_dismiss=True,
+                            size_hint=(None, None),
+                            size=(300, 200))
+
         self.dialog.open()
 
     def begin_method_in_thread(self, method, param, *args):
@@ -699,6 +715,13 @@ class GroupMembers(Screen):
             print(traceback.format_exc())
         self.dialog.dismiss()
 
+    def on_leave(self):
+        try:
+            self.event.cancel()
+        except:
+            print(traceback.format_exc())
+        Tinkle().manage_screens(self.name, "remove")
+
 
 # Name: names_friends_group
 
@@ -716,10 +739,6 @@ class GetFriendsAddGroup(Screen):
 
     def on_menu_pressed(self, *args):
         pass
-
-    def on_leave(self):
-        self.ids.ldml.clear_widgets()
-        Tinkle().manage_screens("names_friends_group", "remove")
 
     def on_enter(self):
         global was_here_friends_accept
@@ -739,6 +758,7 @@ class GetFriendsAddGroup(Screen):
         }
         s.send(bytes(json.dumps(template), "utf-8"))
 
+    @mainthread
     def add_one_line(self, data):
         self.ldml.add_widget(OneLineListItem(text=data,
                                              markup=True,
@@ -770,6 +790,10 @@ class GetFriendsAddGroup(Screen):
         except:
             print(traceback.format_exc())
 
+    def on_leave(self):
+        self.ids.ldml.clear_widgets()
+        Tinkle().manage_screens(self.name, "remove")
+
 
 class SignInScreen(Screen):
 
@@ -789,18 +813,24 @@ class SignInScreen(Screen):
     def _signin(self):
         temp_pw = ""
         result = write_name(self.alias.text, False, temp_pw)
-        if result[0]:
+        try:
+            if result[0]:
+                self.prg_spin.stop_spinning()
+                global name
+                name = self.alias.text
+                Tinkle().manage_screens("controller_screen", "add")
+                Tinkle().change_screen("controller_screen")
+            elif result[0] == False:
+                self.prg_spin.stop_spinning()
+                toast("Invalid signin credentials")
+            elif result[0] == None:
+                self.prg_spin.stop_spinning()
+                toast("unable to connect")
+        except TypeError:
+            toast("Username is empty")
             self.prg_spin.stop_spinning()
-            global name
-            name = self.alias.text
-            Tinkle().manage_screens("Chat", "add")
-            self.manager.current = "Chat"
-        elif result[0] == False:
+        except:
             self.prg_spin.stop_spinning()
-            toast("Invalid signin credentials")
-        elif result[0] == None:
-            self.prg_spin.stop_spinning()
-            toast("unable to connect")
 
     def show_bottom_sheet(self):
         if not self.bs_menu_1:
@@ -853,9 +883,14 @@ class SignInScreen(Screen):
             if os.path.isfile(backup_file):
                 with open(backup_file, "rb") as f:
                     data = f.read()
-                    _n, _p = data.split("\n")
-                    self.write_new_data(_n, _p)
-                    self.alias.text = _n
+                    try:
+                        _n, _p = data.split("\n".encode("utf-8"))
+                        self.write_new_data(_n, _p)
+                        self.alias.text = _n
+                    except ValueError as e:
+                        toast("Recovery file is misconfigured", True)
+                    except:
+                        toast("Failed to recover backup", True)
             else:
                 toast("Backup file not found")
             return None, None
@@ -982,8 +1017,8 @@ class Registration(Screen):
 
     def ChangeScreen(self):
         self.prg_spin.stop_spinning()
-        Tinkle().manage_screens("Chat", "add")
-        self.manager.current = "Chat"
+        Tinkle().manage_screens("controller_screen", "add")
+        Tinkle().change_screen("controller_screen")
 
     def upload_data(self):
         try:
@@ -1015,8 +1050,8 @@ class CreateGroupScreen(Screen):
         super(CreateGroupScreen, self).__init__(**kwargs)
 
     def on_back_pressed(self, *args):
-        Tinkle().change_screen("Chat")
-        Tinkle().manage_screens("create_group_screen", "remove")
+        Tinkle().change_screen("controller_screen")
+        Tinkle().manage_screens(self.name, "remove")
 
     def on_menu_pressed(self, *args):
         pass
@@ -1035,8 +1070,8 @@ class CreateGroupScreen(Screen):
                 template["group_desc"] = group_description
                 threading.Thread(target=self.send_data_in_thread,
                                  args=(s, template)).start()
-                Tinkle().change_screen("Chat")
-                Tinkle().manage_screens("create_group_screen", "remove")
+                Tinkle().change_screen("controller_screen")
+                Tinkle().manage_screens(self.name, "remove")
             except:
                 print(traceback.format_exc())
 
@@ -1044,8 +1079,7 @@ class CreateGroupScreen(Screen):
         try:
             s.send(bytes(json.dumps(template), "utf-8"))
         except:
-            print("error sending group info")
-            print(traceback.format_exc())
+            toast("Check internet connection")
 
 
 # Name: dump_screen
@@ -1065,63 +1099,109 @@ class GetNamesForStatusScreen(Screen):
         self.register_event_type('on_back_pressed')
         self.register_event_type('on_menu_pressed')
         super(GetNamesForStatusScreen, self).__init__(**kwargs)
+        self.cards_created = False
 
     def on_back_pressed(self, *args):
-        Tinkle().change_screen("Chat")
-        Tinkle().manage_screens("display_status", "remove")
+        Tinkle().change_screen("controller_screen")
+
+        Tinkle().manage_screens(self.name, "remove")
+        Tinkle().manage_screens("status_screen", "remove")
 
     def on_menu_pressed(self, *args):
         pass
 
+    def create_new_post(self):
+        Tinkle().manage_screens("status_screen", "add")
+        Tinkle().change_screen("status_screen")
+
     def do_checks(self, *args):
+        global was_here_status
         if was_here_status:
+            buttons = ["heart"]
             self.event.cancel()
+            was_here_status = False
             self.ids.ldml.clear_widgets()
-            # print("adding names")
-            for each_user in current_share_status:
-                if len(each_user) >= 4:  # and each_user != A().get_the_name():
-                    self.add_one_line(each_user)
-            self.add_one_line(A().get_the_name())
+            for dictionary in current_share_status:
+                username = dictionary["name"]
+                status_link = dictionary["link"]
+                text = dictionary["text"]
+                if len(username) >= 4:
+                    self.add_one_line(source=status_link, tile_text=username,
+                                      text_post=text, buttons=buttons)
 
     def on_enter(self):
         self.ldml = self.ids["ldml"]
-        Tinkle().manage_screens("display_status", "remove")
-        threading.Thread(target=self.send_background).start()
+        self.ldml.clear_widgets()
         self.event = Clock.schedule_interval(self.do_checks, 0.3)
+        threading.Thread(target=self.send_background).start()
 
     def send_background(self):
         template = {
             "type": "whoisonline--status"
         }
-        s.send(bytes(json.dumps(template), "utf-8"))
+        try:
+            s.send(bytes(json.dumps(template), "utf-8"))
+        except:
+            toast("Check internet connection")
+            self.event.cancel()
 
-    def add_one_line(self, data):
-        self.ldml.add_widget(OneLineListItem(text=data,
-                                             markup=True,
-                                             text_size=(self.width, None),
-                                             size_hint_y=None,
-                                             font_size=(self.height / 20),
-                                             on_press=lambda *args: self.change_to_doc(
-                                                 data)))  # data is the clients' name
+    def callback(self, instance, value, *args):
+        if value and isinstance(value, int):
+            toast('Set like in %d stars' % value)
+        elif value and isinstance(value, str):
+            if value == "heart":
+                toast("Feature not yet available")
+        elif value and isinstance(value, list):
+            MDDialog(
+                title='Save', size_hint=(.8, .3), text_button_ok='Yes',
+                text="Save this post?",
+                text_button_cancel='Cancel',
+                events_callback=partial(self.do_saving_status, value[1])).open()
 
-    def change_to_doc(self, status_client):
-        global current_status_view
-        current_status_view = status_client
-        Tinkle().manage_screens("display_status", "add")
-        self.manager.current = "display_status"
+        else:
+            self.ldml.remove_widget(instance)
+
+    @mainthread
+    def add_one_line(self, source="", tile_text="", text_post="", buttons=[]):
+        post = MDCardPost(
+            source=source,
+            tile_text=tile_text,
+            tile_font_style="H5",
+            text_post=text_post,
+            with_image=True, swipe=True, callback=self.callback,
+            buttons=buttons)
+        self.ldml.add_widget(post)
+
+    def do_saving_status(self, link, *args):
+        if args[0] == "Yes":
+            threading.Thread(target=self._download_status, args=(link,)).start()
+
+    def _download_status(self, url):
+        if url != DEFAULT_STATUS:
+            local_filename = url.split('/')[-1]
+            abs_local_filename = os.path.join(path_images, local_filename)
+            try:
+                # NOTE the stream=True parameter
+                r = requests.get(url, stream=True)
+                with open(abs_local_filename, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=1024):
+                        if chunk:  # filter out keep-alive new chunks
+                            f.write(chunk)
+                toast("Saved: " + abs_local_filename)
+            except:
+                print(traceback.format_exc())
+                toast("Error while saving status")
+        else:
+            toast("Default status not available for download")
 
     def on_leave(self):
         try:
             self.event.cancel()
         except:
             print(traceback.format_exc())
-        Tinkle().manage_screens("names_for_status", "remove")
 
 
-# Name: names_for_find_friends
-
-
-class GetNamesForFindFriendsScreen(Screen):
+class GetNamesForFindFriendsScreen(BoxLayout):
     global s
 
     def __init__(self, **kwargs):
@@ -1130,51 +1210,62 @@ class GetNamesForFindFriendsScreen(Screen):
         super(GetNamesForFindFriendsScreen, self).__init__(**kwargs)
 
     def on_back_pressed(self, *args):
-        Tinkle().change_screen("Chat")
+        pass
 
     def on_menu_pressed(self, *args):
         pass
 
     def do_checks(self, *args):
+        global was_here_find_friends
+        print("doing checksss")
         if was_here_find_friends:
             self.event.cancel()
             self.ids.ldml.clear_widgets()
             for each_user in current_find_friends:
                 if len(each_user) >= 4 and A().get_the_name() != each_user:
                     self.add_one_line(each_user)
-
+            was_here_find_friends = False
             print("done wif refreshing mate")
 
     def refresh_screen(self):
-        print("doing the refresh tings")
         self.ldml = self.ids["ldml"]
-        threading.Thread(target=self.send_background).start()
         self.event = Clock.schedule_interval(self.do_checks, 0.3)
+        threading.Thread(target=self.send_background).start()
 
     def send_background(self):
         template = {
             "type": "whoisonline--req_fri"
         }
-        s.send(bytes(json.dumps(template), "utf-8"))
+        try:
+            s.send(bytes(json.dumps(template), "utf-8"))
+        except:
+            toast("Check internet connection")
+            try:
+                self.event.cancel()
+            except:
+                pass
 
-    def add_one_line(self, data):
+    def add_one_line(self, name):
         self.ldml.add_widget(
-            OneLineListItem(text=data, on_release=lambda *args: self.change_to_img(data)))  # data is the clients' name
+            OneLineListItem(text=name, on_release=lambda *args: self.show_pop(name)))  # data is the clients' name
 
-    def change_to_img(self, img_client):
+    def show_pop(self, name):
         self.main_pop = MDDialog(
             title='Confirm', size_hint=(.8, .3), text_button_ok='Yes',
-            text="Send friend request to %s?" % img_client,
+            text="Send friend request to %s?" % name,
             text_button_cancel='Cancel',
-            events_callback=partial(self.do_sending, img_client))
+            events_callback=partial(self.do_sending, name))
         self.main_pop.open()
 
-    def do_sending(self, img_client, *args):
+    def do_sending(self, name, *args):
         if args[0] == "Yes":
-            a = {"type": "new_request", "req_name": img_client}
-            s.send(bytes(json.dumps(a), "utf-8"))
-            toast("Request sent")
-            create_file_sent_req(img_client)
+            a = {"type": "new_request", "req_name": name}
+            try:
+                s.send(bytes(json.dumps(a), "utf-8"))
+                toast("Request sent")
+                create_file_sent_req(name)
+            except:
+                toast("Check internet connection")
 
 
 # Name: names_for_friend_req
@@ -1189,12 +1280,13 @@ class GetNamesForFriendRequestsScreen(Screen):
         super(GetNamesForFriendRequestsScreen, self).__init__(**kwargs)
 
     def on_back_pressed(self, *args):
-        Tinkle().change_screen("Chat")
+        Tinkle().change_screen("controller_screen")
 
     def on_menu_pressed(self, *args):
         pass
 
     def do_checks(self, *args):
+        global was_here_friend_req
         if was_here_friend_req:
             self.event.cancel()
             self.ids.ldml.clear_widgets()
@@ -1202,10 +1294,13 @@ class GetNamesForFriendRequestsScreen(Screen):
             for each_user in current_friend_req:
                 if len(each_user) >= 4 and A().get_the_name() not in each_user:
                     self.add_one_line(each_user)
+            was_here_friend_req = False
 
-    def refresh_screen(self):
-        print("doing the refreshing")
+    @mainthread
+    def on_enter(self, *args):
         self.ldml = self.ids["ldml"]
+        self.ldml.clear_widgets()
+        self.add_one_line("sample name")
         self.event = Clock.schedule_interval(self.do_checks, 0.3)
         threading.Thread(target=self.send_background).start()
 
@@ -1213,59 +1308,54 @@ class GetNamesForFriendRequestsScreen(Screen):
         template = {
             "type": "whoisonline--acpt"
         }
-        s.send(bytes(json.dumps(template), "utf-8"))
+        try:
+            s.send(bytes(json.dumps(template), "utf-8"))
+        except:
+            toast("Check internet connection")
+            self.event.cancel()
 
-    def add_one_line(self, data):
-        self.ldml.add_widget(OneLineListItem(text=data,
-                                             markup=True,
-                                             text_size=(self.width, None),
-                                             size_hint_y=None,
-                                             font_size=(self.height / 20),
-                                             on_press=lambda *args: self.change_to_img(
-                                                 data)))  # data is the clients' name
+    @mainthread
+    def add_one_line(self, name):
+        self.ldml.add_widget(OneLineListItem(text=name,
+                                             on_release=lambda *args: self.show_diag(
+                                                 name)))
 
-    def change_to_img(self, img_client):
+    def show_diag(self, name):
 
         self.main_pop = MDDialog(
-            title='Confirm', size_hint=(.8, .3), text_button_ok='Yes',
-            text="Do you want to a friend request from %s?" % img_client,
-            text_button_cancel='Cancel',
-            events_callback=partial(self.callback_request, img_client))
+            title='Confirm', size_hint=(.8, .3), text_button_ok='Accept',
+            text="Accept friend request from %s?" % name,
+            text_button_cancel='Deny',
+            events_callback=partial(self.callback_request, name))
         self.main_pop.open()
 
-    def callback_request(self, img_client, *args):
-        if args[0] == "Yes":
-            self.call_accept_friend(img_client)
+    def callback_request(self, name, *args):
+        if args[0] == "Accept":
+            self.call_accept_friend(name)
         else:
-            self.call_reject_friend(img_client)
+            self.call_reject_friend(name)
+        self.on_enter()
 
-    def call_accept_friend(self, img_client):
-        self.main_pop.dismiss
-        a = {"type": "request_accept", "req_name": img_client}
-        s.send(bytes(json.dumps(a), "utf-8"))
+    def call_accept_friend(self, name):
+        a = {"type": "request_accept", "req_name": name}
         try:
-            self.main_pop.dismiss()
+            s.send(bytes(json.dumps(a), "utf-8"))
+            delete_file_sent(name)
         except:
-            pass
-        delete_file_sent(img_client)
-        # self.manager.current = "Chat"
+            print(traceback.format_exc())
+            toast("Check internet connection")
 
-    def call_reject_friend(self, img_client):
-        self.main_pop.dismiss
-        a = {"type": "reject_request", "req_name": img_client}
-        s.send(bytes(json.dumps(a), "utf-8"))
+    def call_reject_friend(self, name):
+        a = {"type": "reject_request", "req_name": name}
         try:
-            self.main_pop.dismiss()
-        except Exception as e:
-            pass
-        delete_file_sent(img_client)
-        # self.manager.current = "Chat"
+            s.send(bytes(json.dumps(a), "utf-8"))
+            delete_file_sent(name)
+        except:
+            print(traceback.format_exc())
+            toast("Check internet connection")
 
 
-# Name: names_for_friends_accept
-
-
-class GetNamesForCurrentFriendsScreen(Screen):
+class GetNamesForCurrentFriendsScreen(BoxLayout):
     global s
 
     def __init__(self, **kwargs):
@@ -1274,22 +1364,25 @@ class GetNamesForCurrentFriendsScreen(Screen):
         super(GetNamesForCurrentFriendsScreen, self).__init__(**kwargs)
 
     def on_back_pressed(self, *args):
-        Tinkle().change_screen("Chat")
+        pass
 
     def on_menu_pressed(self, *args):
         pass
 
     def do_checks(self, *args):
+        global was_here_friends_accept
         if was_here_friends_accept:
-            self.event.cancel()
             self.ids.ldml.clear_widgets()
             for each_user in current_friends_accept:
                 if len(each_user) >= 4 and A().get_the_name() not in each_user:
                     self.add_one_line(each_user)
+            self.event.cancel()
+            was_here_friends_accept = False
 
     # Get current friends from server
-    def refresh_screen(self):
+    def refresh_screen(self, *args):
         self.ldml = self.ids["ldml"]
+        self.ldml.clear_widgets()
         self.event = Clock.schedule_interval(self.do_checks, 0.3)
         threading.Thread(target=self.send_background).start()
 
@@ -1297,67 +1390,65 @@ class GetNamesForCurrentFriendsScreen(Screen):
         template = {
             "type": "whoisonline--friends"
         }
-        s.send(bytes(json.dumps(template), "utf-8"))
+        try:
+            s.send(bytes(json.dumps(template), "utf-8"))
+        except:
+            toast("Check internet connection")
+            self.event.cancel()
 
-    def add_one_line(self, data):
-        self.ldml.add_widget(OneLineListItem(text=data,
-                                             markup=True,
-                                             text_size=(self.width, None),
-                                             size_hint_y=None,
-                                             font_size=(self.height / 20),
-                                             on_press=lambda *args: self.change_to_img(
-                                                 data)))  # data is the clients' name
+    @mainthread
+    def add_one_line(self, name):
+        self.ldml.add_widget(OneLineListItem(text=name,
+                                             on_press=lambda *args: self.open_private(
+                                                 name)))
 
-    def change_to_img(self, img_client):
+    @mainthread
+    def open_private(self, pvt_client):
         global receiver_name
-        receiver_name = img_client
+        receiver_name = pvt_client
+        Tinkle.pvt_username = pvt_client
         Tinkle().manage_screens("convo", "add")
         Tinkle().change_screen("convo")
 
 
-class PopGroupInfo(Popup):
-    def on_open(self):
+class GroupsList(BoxLayout):
+    def __init__(self, **kwargs):
+        self.register_event_type('on_back_pressed')
+        self.register_event_type('on_menu_pressed')
+        super(GroupsList, self).__init__(**kwargs)
+        self.sent_get_group = False
+
+    def on_back_pressed(self, *args):
+        Tinkle().change_screen("controller_screen")
+
+    def on_menu_pressed(self, *args):
+        pass
+
+    def refresh_screen(self, *args):
         self.ml = self.ids["ml"]
-        for k, v in group_info_dict.items():
-            if k == "name":
-                self.add_one_line("Group name: " + str(v))
-            elif k == "creator":
-                self.add_one_line("Created by: " + str(v))
-            elif k == "admins":
-                self.add_one_line("Admins: " + str(v))
-            elif k == "creation_date":
-                self.add_one_line("Date created: " + str(v))
-            elif k == "description":
-                self.add_one_line("Description: " + str(v))
-            elif k == "num_members":
-                self.add_one_line("Number of members " + str(v))
+        self.ml.clear_widgets()
+        self.event = Clock.schedule_interval(self.do_checks, 0.5)
 
-    def add_one_line(self, data):
-        self.ml.add_widget(OneLineListItem(text=data,
-                                           markup=True,
-                                           text_size=(self.width, None),
-                                           size_hint_y=None,
-                                           font_size=(self.height / 20)))  # data is the clients' name
+    def do_checks(self, dt):
+        # null check
+        if ALL_GROUPS:
+            for k, v in ALL_GROUPS.items():
+                together = v.split(":")
+                g_name = together[0]
+                g_desc = together[1]
+                self.add_two_line(g_name, g_desc, k)
+            # reset
+            self.event.cancel()
+            self.sent_get_group = False
+        else:
+            if not self.sent_get_group:
+                self.get_groups_list()
 
-
-class PopGetGroups(Popup):
-
-    def on_open(self):
-        self.ml = self.ids["ml"]
-        for k, v in ALL_GROUPS.items():
-            together = v.split(":")
-            gName = together[0]
-            gDesc = together[1]
-            self.add_two_line(gName, gDesc, k)
-
+    @mainthread
     def add_two_line(self, group_name, group_description, group_id):
         msg_to_add = group_name + ": " + group_description
         a = TwoLineListItem(text=msg_to_add,
                             secondary_text=group_id,
-                            markup=True,
-                            text_size=(self.width, None),
-                            size_hint_y=None,
-                            font_style="Body1",
                             on_release=partial(self.change_to_group_chat, group_name, group_description, group_id))
         self.ml.add_widget(a)
 
@@ -1366,12 +1457,19 @@ class PopGetGroups(Popup):
         group_name = g_name
         current_group_id = g_id
         current_group_desc = g_description
+        Tinkle.grp_name = group_name
         Tinkle().manage_screens("group_convo", "add")
-        self.close_popup()
         Tinkle().change_screen("group_convo")
 
-    def close_popup(self):
-        self.dismiss()
+    def get_groups_list(self):
+        global s
+        template = {}
+        template["type"] = "get_groups"
+        try:
+            s.send(bytes(json.dumps(template), "utf-8"))
+            self.sent_get_group = True
+        except:
+            toast("Check internet connection")
 
 
 # Name: convo
@@ -1418,8 +1516,13 @@ class Conversation(Screen):
         threading.Thread(target=self.insert_data).start()
 
     def on_back_pressed(self, *args):
+        Tinkle().change_screen("controller_screen")
         Tinkle().manage_screens("convo", "remove")
-        Tinkle().change_screen("Chat")
+        # close the socket connection
+        try:
+            self.soc.close()
+        except:
+            pass
 
     def on_menu_pressed(self, *args):
         pass
@@ -1463,7 +1566,7 @@ class Conversation(Screen):
     def on_enter(self):
         global IS_GROUP_MEDIA
         IS_GROUP_MEDIA = False
-        # threading.Thread(target=self.insert_data).start()
+        threading.Thread(target=self.insert_data).start()
         # threading.Thread(target=self.initial_conditions).start()
 
     def handle_msg1(self, *args):
@@ -1489,7 +1592,7 @@ class Conversation(Screen):
             else:
                 self.add_two_line(the_name, the_message, prof_img)
 
-    def send_msg(self):
+    def send_msg(self, field, button):
         global s
         try:
             # send the message to server
@@ -1547,7 +1650,7 @@ class Conversation(Screen):
             self.bs_menu_1.add_item(
                 "Back",
                 lambda x: self.callback_for_menu_items(
-                    "Chat"))
+                    "controller_screen"))
         self.bs_menu_1.open()
 
     def show_bottom_popup(self):
@@ -1655,19 +1758,6 @@ class Conversation(Screen):
             threading.Thread(target=self.prepare_audio_share).start()
             return
 
-    # Cancel the scheduled events and close the socket connection
-    def on_leave(self):
-        try:
-            self.event2.cancel()
-            self.event3.cancel()
-        except Exception as e:
-            print(traceback.format_exc())
-        try:
-            self.soc.close()
-        except Exception as e:
-            print(traceback.format_exc())
-
-
 # Name: group_convo
 
 
@@ -1697,8 +1787,9 @@ class GroupConversation(Screen):
         threading.Thread(target=self.insert_data).start()
 
     def on_back_pressed(self, *args):
+        Tinkle().change_screen("controller_screen")
         Tinkle().manage_screens("group_convo", "remove")
-        Tinkle().change_screen("Chat")
+
 
     def on_menu_pressed(self, *args):
         pass
@@ -1739,7 +1830,7 @@ class GroupConversation(Screen):
         else:
             self.add_two_line(the_name, the_message, prof_img)
 
-    def send_msg(self):
+    def send_msg(self, field, button):
         global s
         try:
             # send the message to server
@@ -1784,7 +1875,7 @@ class GroupConversation(Screen):
             self.bs_menu_1.add_item(
                 "Back",
                 lambda x: self.callback_for_menu_items(
-                    "Chat"))
+                    "controller_screen"))
         self.bs_menu_1.open()
 
     def callback_for_menu_items(self, scn):
@@ -1875,14 +1966,6 @@ class GroupConversation(Screen):
             pass
 
 
-class GenericPop:
-    def pop_it(self):
-        popup = Popup(title="Stopped",
-                      content=Label(text="Tap outside"),
-                      size_hint=(.6, .6), pos_hint={'x': .2, 'y': .2})
-        popup.open()
-
-
 # Name: status_screen
 
 
@@ -1895,7 +1978,7 @@ class Status(Screen):
         self.pic_day = self.ids["pic_day"]
 
     def on_back_pressed(self, *args):
-        Tinkle().change_screen("Chat")
+        Tinkle().change_screen("names_for_status")
 
     def on_menu_pressed(self, *args):
         pass
@@ -1932,6 +2015,7 @@ class Status(Screen):
         except:
             toast("can't select file")
 
+    @mainthread
     def upload_status(self, fname, caption):
         extension = os.path.splitext(fname)[1]
         new_name = "status_" + id_generator(10) + extension
@@ -1943,9 +2027,11 @@ class Status(Screen):
                 temp.write(temp2.read())
 
         try:
+            toast("Sending update...")
             with open(new_name, "rb") as f:
                 files = {'testname': f}
-                r = requests.post(return_site_web_address() +
+                # Thread-blocking
+                requests.post(return_site_web_address() +
                                   "man_status.php", files=files)
             site_path = return_site_web_address() + "status/" + new_name
 
@@ -1956,97 +2042,59 @@ class Status(Screen):
             toast("Update complete")
         except BaseException as e:
             print(traceback.format_exc())
-            toast("Update failed, check your internet connection")
-        self.remove_file(new_name)
-        Tinkle().change_screen("Chat")
+            toast("Update failed, check your internet connection", True)
 
-    def remove_file(self, filename):
         try:
-            os.remove(filename)
-        except BaseException as e:
+            os.remove(new_name)
+        except:
             pass
-
-    def on_leave(self):
-        Tinkle().manage_screens("status_screen", "remove")
+        Tinkle().change_screen("names_for_status")
 
 
 # Name: display_status
 
 
 class DisplayStatus(Screen):
-    def __init__(self, **kwargs):
-        super(DisplayStatus, self).__init__(**kwargs)
-        self.comment = self.ids["comment"]
-        self.act_view = self.ids["act_view"]
-        self.register_event_type('on_back_pressed')
-        self.register_event_type('on_menu_pressed')
 
     img_src = StringProperty(DEFAULT_STATUS)
     txt_stat = StringProperty("loading...")
     global s, global_status_pic, global_status_text
 
+    def __init__(self, **kwargs):
+        super(DisplayStatus, self).__init__(**kwargs)
+        self.register_event_type('on_back_pressed')
+        self.register_event_type('on_menu_pressed')
+
     def on_back_pressed(self, *args):
-        Tinkle().manage_screens("names_for_status", "add")
-        Tinkle().change_screen("names_for_status")
-        Tinkle().manage_screens("display_status", "remove")
+        Tinkle().change_screen("convo")
+        Tinkle().manage_screens(self.name, "remove")
 
     def on_menu_pressed(self, *args):
         pass
 
-    def go_to_comments(self, *args):
-        Tinkle().manage_screens("view_status_comments", "add")
-        # open replies screen
-        Tinkle().change_screen("view_status_comments")
-
-    def send_status_comment(self):
-        try:
-            if len(self.comment.text) > 0:
-                toast("sending reply...")
-                template = {}
-                template["type"] = "status_comment"
-                template["to"] = self.the_target_name
-                template["msg"] = self.comment.text
-                try:
-                    s.send(bytes(json.dumps(template), "utf-8"))
-                except Exception as e:
-                    pass
-                self.comment.text = ""
-            else:
-                toast("invalid text found")
-        except Exception as e:
-            toast("Can't send comment")
-
     def on_enter(self):
         template = {}
         Tinkle().manage_screens("names_for_status", "remove")
-        from kivy.uix.actionbar import ActionBar  # crashes if import outside
-        from kivy.uix.actionbar import ActionButton
         try:
             self.the_target_name = current_status_view
-            if self.the_target_name == A().get_the_name():
-                self.reps_button = ActionButton(
-                    size_hint_x=None, size=self.size, text="Replies", font_size=dp(18))
-                self.reps_button.bind(on_release=self.go_to_comments())
-                self.act_view.add_widget(self.reps_button)
             template["type"] = "status_get"
             template["which_user"] = self.the_target_name
-            s.send(bytes(json.dumps(template), "utf-8"))
             self.event = Clock.schedule_interval(self.update_things, 2)
+            try:
+                s.send(bytes(json.dumps(template), "utf-8"))
+            except:
+                self.event.cancel()
+                toast("Check internet connection")
         except:
             pass
 
     def update_things(self, dt):
         global ishere
-        if ishere == False:
+        if not ishere:
             if global_status_pic != "":
                 self.img_src = global_status_pic
                 self.txt_stat = global_status_text
-                if self.the_target_name == A().get_the_name():
-                    self.comment.disabled = True
-                else:
-                    self.comment.disabled = False
                 self.event.cancel()
-                # Clock.unschedule(self.update_things)
 
     def show_img_pop(self, src):
         the_pic = AsyncImage(source=src)
@@ -2074,109 +2122,77 @@ class DisplayStatus(Screen):
             except:
                 toast("Error while saving status")
 
+        else:
+            toast("Error while saving status")
+
     def on_leave(self):
         try:
-            self.act_view.remove_widget(self.reps_button)
             self.event.cancel()
-
         except Exception as e:
             print(traceback.format_exc())
-
-
-# Name: view_status_comments
-
-
-class StatusComments(Screen):
-    def __init__(self, **kwargs):
-        super(StatusComments, self).__init__(**kwargs)
-        self.ml = self.ids["ml"]
-
-    def on_back_pressed(self, *args):
-        Tinkle().manage_screens("status_comment", "remove")
-        Tinkle().change_screen("display_status")
-
-    def on_menu_pressed(self, *args):
-        pass
-
-    def on_enter(self):
-        if check_if_exist(comments_status_db_file):
-            db = dataset.connect(comments_db_name)
-            table = db['comments']
-            for user in db["comments"]:
-                self.apply_correct(user["name"], user["msg"], user["link"])
-        else:
-            self.add_two_line(
-                "self", "No comments yet, come back later", DEFAULT_STATUS)
-
-    def apply_correct(self, the_name, the_message, prof_img):
-        if len(the_message) > 80:
-            self.add_three_line(the_name, the_message, prof_img)
-        else:
-            self.add_two_line(the_name, the_message, prof_img)
-
-    def add_two_line(self, from_who, msg_to_add, prof_img):
-        a = TwoLineAvatarListItem(text=msg_to_add, secondary_text=from_who)
-        self.ml.add_widget(a)
-
-    def add_three_line(self, from_who, msg_to_add, prof_img):
-        a = ThreeLineAvatarListItem(text=msg_to_add[:38] + "...",
-                                    secondary_text=from_who,
-                                    markup=True,
-                                    text_size=(self.width, None),
-                                    size_hint_y=None,
-                                    font_style="Body1",
-                                    on_press=lambda *args: self.out_quick(from_who, msg_to_add))
-        self.ml.add_widget(a)
-
-    def on_leave(self):
-        self.ml.clear_widgets()
-        Tinkle().manage_screens("status_comment", "remove")
 
 
 class PopupScreen(MDPopupScreen):
     pass
 
 
-# Name: Chat
-
-class Chat(Screen):
-
+class GroupInfo(Screen):
     def __init__(self, **kwargs):
-        super(Chat, self).__init__(**kwargs)
+        super(GroupInfo, self).__init__(**kwargs)
+        self.register_event_type('on_back_pressed')
+        self.register_event_type('on_menu_pressed')
+
+    def on_back_pressed(self, *args):
+        Tinkle().change_screen("advanced_screen")
+        Tinkle().manage_screens(self.name, "remove")
+
+    def on_menu_pressed(self, *args):
+        pass
+
+    def on_enter(self, *args):
+        self.grid = self.ids["grid"]
+        for k, v in group_info_dict.items():
+            if k == "name":
+                self.add_one_line("Group name: " + str(v))
+            elif k == "creator":
+                self.add_one_line("Created by: " + str(v))
+            elif k == "admins":
+                self.add_one_line("Admins: " + str(v))
+            elif k == "creation_date":
+                self.add_one_line("Date created: " + str(v))
+            elif k == "description":
+                self.add_one_line("Description: " + str(v))
+            elif k == "num_members":
+                self.add_one_line("Number of members " + str(v))
+
+    @mainthread
+    def add_one_line(self, data):
+        self.grid.add_widget(OneLineListItem(text=data))  # data is the clients' name
+
+
+class PublicChatScreen(Screen):
+    def __init__(self, **kwargs):
+        self.register_event_type('on_back_pressed')
+        self.register_event_type('on_menu_pressed')
+        super(PublicChatScreen, self).__init__(**kwargs)
         self.message = self.ids["message"]
         self.ml = self.ids["ml"]
         self.bs_menu_1 = None
         self.bs_menu_2 = None
-        self.this_is_a_counter_and_wont_be_used_again = 0
 
-    def show_bottom_popup(self):
-        popup_screen = Factory.MyPopupScreenOne()
-        root = PopupScreen(screen=popup_screen,
-                           background_color=[.3, .3, .3, 1])
-        root.max_height = self.ids.toolbar.height * 3
-        self.add_widget(root)
-        root.show()
 
-    def get_groups_list(self):
-        template = {}
-        template["type"] = "get_groups"
-        try:
-            s.send(bytes(json.dumps(template), "utf-8"))
-        except:
-            toast("Error with getting groups")
+    def on_back_pressed(self, *args):
+        Tinkle().manage_screens(self.name, "remove")
+        Tinkle().change_screen("controller_screen")
+
+    def on_menu_pressed(self, *args):
+        pass
 
     def add_one_line(self, data):
         self.ml.add_widget(OneLineListItem(text=data))
 
     def add_one_line_special(self, data, from_who):
         self.ml.add_widget(OneLineListItem(text=data, on_release=lambda *args: self.change_convo(from_who)))
-
-    def change_convo(self, name_from):
-        global receiver_name
-        # Name of current person having a private chat with
-        receiver_name = name_from
-        Tinkle().manage_screens("convo", "add")
-        Tinkle().change_screen("convo")
 
     def add_two_line(self, from_who, msg_to_add, prof_img):
         a = TwoLineListItem(text=msg_to_add, secondary_text=from_who)
@@ -2186,21 +2202,6 @@ class Chat(Screen):
         a = ThreeLineAvatarListItem(text=msg_to_add[:70] + "...", secondary_text=from_who,
                                     on_press=lambda *args: self.out_quick(from_who, msg_to_add))
         self.ml.add_widget(a)
-
-    def for_callback(self, *args):
-        # leave this here
-        # else will crash as dialog expects a callback
-        pass
-
-    def show_about(self):
-        about_text = "Made with love from my room <3\nSend issues or improvements to:\n[insertemail]@gmail.com OR +26481XXXX"
-
-        dialog = MDDialog(
-            title='Tinkle', size_hint=(.8, .4), text_button_ok='OK',
-            text=f"[color=%s][b]{about_text}[/b][/color]" % get_hex_from_color(
-                Tinkle().theme_cls.primary_color),
-            events_callback=self.for_callback)
-        dialog.open()
 
     def out_quick(self, thefrom, themsg):
         box = GridLayout(rows=2)
@@ -2216,73 +2217,6 @@ class Chat(Screen):
     def clear_log(self):
         self.ids.ml.clear_widgets()
 
-    def pop1(self, src):
-        popup = Popup(title="Please wait for image to load",
-                      content=src)
-        popup.open()
-
-    def download_file_arbi(self, url, media_type=""):
-        if 1 == 0:  # isAndroid():
-            import permission_helper
-            perms = ["android.permission.READ_EXTERNAL_STORAGE",
-                     "android.permission.WRITE_EXTERNAL_STORAGE"]
-
-            haveperms = permission_helper.acquire_permissions(perms)
-            print(haveperms)
-        if media_type == "audio":
-            local_filename = os.path.join(path_music, url.split('/')[-1])
-        elif media_type == "image":
-            local_filename = os.path.join(path_images, url.split('/')[-1])
-        elif media_type == "document":
-            local_filename = os.path.join(path_docs, url.split('/')[-1])
-        # NOTE the stream=True parameter
-        r = requests.get(url, stream=True)
-        with open(local_filename, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=1024):
-                if chunk:  # filter out keep-alive new chunks
-                    f.write(chunk)
-        self.add_one_line("File saved here: " + local_filename)
-        return local_filename
-
-    def download_audio(self, url_audio, audio_name):
-        try:
-
-            location_audio = self.download_file_arbi(url_audio, "audio")
-
-        except BaseException as e:
-            toast("Error occured while downloading audio file")
-
-    def download_doc(self, url_doc, doc_name):
-        try:
-            global path_docs
-            self.download_file_arbi(url_doc, "document")
-        except BaseException as e:
-            toast("Unable to download document")
-
-    def download_image(self, url_img, img_name_new):
-        try:
-            saved_img = self.download_file_arbi(url_img, "image")
-            try:
-                with open("atp_img.dat", "rb") as f:
-                    chosen = f.read()
-                    if chosen == "1":
-                        # "https://pbs.twimg.com/profile_images/763046576050757632/1KdfLvwt.jpg"
-                        the_pic = AsyncImage(source=saved_img)
-                        self.pop1(the_pic)
-            except BaseException as e:
-                print(traceback.format_exc())
-
-        except BaseException as e:
-            print(traceback.format_exc())
-            toast("Unable to save image")
-
-    def PlayAudio(self, audio_name):
-        global tmp
-        try:
-            tmp.play()
-        except Exception as e:
-            pass
-
     def refresh_msgs(self):
         self.clear_log()
         results_of_log_check = self.read_messages_from_log()
@@ -2292,7 +2226,7 @@ class Chat(Screen):
                     tx_name, tx_message, tx_prof_link = mx.split("`")
                     self.apply_correct(tx_name, tx_message, tx_prof_link)
 
-    def send_msg(self):
+    def send_msg(self, field, button):
         global s, the_key
         try:
             # send the message to server
@@ -2337,6 +2271,96 @@ class Chat(Screen):
         except:
             pass
 
+# Name: controller_screen
+
+
+class Controller(Screen):
+
+    def __init__(self, **kwargs):
+        super(Controller, self).__init__(**kwargs)
+        self.this_is_a_counter_and_wont_be_used_again = 0
+
+    def show_bottom_popup(self):
+        popup_screen = Factory.MyPopupScreenOne()
+        root = PopupScreen(screen=popup_screen,
+                           background_color=[.3, .3, .3, 1])
+        root.max_height = self.ids.toolbar.height * 3
+        self.add_widget(root)
+        root.show()
+
+    def dummy_callback(self, *args):
+        # leave this here
+        # else will crash as dialog expects a callback
+        pass
+
+    def show_about(self):
+        about_text = "Made with love from my room <3\n" \
+                     "Send issues or improvements to:\n" \
+                     "[insertemail]@gmail.com OR +26481XXXX"
+
+        MDDialog(
+            title='Tinkle', size_hint=(.8, .4), text_button_ok='OK',
+            text=f"[color=%s][b]{about_text}[/b][/color]" % get_hex_from_color(
+                Tinkle().theme_cls.primary_color),
+            events_callback=self.dummy_callback).open()
+
+    def download_file_arbi(self, url, media_type=""):
+        if 1 == 0:  # isAndroid():
+            import permission_helper
+            perms = ["android.permission.READ_EXTERNAL_STORAGE",
+                     "android.permission.WRITE_EXTERNAL_STORAGE"]
+
+            haveperms = permission_helper.acquire_permissions(perms)
+            print(haveperms)
+        if media_type == "audio":
+            local_filename = os.path.join(path_music, url.split('/')[-1])
+        elif media_type == "image":
+            local_filename = os.path.join(path_images, url.split('/')[-1])
+        elif media_type == "document":
+            local_filename = os.path.join(path_docs, url.split('/')[-1])
+        # NOTE the stream=True parameter
+        r = requests.get(url, stream=True)
+        with open(local_filename, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=1024):
+                if chunk:  # filter out keep-alive new chunks
+                    f.write(chunk)
+        toast("File saved here: " + local_filename)
+        return local_filename
+
+    def download_audio(self, url_audio, audio_name):
+        try:
+
+            location_audio = self.download_file_arbi(url_audio, "audio")
+
+        except BaseException as e:
+            toast("Error occured while downloading audio file")
+
+    def download_doc(self, url_doc, doc_name):
+        try:
+            self.download_file_arbi(url_doc, "document")
+        except BaseException as e:
+            toast("Unable to download document")
+
+    def download_image(self, url_img, img_name_new):
+        try:
+            saved_img = self.download_file_arbi(url_img, "image")
+            try:
+                with open("atp_img.dat", "rb") as f:
+                    chosen = f.read()
+                    if chosen == "1":
+                        # "https://pbs.twimg.com/profile_images/763046576050757632/1KdfLvwt.jpg"
+                        the_pic = AsyncImage(source=saved_img)
+                        self.pop1(the_pic)
+            except BaseException as e:
+                print(traceback.format_exc())
+
+        except BaseException as e:
+            print(traceback.format_exc())
+            toast("Unable to save image")
+
+    def PlayAudio(self, audio_name):
+        pass
+
     def write_the_message(self, the_name, the_message, prof_img):
         global save_messages_file
         together = the_name + "`" + the_message + "`" + prof_img + "\n"
@@ -2365,11 +2389,6 @@ class Chat(Screen):
 
     def _start_backup(self, *args):
         threading.Thread(target=Tinkle().client_backup).start()
-        self.dialog.dismiss()
-
-    def change_to_create_group(self, *args):
-        Tinkle().manage_screens("create_group_screen", "add")
-        Tinkle().change_screen("create_group_screen")
 
     def msgg(self):
         global s, name
@@ -2398,8 +2417,7 @@ class Chat(Screen):
                     data["msg"] = "empty_null"
                 if type_msg == "private_message":
                     try:  # if screen is private pass to convo else write to file
-                        if sm.current == "convo" and data["from"] == receiver_name or data[
-                            "from"] == A().get_the_name():
+                        if sm.current == "convo" and data["from"] == receiver_name or data["from"] == A().get_the_name():
                             append_to_file(receiver_name, data)
                             new_data_to_add = data
                             type_msg = ""
@@ -2409,11 +2427,9 @@ class Chat(Screen):
                                 # append to file
                                 append_to_file(data["from"], data)
                                 # setting if user wants notification one line
-                                self.add_one_line_special(
-                                    "New text: " + data["from"], data["from"])
-                                Snackbar(text="New text from " + data["from"], button_text="open",
+                                Snackbar(text=f'Msg: {data["from"]}', button_text="open",
                                          button_callback=partial(
-                                             self.change_convo, data["from"])).show()
+                                             GetNamesForCurrentFriendsScreen().open_private(), data["from"])).show()
 
                                 if data["from"] != A().get_the_name():
                                     threading.Thread(target=self.PlayAudio, args=(
@@ -2426,9 +2442,7 @@ class Chat(Screen):
                                     chats_directory, data["from"]))
                                 # append to file
                                 append_to_file(data["from"], data)
-                                self.add_one_line(
-                                    "Text from: " + data["from"])
-                                Snackbar(text="New text from " + data["from"], button_text="open",
+                                Snackbar(text="Msg: " + data["from"], button_text="open",
                                          button_callback=partial(
                                              self.change_convo, data["from"])).show()
 
@@ -2480,8 +2494,8 @@ class Chat(Screen):
                                      args=(url_doc, doc_name_new)).start()
                     data = ""
                 elif type_msg == "singleton":
-                    self.add_one_line(str(data["msg"]))
-                    data = ""
+                    toast(str(data["msg"]), True)
+                    GetNamesForCurrentFriendsScreen().open_private("useeeerrr")
                 elif type_msg == "status_comment":
                     write_status_comments(
                         data["from"], data["msg"], data["prof_img"])
@@ -2491,7 +2505,6 @@ class Chat(Screen):
                 elif type_msg == "get_groups":
                     global ALL_GROUPS
                     ALL_GROUPS = data["msg"]
-                    PopGetGroups().open()
 
                 elif type_msg == "group_info":
                     global group_info_dict
@@ -2502,7 +2515,8 @@ class Chat(Screen):
                     group_info_dict["creation_date"] = data["creation_date"]
                     group_info_dict["description"] = data["description"]
                     group_info_dict["num_members"] = data["num_members"]
-                    PopGroupInfo().open()
+                    Tinkle().manage_screens("group_info", "add")
+                    Tinkle().change_screen("group_info")
 
                 elif type_msg == "broadcast":
                     if data["from"] == "Admin":
@@ -2511,6 +2525,7 @@ class Chat(Screen):
                     else:
                         save_messages = True
                     if save_messages == True and data != "":
+                        # TODO: make this update to the global chat log
                         self.apply_correct(
                             data["from"], data["msg"], data["prof_img"])
                         self.write_the_message(
@@ -2521,39 +2536,36 @@ class Chat(Screen):
                 else:
                     try:
                         if len(data) > 0:
-                            the_name = data["from"]
-                            if True:
-                                if type_msg == "whoisonline--status":
-                                    current_share_status = data["msg"]
-                                    was_here_status = True
-                                elif type_msg == "whoisonline--req_fri":
-                                    current_find_friends = data["msg"]
-                                    was_here_find_friends = True
-                                elif type_msg == "whoisonline--acpt":
-                                    current_friend_req = data["msg"]
-                                    was_here_friend_req = True
-                                elif type_msg == "whoisonline--friends":
-                                    current_friends_accept = data["msg"]
-                                    was_here_friends_accept = True
+                            if type_msg == "whoisonline--status":
+                                current_share_status = data["msg"]
+                                was_here_status = True
+                            elif type_msg == "whoisonline--req_fri":
+                                current_find_friends = data["msg"]
+                                was_here_find_friends = True
+                            elif type_msg == "whoisonline--acpt":
+                                current_friend_req = data["msg"]
+                                was_here_friend_req = True
+                            elif type_msg == "whoisonline--friends":
+                                current_friends_accept = data["msg"]
+                                was_here_friends_accept = True
 
-                                elif type_msg == "get_group_members":
-                                    was_here_members_group = True
-                                    # print("DATA:",data)
-                                    current_group_members = data["members"]
-                                    # print("MEMBERS:",current_group_members)
+                            elif type_msg == "get_group_members":
+                                was_here_members_group = True
+                                # print("DATA:",data)
+                                current_group_members = data["members"]
+                                # print("MEMBERS:",current_group_members)
 
-                                else:
-                                    the_message = data["msg"]
-                                    if len(the_message) > 0:
-                                        self.add_one_line(the_message)
-                                        # the_name,the_message = "",""
+                            else:
+                                the_message = data["msg"]
+                                if len(the_message) > 0:
+                                    toast(the_message, True)
 
                     except Exception as e:
                         print(traceback.format_exc())
             except ConnectionResetError as e:
                 if self.this_is_a_counter_and_wont_be_used_again == 0:
                     print(traceback.format_exc())
-                    toast("Connection lost; Check status website or restarting")
+                    toast("Connection lost; Restart or check status website", True)
                     self.this_is_a_counter_and_wont_be_used_again = 1
 
             except Exception as e:
@@ -2565,11 +2577,20 @@ class Chat(Screen):
     # def on_enter(self):
     #     self.add_one_line("From this is my texthttp://127.0.0.1/display/default.png")
 
-    def _on_enter(self):
+    def get_initial_data(self):
+        global s
+        try:
+            template = {}
+            template["type"] = "initial_data"
+            s.send(bytes(json.dumps(template), "utf-8"))
+        except:
+            print(traceback.format_exc())
+
+    def on_enter(self):
         global chat_was_on
         global dp_path
 
-        if chat_was_on == False:
+        if not chat_was_on:
             chat_was_on = True
             global s, the_key, name
             try:
@@ -2582,36 +2603,31 @@ class Chat(Screen):
                 host = return_server_address()
                 port = port_chat
                 s.connect((host, port))
-                # self.send_init_msg()
                 tpa = [name, the_key]
                 s.send(bytes(json.dumps(tpa), "utf-8"))
-                initial = s.recv(512).decode("utf-8")  # the server greeting
-                initial = json.loads(initial)
                 dp_path = return_site_web_address() + "display/"
-
-                self.add_two_line(
-                    initial["from"], initial["greeting"], initial["img_link"])
                 toast("Keep Calm and Tinkle on...")
-
                 threading.Thread(target=self.load_previous_msg).start()
                 threading.Thread(target=self.msgg).start()
+                threading.Thread(target=self.get_initial_data).start()
                 Clock.schedule_once(self.get_missed, 6)
             except BaseException as e:
                 print(traceback.format_exc())
-                toast("Unable to connect")
+                toast("Unable to connect, restart app", True)
 
     def load_previous_msg(self):
-        if DEFAULT_ACCOUNT:
-            results_of_log_check = self.read_messages_from_log()
-            if results_of_log_check != None:
-                for mx in results_of_log_check:
-                    if len(mx) > 0:
-                        tx_name, tx_message, tx_prof_link = mx.split("`")
-                        temp_link = re.findall(
-                            'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+', tx_prof_link)
-                        tx_prof_link.replace(
-                            temp_link[0], return_site_web_address()[:-1])
-                        self.apply_correct(tx_name, tx_message, tx_prof_link)
+        pass
+        # if DEFAULT_ACCOUNT:
+        #     results_of_log_check = self.read_messages_from_log()
+        #     if results_of_log_check != None:
+        #         for mx in results_of_log_check:
+        #             if len(mx) > 0:
+        #                 tx_name, tx_message, tx_prof_link = mx.split("`")
+        #                 temp_link = re.findall(
+        #                     'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+', tx_prof_link)
+        #                 tx_prof_link.replace(
+        #                     temp_link[0], return_site_web_address()[:-1])
+        #                 self.apply_correct(tx_name, tx_message, tx_prof_link)
 
     def get_missed(self, *args):
         # Retrieves messages that were sent during offline period
@@ -2953,17 +2969,10 @@ class ShareDocument:
                         s.send(bytes(json.dumps(bibo), "utf-8"))
                         self.remove_file(tempo_doc_file)
                         toast("Upload complete, used cache")
-                    # if IS_GROUP_MEDIA:
-                    #     Tinkle().change_screen("group_convo")
-                    #     IS_GROUP_MEDIA = False
-                    # else:
-                    #     Tinkle().change_screen("convo")
 
             except BaseException as e:
                 print(e)
                 toast("Unable to send")
-                # IS_GROUP_MEDIA = False
-                # Tinkle().change_screen("Chat")
 
 
 # Name: profile_pic
@@ -2979,7 +2988,7 @@ class ProfilePicture(Screen):
         self.f_manager = None
 
     def on_back_pressed(self, *args):
-        Tinkle().change_screen("Chat")
+        Tinkle().change_screen("controller_screen")
 
     def on_menu_pressed(self, *args):
         pass
@@ -3092,7 +3101,7 @@ class ProfilePicture(Screen):
 
             threading.Thread(target=self.upload_image, args=(
                 tempo_img_file, url_for_img)).start()
-            self.manager.current = "Chat"
+            Tinkle().change_screen("controller_screen")
         else:
             toast("File type not supported")
 
@@ -3103,10 +3112,11 @@ class ProfilePicture(Screen):
 class Tinkle(App):
     global sm
     theme_cls = ThemeManager()
-    theme_cls.primary_palette = 'LightGreen'
+    theme_cls.primary_palette = 'Yellow'
     theme_cls.theme_style = "Light"
     sm = ScreenManager()
-
+    pvt_username = "Private Chat"
+    grp_name = "Group Chat"
     # dynamically add/remove screens to consume less memory
 
     def change_screen(self, screen_name):
@@ -3120,16 +3130,16 @@ class Tinkle(App):
             "dump_screen": DumpScreen,
             "profile_pic": ProfilePicture,
             "advanced_screen": AdvancedScreen,
-            "Chat": Chat,
+            "controller_screen": Controller,
             "convo": Conversation,
+            "public_chat_screen": PublicChatScreen,
             "group_convo": GroupConversation,
-            "display_status": DisplayStatus,
-            "view_status_comments": StatusComments,
+            "group_info": GroupInfo,
             "create_group_screen": CreateGroupScreen,
             "status_screen": Status,
+            "display_status": DisplayStatus,
             "for_selecting": ImagePreviewShare,
             "names_for_status": GetNamesForStatusScreen,
-            "names_for_find_friends": GetNamesForFindFriendsScreen,
             "names_for_friend_req": GetNamesForFriendRequestsScreen,
             "names_for_friends_accept": GetNamesForCurrentFriendsScreen,
             "group_members": GroupMembers,
@@ -3167,10 +3177,11 @@ class Tinkle(App):
         pass
 
     def client_backup(self):
-        with open(backup_file, "wb") as f:
-            f.write(A().get_the_name() + "\n")
-            f.write(get_password())
-            toast("Backup file: " + backup_file)
+        if check_read_permission():
+            with open(backup_file, "wb") as f:
+                f.write(A().get_the_name() + "\n")
+                f.write(get_password())
+                toast("Backup file: " + backup_file)
 
     def display_settings(self, settings):
         try:
@@ -3185,17 +3196,8 @@ class Tinkle(App):
 
     def build(self):
         global sm
-        # Your build code here...
-        # add this line right before "return"
         self.bind(on_start=self.post_build_init)
-        if isAndroid():
-            # TileTransition doesnt work properly on phones [black screen]
-            from moretransitions import BlurTransition
-            sm = ScreenManager(transition=BlurTransition())
-        else:
-            from moretransitions import TileTransition
-            sm = ScreenManager(transition=TileTransition())
-
+        sm = ScreenManager(transition=NoTransition())
         sm.add_widget(SignInScreen(name="signin_screen"))
         sm.add_widget(Registration(name="registration_screen"))
         return sm
@@ -3208,7 +3210,6 @@ class Tinkle(App):
         key = args[1]
         # 1000 is "back" on Android
         # 27 is "escape" on computers
-        # 1001 is "menu" on Android
         if key in (1000, 27):
             try:
                 sm.current_screen.dispatch("on_back_pressed")

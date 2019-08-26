@@ -1,6 +1,7 @@
 <Status>:
     GridLayout:
         rows: 2
+        padding: [8, 2, 8, 2]
         MDToolbar:
             id: toolbar
             title: "New status"
@@ -13,14 +14,19 @@
         GridLayout:
             rows: 2
             orientation: 'vertical'
-            padding: dp(15)#[10,50,10,50]
-            GridLayout:
-                cols:1
-
+            padding: [10,50,10,50]
+            BoxLayout:
+                orientation: "vertical"
                 AsyncImage:
                     id: pic_day
                     source: "img/cam_stat.png"
                     halign: "center"
+
+                MDLabel:
+                    font_name: "Cursive"
+                    text: "Share a post with friends"
+                    halign: "center"
+                    font_size: sp(50)
             GridLayout:
                 rows:2
                 cols:1
@@ -33,12 +39,12 @@
                 BoxLayout:
                     Widget:
                     MDRaisedButton:
-                        text: "Select status picture"
+                        text: "Choose picture"
                         on_release:
                             root.select_pic()
                     Widget:
                     MDRaisedButton:
                         id: send_status
-                        text: "Set new picture"
-                        on_release: root.upload_status(pic_day.source, txt_input.text)
+                        text: "Share"
+                        on_release: root.upload_status(pic_day.source, txt_input.text) if pic_day.source != "img/cam_stat.png" else None
                     Widget:

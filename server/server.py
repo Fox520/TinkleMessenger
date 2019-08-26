@@ -5,18 +5,15 @@ import os
 import random
 import socket
 import string
-import sys
 import threading
 import time
 import atexit
 import traceback
-
+import sys
 import dataset
 
 import group_man
- 
-import sys  
-import importlib
+
 
 # todo: remove name from statuses,friends,conditions,users databases
 # send pm:> pm,[name]:[space]message
@@ -50,7 +47,9 @@ groups = {}
 groups_mod_free = True
 DP_LATE = WEB_ADDRESS + "display/"
 
-#remove user from memory without restarting
+# remove user from memory without restarting
+
+
 def remove_user(name):
     try:
         clients_dict[name]
@@ -75,7 +74,6 @@ def remove_user(name):
 
     except:
         print((traceback.format_exc()))
-        #print("User not found.")
 
 
 def check_users_to_remove():
@@ -97,6 +95,7 @@ def check_users_to_remove():
         else:
             time.sleep(432000) #5 days
 
+
 def populate_client_dict():
     if os.path.isfile("friends.db"):
         db = dataset.connect('sqlite:///friends.db')
@@ -106,33 +105,29 @@ def populate_client_dict():
     else:
         print("database does not exist")
 
-#group id generator
+
+# group id generator
 def id_generator(size=50, chars=string.ascii_lowercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
+
 # associates the name to key
-# send greeting
 def handle_secrets(conn):
     global clients_dict
     raw = conn.recv(512).decode("utf-8")
     raw_buff = json.loads(raw)
     handle, secret = raw_buff[0], raw_buff[1]
     clients_dict[handle] = [secret, conn]
-    initial = {}
-    initial["greeting"] = GREETING[random.randint(0,len(GREETING)-1)]
-    initial["from"] = "Tenno"#FROM_INITIAL[random.randint(0,len(FROM_INITIAL)-1)]
-    initial["img_link"] = WEB_ADDRESS+"display/default.png"
-
-    conn.send(bytes(json.dumps(initial),"utf-8"))
     data = dict(name=handle, friend_requests="",
                 friend_rejects="", friend_accepts="")
+    print(data)
     auto_reply(conn, handle, secret, data)
-    # threading.Thread(target=auto_reply, args=(
-        # conn, handle, secret, data)).start()
 
 # holds messages while client offline
 # including: images, audio, documents & private msgs
 # TODO: save to database to load after restart
+
+
 def hold_unclaimed(blueprint):
     """holds messages while client offline
     including: images, audio, documents & private msgs
@@ -149,6 +144,8 @@ def hold_unclaimed(blueprint):
 
 # retrieve msg from hold
 # verify key associated to name
+
+
 def claim_hold(name, supersecret):
     global clients_hold, clients_dict
     try:
@@ -176,14 +173,14 @@ def claim_hold(name, supersecret):
     except Exception as e:
         print((traceback.format_exc()))
 
+
 # sends the msgs in hold every 5 seconds
 def do_aquireback(con, ade, from_who):
 
     for list_of_left_message in ade[from_who]:
         #bprint["msg"] = list_of_left_message
-        con.send(bytes(json.dumps(list_of_left_message),"utf-8"))
+        con.send(bytes(json.dumps(list_of_left_message), "utf-8"))
         time.sleep(5)
-
 
 
 def test_method(gid, i):
@@ -198,6 +195,7 @@ def test_method(gid, i):
             "description": "here goes description"
         }
     ]
+
 
 # special method for a group msg transaction
 def do_group_reply(group_identifier, msg_from, content, connection, is_media=False, media_link=None, media_type=None):
@@ -234,6 +232,7 @@ def do_group_reply(group_identifier, msg_from, content, connection, is_media=Fal
     except BaseException as e:
         print((traceback.format_exc()))
 
+
 # sends out message to everyone
 def send_welcome_everyone(name):
     template = {}
@@ -259,6 +258,7 @@ def send_welcome_everyone(name):
             except:
                 pass
 
+
 def _get_welcome(name):
     welcomes = [name +"just joined the server - glhf!",
         name +" just joined. Everyone, look busy!",
@@ -282,6 +282,7 @@ def _get_welcome(name):
         name+" hopped into the server. Kangaroo!!",
         name+" just showed up. Hold my beer."]
     return welcomes[random.randint(0,len(welcomes)-1)]
+
 
 def do_private_reply(to_name, msg_from, content, connection):
     T_O_Name = to_name
@@ -360,10 +361,12 @@ def write_group_to_database(dictionary):
                  creation_date=dictionary[k][0]["creation_date"], description=dictionary[k][0]["description"])
         table.insert_ignore(q, ["gid"])
 
+
 def delete_group_database(k):
     db = dataset.connect('sqlite:///groups.db')
     table = db['groups']
     table.delete(gid=k)
+
 
 def populate_group_database():
     global groups
@@ -390,7 +393,6 @@ def auto_reply(connection, handle, my_key, ddaattaa):
     db = dataset.connect('sqlite:///friends.db')
     table = db['friends']
     table.insert_ignore(ddaattaa, ["name"])
-
     data_status = dict(name=handle, password=my_key,
                        text="Brace yourselves! The cat sees it all ;-)", link=WEB_ADDRESS+"defaultstatus.jpg")
     # when setting new status, compare my_key to password fetch
@@ -399,11 +401,10 @@ def auto_reply(connection, handle, my_key, ddaattaa):
     stat_table.insert_ignore(data_status, ["name"])
     # don't use from data recvd since can be changed  maybe handle == recvd from
     msg_from = handle
-    threading.Thread(target=send_welcome_everyone, args=(msg_from,)).start()
-
     while True:
         try:
             try:
+                print("waiting")
                 data = str(connection.recv(4096).decode("utf-8"))
                 data = json.loads(data)
                 template = {
@@ -414,12 +415,10 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                     "to": ""
                 }
             except:
-                print("Issue with loading the message")
-                print(traceback.format_exc())
+                # print("Issue with loading the message")
                 return
 
             try:  # my_name,to_who_img,link_img
-                #a = data
                 type_msg = data["type"]
 
                 if type_msg == "image" or type_msg == "audio" or type_msg == "document":
@@ -431,7 +430,6 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                         group_based = False
                         group_id = None
 
-                   # the_time = data["time"]
                     # their current socket
                     if group_based == False:
                         clients_dict[msg_from][1] = data["to"]
@@ -473,7 +471,7 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                                 {"type": "singleton", "msg": USER_HOLD}),"utf-8"))
 
             except BaseException as e:
-                print(traceback.format_exc())
+                # print(traceback.format_exc())
                 return
 
             # idk what this line does forgot
@@ -595,8 +593,7 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                                "text": text_status,
                                "link": link_status,
                                "method_id": m_id}
-                #print temp_status
-                connection.send(bytes(json.dumps(temp_status),"utf-8"))
+                connection.send(bytes(json.dumps(temp_status), "utf-8"))
 
             elif type_msg == "whoisonline--req_fri":  # request friend
                 template["type"] = "whoisonline--req_fri"
@@ -608,17 +605,28 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                     if c_name not in abc:  # not in current friends
                         list_clients.append(c_name)
                     template["msg"] = list_clients
-                    connection.send(bytes(json.dumps(template),"utf-8"))
+                    connection.send(bytes(json.dumps(template), "utf-8"))
             elif type_msg == "whoisonline--status":  # request friend
                 template["type"] = "whoisonline--status"
                 list_status = []
+                # Add since they aren't in their own friends list
+                list_status.append({
+                    "name": msg_from,
+                    "link": db2["stats"].find_one(name=msg_from)["link"],
+                    "text": db2["stats"].find_one(name=msg_from)["text"]
+                })
                 for c_name, c_conn in list(clients_dict.items()):
                     abc = db["friends"].find_one(name=msg_from)[
                         "friend_accepts"]
                     if c_name in abc:  # in current friends
-                        list_status.append(c_name)
-                    template["msg"] = list_status
-                    connection.send(bytes(json.dumps(template),"utf-8"))
+                        temp = {}
+                        temp["name"] = c_name
+                        temp["link"] = db2["stats"].find_one(name=c_name)["link"]
+                        temp["text"] = db2["stats"].find_one(name=c_name)["text"]
+
+                        list_status.append(temp)
+                template["msg"] = list_status
+                connection.send(bytes(json.dumps(template), "utf-8"))
 
             elif type_msg == "whoisonline--acpt":  # accept friend from request here
                 template["type"] = "whoisonline--acpt"
@@ -890,7 +898,7 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                 template = {}
                 template["type"] = "get_groups"
                 template["msg"] = group_man.get_groups(groups, msg_from)
-                connection.send(bytes(json.dumps(template),"utf-8"))
+                connection.send(bytes(json.dumps(template), "utf-8"))
 
             elif type_msg == "group_info":
                 gid = data["group_id"]
@@ -903,10 +911,38 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                 template["num_members"] = len(group_man.get_content(groups, gid, "members"))
                 connection.send(bytes(json.dumps(template),"utf-8"))
 
+            elif type_msg == "initial_data":
+                # send friends list, and global messages [50%] plus anything necessary
+                template["type"] = "whoisonline--friends"
+                list_current = []
+                try:
+
+                    for c_name, c_conn in list(clients_dict.items()):
+                        abc = db["friends"].find_one(name=msg_from)[
+                            "friend_accepts"]
+                        if c_name in abc:
+                            list_current.append(c_name)
+                        template["msg"] = list_current
+                        if len(list_current):
+                            connection.send(bytes(json.dumps(template), "utf-8"))
+                        else:
+                            print("no friends")
+                except:
+                    print("snaaaaaaaaaaaapp")
+                time.sleep(2)
+                grps = group_man.get_groups(groups, msg_from)
+                if len(grps):
+                    template = {}
+                    template["type"] = "get_groups"
+                    template["msg"] = grps
+                    connection.send(bytes(json.dumps(template), "utf-8"))
+                else:
+                    print("not in groups")
+
         except socket.error as e:
             break
         except:
-            print("massive")
+            print("-------------------------------massive")
             print((traceback.format_exc()))
 
 

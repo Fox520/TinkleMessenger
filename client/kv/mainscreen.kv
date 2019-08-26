@@ -1,6 +1,6 @@
 #:import get_hex_from_color kivy.utils.get_hex_from_color
 
-<Chat>:
+<Controller>:
     NavigationLayout:
         id: nav_draw
         MainNavigationDrawer:
@@ -18,53 +18,28 @@
                     [['menu', lambda x: nav_draw.toggle_nav_drawer()]]
                 right_action_items:
                     [['dots-vertical', lambda x: root.show_bottom_popup()]]
-            MDTabbedPanel:
-                id: tab_panel
-                tab_display_mode: "text"
-                tab_width_mode: "stacked"
 
-                MDTab:
-                    id: global_chat_tab
-                    name: "global_chat"
-                    text: "Global Chat"
+            MDBottomNavigation:
 
-                    GridLayout:
-                        cols: 1
-                        rows: 0
-                        spacing: 5
-                        padding: 10
-                        ScrollView:
-                            do_scroll_x: False
-                            effect_cls: OpacityScrollEffect
-                            scroll_y:0
-                            MDList:
-                                id: ml
-
-                    BoxLayout:
-                        size_hint_y: None
-                        height: 40
-                        spacing: 20
-
-                        MDTextField:
-                            id: message
-                            hint_text: "Type your message"
-                            multiline: False
-                            valign: 'bottom'
-                            on_text_validate: root.send_msg()
-
-                MDTab:
-                    id: current_friends_tab
+                MDBottomNavigationItem:
+                    icon: "chat"
                     name: "friends"
                     text: "Friends"
 
                     GetNamesForCurrentFriendsScreen:
-                
-                MDTab:
-                    id: find_new_friends_tab
+
+                MDBottomNavigationItem:
+                    icon: "group"
+                    name: "groups_list"
+                    text: "groups"
+                    GroupsList:
+
+                MDBottomNavigationItem:
                     name: "find_friends"
                     text: "Find Friends"
-
+                    icon: "account-search"
                     GetNamesForFindFriendsScreen:
+
 
 <MyPopupScreenOne@BoxLayout>:
     orientation: 'vertical'
@@ -75,15 +50,28 @@
 
         Widget:
         MDRoundFlatButton:
-            text: "Groups"
+            text: "Requests"
             on_release:
-                root.parent.parent.parent.get_groups_list()
+                app.manage_screens("names_for_friend_req", "add")
+                app.change_screen("names_for_friend_req")
         Widget:
         MDRoundFlatButton:
             text: "Create group"
             on_release:
-                root.parent.parent.parent.change_to_create_group()
+                app.manage_screens("create_group_screen", "add")
+                app.change_screen("create_group_screen")
         Widget:
+
+    TwoLineIconListItem:
+        text: "Public chat"
+        on_release:
+            app.manage_screens("public_chat_screen", "add")
+            app.change_screen("public_chat_screen")
+        secondary_text:
+            "[color=%s]Meet new people[/color]" \
+            % get_hex_from_color(app.theme_cls.primary_color)
+        IconLeftSampleWidget:
+            icon: 'home-group'
 
     TwoLineIconListItem:
         text: "Backup"
@@ -95,23 +83,6 @@
         IconLeftSampleWidget:
             icon: 'backup-restore'
 
-    OneLineIconListItem:
-        text: "Settings"
-        on_release:
-            app.open_settings()
-        IconLeftSampleWidget:
-            icon: 'settings-box'
-
-    TwoLineIconListItem:
-        text: "Clear chat"
-        on_release:
-            root.parent.parent.parent.clear_log()
-        secondary_text:
-            "[color=%s]Empty the chat[/color]" \
-            % get_hex_from_color(app.theme_cls.primary_color)
-        IconLeftSampleWidget:
-            icon: 'notification-clear-all'
-
     TwoLineIconListItem:
         text: "Delete messages"
         on_release:
@@ -121,6 +92,13 @@
             % get_hex_from_color(app.theme_cls.primary_color)
         IconLeftSampleWidget:
             icon: 'delete-forever'
+
+    OneLineIconListItem:
+        text: "Settings"
+        on_release:
+            app.open_settings()
+        IconLeftSampleWidget:
+            icon: 'settings-box'
 
     OneLineIconListItem:
         text: "Tinkle"

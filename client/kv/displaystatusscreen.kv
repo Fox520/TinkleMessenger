@@ -1,48 +1,31 @@
 <DisplayStatus>:
     GridLayout:
         rows: 2
-        ActionBar:
-            pos_hint: {'top':1}
-            background_image: ''
-            background_color: get_color_from_hex(ACTION)
-            on_previous: nav_draw.toggle_state()
-            ActionView:
-                id: act_view
-                use_separator: True
-                ActionPrevious:
-                    title: 'Back'
-                    with_previous: False
-                    app_icon:"left.png"
-                    on_release:
-                        app.manage_screens("names_for_status","add")
-                        root.manager.current = "names_for_status"
 
-                ActionButton:
-                    size_hint_x: None
-                    size: self.size
-                    text: "Save"
-                    font_size: sp(18)
-                    on_release:
-                        root.save_status()
+        MDToolbar:
+            id: toolbar
+            title: "Status"
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            left_action_items:
+                [['arrow-left', lambda x: root.on_back_pressed()]]
 
         GridLayout:
-            rows: 3
+            rows: 2
             orientation: 'vertical'
-            padding: [10,50,10,50]
-            #spacing: 50
             GridLayout:
                 cols:1
 
                 MyImageButton:
                     id: imga
                     source: root.img_src
-                    font_size: sp(27)
                     halign: "center"
                     on_release:
                         root.show_img_pop(imga.source)
-            GridLayout:
-                rows:1
-                cols:1
+            BoxLayout:
+                padding: [10,50,10,50] # w/out then floating will be down
                 orientation: "vertical"
                 MDLabel:
                     text: root.txt_stat
@@ -50,13 +33,11 @@
                     font_size: sp(17)
                     color: get_color_from_hex("#000000ff")
                     halign: "center"
-            BoxLayout:
-                size_hint_y: None
-                height: 40
-                MDTextField:
-                    id: comment
-                    disabled: True
-                    hint_text: "comment"
-                    multiline: False
-                    valign: 'bottom'
-                    on_text_validate: root.send_status_comment()
+
+                MDFloatingActionButton:
+                    icon: 'download'
+                    opposite_colors: True
+                    elevation_normal: 8
+                    pos_hint: {"x": 0.8, "y": 0.1}
+                    md_bg_color: app.theme_cls.primary_color
+                    on_release: root.save_status()
