@@ -1,26 +1,26 @@
-<GroupConversation>:
+<PublicChatScreen>:
     GridLayout:
         rows: 3
+        padding: [4,0,4,0]
+        spacing: 5
+
         MDToolbar:
             id: toolbar
-            title: app.grp_name
+            title: "Public chat"
             md_bg_color: app.theme_cls.primary_color
             background_palette: 'Primary'
             background_hue: '500'
             elevation: 10
             left_action_items:
-                [['home-group', lambda x: ""]]
+                [['arrow-left', lambda x: root.on_back_pressed()]]
             right_action_items:
-                [['dots-vertical', lambda x: root.show_bottom_sheet()]]
+                [['dots-vertical', lambda x: root.show_bottom_popup()]]
 
-        GridLayout:
-            cols: 1
-            rows: 0
-            ScrollView:
-                do_scroll_x: False
-                MDList:
-                    id: mld
-
+        ScrollView:
+            do_scroll_x: False
+            scroll_y:0
+            MDList:
+                id: ml
         BoxLayout:
             size_hint_y: None
             height: 40

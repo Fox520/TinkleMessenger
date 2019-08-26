@@ -4,36 +4,41 @@
         rows: 3
         MDToolbar:
             id: toolbar
-            title: "Private Chat"
+            title: app.pvt_username
             md_bg_color: app.theme_cls.primary_color
             background_palette: 'Primary'
             background_hue: '500'
             elevation: 10
+            left_action_items:
+                [['key-variant', lambda x: ""]]
             right_action_items:
                 [['dots-vertical', lambda x: root.show_bottom_popup()]]
 
 
         GridLayout:
             cols: 1
-            rows: 0
             ScrollView:
                 do_scroll_x: False
-                effect_cls: OpacityScrollEffect
                 MDList:
                     id: mld
 
         BoxLayout:
             size_hint_y: None
             height: 40
-            spacing: 20
+            padding: [0, 0, 0, 7]
+            orientation: "vertical"
+#            spacing: 20
+#            padding: [, 2, , 2]
 
-            MDTextField:
+            MyMDTextFieldRound:
                 id: message
-                #disabled: True
                 hint_text: "Type your message"
                 multiline: False
-                valign: 'bottom'
-                on_text_validate: root.send_msg()
+#                valign: 'bottom'
+                icon_type: "right"
+                icon_right: "send"
+                icon_callback: root.send_msg
+#                on_text_validate: root.send_msg()
 
 <PopupScreenPrivateChat@BoxLayout>:
     orientation: 'vertical'
@@ -77,7 +82,7 @@
     TwoLineIconListItem:
         text: "Show profile"
         secondary_text:
-            "[color=%s]Take a sneak peak at friend's profile[/color]" \
+            "[color=%s]Sneak peak at friend's profile[/color]" \
             % get_hex_from_color(app.theme_cls.primary_color)
         on_release:
             root.parent.parent.parent.show_user_profile()
@@ -107,7 +112,7 @@
     OneLineIconListItem:
         text: "Back"
         on_release:
-            root.parent.parent.parent.show_about()
+            root.parent.parent.parent.on_back_pressed()
         IconLeftSampleWidget:
             icon: 'step-backward'
 

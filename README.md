@@ -1,13 +1,11 @@
-# Tinkle Messenger
-A cross platform chat application which features private and group chats.
-Built using the Kivy framework.
-## Features
+# Features
 * Global chat with anyone on Tinkle
 * Groups
 * Private chats
 * Friends
 * Status
 * File sharing
+* No need to remember password
 
 # Usage
 ## Prerequisites
@@ -46,16 +44,13 @@ Run ```main.py``` to start up the client
 ```
 Note: currently main.spec is not functioning properly. Pull requests are welcomed :)
 ```
-#
 
-## Video tutorial on setting up
+### How to set it up
 https://youtu.be/JlSIrbnHPRw
 
-# Pictures
-### Find more in [screenshots](screenshots/)
-## Sign in screen
-![signin](screenshots/client/signin.png?raw=true "Signin screen")
+## Sign in
+![signin](screenshots/client/sign_in.jpg?raw=true "Sign in")
 ## Home Screen
-![main_screen](screenshots/client/main_chat.png?raw=true "Main Screen")
-## Main options
-![main_options](screenshots/client/main_options.png?raw=true "Main Options")
+![home](screenshots/client/home_screen.jpg?raw=true "Home Screen")
+## Browsing status
+![status](screenshots/client/viewing_status.jpg?raw=true "Viewing status")

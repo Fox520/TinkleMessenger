@@ -1,14 +1,20 @@
 <GetNamesForFindFriendsScreen>:
     GridLayout:
-        cols: 1
-        rows: 2
-        MDRaisedButton:
-            text: "reload"
-            on_release: root.refresh_screen()
-        ScrollView:
-            do_scroll_x: False
-            MDList:
-                id: ldml
+        rows: 1
+        BoxLayout:
+            padding: [0,0,0,15] # w/out then floating will be down
+            orientation: "vertical"
+            ScrollView:
+                do_scroll_x: False
+                MDList:
+                    id: ldml
+            MDFloatingActionButton:
+                icon: 'refresh'
+                opposite_colors: True
+                elevation_normal: 8
+                pos_hint: {"x": 0.8, "y": 0.2}
+                md_bg_color: app.theme_cls.primary_color
+                on_release: root.refresh_screen()
 
 <GetNamesForFriendRequestsScreen>:
 
@@ -17,16 +23,14 @@
         rows: 3
         MDToolbar:
             id: toolbar
-            title: "Tinkle"
+            title: "Friend Requests"
             md_bg_color: app.theme_cls.primary_color
             background_palette: 'Primary'
             background_hue: '500'
             elevation: 10
             left_action_items:
-                [['arrow-left', lambda x: app.change_screen("Chat")]]
-        MDRaisedButton:
-            text: "reload"
-            on_release: root.refresh_screen()
+                [['arrow-left', lambda x: root.on_back_pressed()]]
+
         ScrollView:
             do_scroll_x: False
             MDList:
@@ -34,19 +38,26 @@
 
 <GetNamesForCurrentFriendsScreen>:
     GridLayout:
-        cols: 1
-        rows: 2
-        MDRaisedButton:
-            text: "reload"
-        ScrollView:
-            do_scroll_x: False
-            MDList:
-                id: ldml
+        rows: 1
+        BoxLayout:
+            padding: [0,0,0,15] # w/out then floating will be down
+            orientation: "vertical"
+            ScrollView:
+                do_scroll_x: False
+                MDList:
+                    id: ldml
+            MDFloatingActionButton:
+                icon: 'refresh'
+                opposite_colors: True
+                elevation_normal: 8
+                pos_hint: {"x": 0.8, "y": 0.2}
+                md_bg_color: app.theme_cls.primary_color
+                on_release: root.refresh_screen()
 
 <GetNamesForStatusScreen>:
     GridLayout:
         rows:2
-
+        padding: [4, 2, 4, 0]
         MDToolbar:
             id: toolbar
             title: "Status"
@@ -55,10 +66,12 @@
             background_hue: '500'
             elevation: 10
             left_action_items: [['arrow-left', lambda x: root.on_back_pressed()]]
+            right_action_items: [['share', lambda x: root.create_new_post()]]
         GridLayout:
             cols: 1
-            rows: 0
-            
+            padding: [5, 0, 5, 0]
+            spacing: 10
+
             ScrollView:
                 do_scroll_x: False
                 MDList:
@@ -83,3 +96,21 @@
                 do_scroll_x: False
                 MDList:
                     id: ldml
+
+<GroupsList>:
+    GridLayout:
+        rows: 1
+        BoxLayout:
+            padding: [0,0,0,15] # w/out then floating will be down
+            orientation: "vertical"
+            ScrollView:
+                do_scroll_x: False
+                MDList:
+                    id: ml
+            MDFloatingActionButton:
+                icon: 'refresh'
+                opposite_colors: True
+                elevation_normal: 8
+                pos_hint: {"x": 0.8, "y": 0.2}
+                md_bg_color: app.theme_cls.primary_color
+                on_release: root.refresh_screen()

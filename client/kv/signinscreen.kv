@@ -14,36 +14,35 @@
             rows: 3
             orientation: 'vertical'
             padding: [10,50,10,50]
-            #spacing: 50
             BoxLayout:
-
-                Image:
+                orientation: "vertical"
+                AsyncImage:
                     halign: "center"
                     source: "img/tinkle_logo.png"
-            GridLayout:
-                rows:3
-                cols:3
-                orientation: "vertical"
                 MDLabel:
+                    font_name: "Cursive"
+                    text: "Welcome"
+                    halign: "center"
+                    font_size: sp(50)
+            GridLayout:
+                cols: 1
+                orientation: "vertical"
+                padding: [20,0,20,0]
+                spacing: 10
                 MDTextField:
+                    id: alias
                     hint_text: "Username"
                     max_text_length: 12
-                    id: alias
                     multiline: False
                     write_tab: False
-                Widget:
-                Widget:
-                Widget:
-                Widget:
 
-                Widget:
                 MDRaisedButton:
+
                     text:"Proceed"
                     on_release:
                         prg_spin.start_spinning()
                         Clock.schedule_once(lambda dt: root._signin(), 1.2)
-                        
-                Widget:
+
 
             GridLayout:
                 rows:4
