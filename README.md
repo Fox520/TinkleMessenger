@@ -1,3 +1,6 @@
+# Tinkle Messenger
+A cross platform chat application which features private and group chats.
+Built using the Kivy framework.
 # Features
 * Global chat with anyone on Tinkle
 * Groups
