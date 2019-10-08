@@ -17,6 +17,9 @@ import dataset
 import requests
 import json
 
+# https://github.com/kivy/kivy/blob/297dd024ce407f85d1210dac1730e2817a03606f/kivy/modules/screen.py
+from kivy.modules import screen
+screen.apply_device("phone_iphone_6", 0.50, "portrait")
 from kivy import Config
 from kivy.modules import inspector
 from kivy.uix.boxlayout import BoxLayout
