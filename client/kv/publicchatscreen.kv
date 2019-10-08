@@ -14,7 +14,7 @@
             left_action_items:
                 [['arrow-left', lambda x: root.on_back_pressed()]]
             right_action_items:
-                [['dots-vertical', lambda x: root.show_bottom_popup()]]
+                [['dots-vertical', lambda x: ""]]
 
         ScrollView:
             do_scroll_x: False
@@ -24,13 +24,11 @@
         BoxLayout:
             size_hint_y: None
             height: 40
-            padding: [0, 0, 0, 7]
+            padding: [7, 0, 7, 7]
             orientation: "vertical"
 
-            MyMDTextFieldRound:
+            MDTextField:
                 id: message
                 hint_text: "Type your message"
                 multiline: False
-                icon_type: "right"
-                icon_right: "send"
-                icon_callback: root.send_msg
+                on_text_validate: root.send_msg()
