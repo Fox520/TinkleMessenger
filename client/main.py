@@ -1587,7 +1587,7 @@ class Conversation(Screen):
             else:
                 self.add_two_line(the_name, the_message, prof_img)
 
-    def send_msg(self, field, button):
+    def send_msg(self):
         global s
         try:
             # send the message to server
@@ -1803,7 +1803,7 @@ class GroupConversation(Screen):
 
     # group texts not saved yet so won't work
     def delete_logs(self):
-        pass
+        toast("to be implemented")
 
     def insert_data(self):
         self.event = Clock.schedule_interval(self.handle_msg1, MSG_CHECK_DELAY)
@@ -1825,13 +1825,13 @@ class GroupConversation(Screen):
         else:
             self.add_two_line(the_name, the_message, prof_img)
 
-    def send_msg(self, field, button):
+    def send_msg(self):
         global s
         try:
             # send the message to server
             check_bef_send = self.message.text.replace(" ", "")
             sanitized = self.message.text.replace("`", "")
-            if len(check_bef_send) > 0 and len(check_bef_send) <= 250:
+            if 0 < len(check_bef_send) <= 250:
                 template = {
                     "type": "group_message",
                     "msg": sanitized,
@@ -2490,7 +2490,6 @@ class Controller(Screen):
                     data = ""
                 elif type_msg == "singleton":
                     toast(str(data["msg"]), True)
-                    GetNamesForCurrentFriendsScreen().open_private("useeeerrr")
                 elif type_msg == "status_comment":
                     write_status_comments(
                         data["from"], data["msg"], data["prof_img"])
@@ -2521,10 +2520,11 @@ class Controller(Screen):
                         save_messages = True
                     if save_messages == True and data != "":
                         # TODO: make this update to the global chat log
-                        self.apply_correct(
-                            data["from"], data["msg"], data["prof_img"])
-                        self.write_the_message(
-                            data["from"], data["msg"], data["prof_img"])
+                        print(data["from"], data["msg"], data["prof_img"])
+                        #self.apply_correct(
+                        #    data["from"], data["msg"], data["prof_img"])
+                        #self.write_the_message(
+                        #    data["from"], data["msg"], data["prof_img"])
                 elif type_msg == "status_feedback":
                     global_status_text = data["text"]
                     global_status_pic = data["link"]
@@ -2977,6 +2977,10 @@ class ProfilePicture(Screen):
         Callback function for handling the selection response from Activity.
         '''
         self.selection = selection
+        try:
+            self.profile_pic_preview.source = self.selection[0]
+        except:
+            print(traceback.format_exc())
 
     def on_selection(self, *a, **k):
         '''
@@ -3087,7 +3091,7 @@ class ProfilePicture(Screen):
 class Tinkle(App):
     global sm
     theme_cls = ThemeManager()
-    theme_cls.primary_palette = 'Yellow'
+    theme_cls.primary_palette = 'Blue'
     theme_cls.theme_style = "Light"
     sm = ScreenManager()
     pvt_username = "Private Chat"
