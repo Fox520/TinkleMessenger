@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 # encoding=utf-8
 
-from __future__ import division
-
 import codecs
 import os
 import re
@@ -103,8 +101,8 @@ OLD_GROUP_ID = ""
 DP_EXT = ".png"  # Profile pictures are stored in png format
 DEFAULT_ACCOUNT = False
 DEFAULT_STATUS = "cat.jpg"  # Image to display when no status has been set
-DEFAULT_PROFILE_PICTURE = "http://35.239.255.102/display/default.png"
-MAX_FILE_SIZE = 15000000
+DEFAULT_PROFILE_PICTURE = "http://localhost/display/default.png"
+MAX_FILE_SIZE = 15000000 # 15 MB
 # Time before checking for new message in private/group chat
 MSG_CHECK_DELAY = 0.5
 OPTION_SELECTION_IMG = "option-img"
@@ -254,7 +252,7 @@ if not os.path.exists(chats_directory):
 if not os.path.exists(other_files):
     os.makedirs(other_files)
 
-WEB_ADDR = "http://35.239.255.102/"
+WEB_ADDR = "http://127.0.0.1/"
 dp_path = None
 _web_address = None
 _server_ip = None
@@ -2569,9 +2567,6 @@ class Controller(Screen):
                 if showed_it == False:
                     showed_it = True
                     print(traceback.format_exc())
-
-    # def on_enter(self):
-    #     self.add_one_line("From this is my texthttp://127.0.0.1/display/default.png")
 
     def get_initial_data(self):
         global s
