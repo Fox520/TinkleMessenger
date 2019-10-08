@@ -1,6 +1,6 @@
 # -*- mode: python -*-
 
-from kivy.deps import sdl2, glew
+from kivy_deps import sdl2, glew
 
 block_cipher = None 
 
@@ -9,7 +9,7 @@ a = Analysis(['main.py'],
              binaries=None,
              datas=None,
              hookspath=[],
-			 hiddenimports=['toto'],
+            hiddenimports=['kivymd', "magnet", "moretransitions", "spin_load"],
              runtime_hooks=[],
              excludes=[],
              win_no_prefer_redirects=False,
@@ -29,13 +29,15 @@ exe = EXE(pyz,
           Tree('images','images'),
           Tree('img','img'),
           Tree('resources','resources'),
+          Tree('kivymd','kivymd'),
+          Tree('kv','kv'),
           a.scripts,
           a.binaries,
           a.zipfiles,
           a.datas,
           *[Tree(p) for p in (sdl2.dep_bins + glew.dep_bins)],
           name='Tinkle',
-          debug=False,
+          debug=True,
           strip=False,
           upx=False,
-          console=False)
+          console=True)
