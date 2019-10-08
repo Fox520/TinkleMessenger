@@ -404,7 +404,6 @@ def auto_reply(connection, handle, my_key, ddaattaa):
     while True:
         try:
             try:
-                print("waiting")
                 data = str(connection.recv(4096).decode("utf-8"))
                 data = json.loads(data)
                 template = {
@@ -507,10 +506,10 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                             try:
 
                                 hold_unclaimed(template)
-                                connection.send(bytes(json.dumps(
-                                    {"type": "singleton", "msg": USER_HOLD}),"utf-8"))
-                                time.sleep(1)
                                 connection.send(bytes(json.dumps(template),"utf-8"))
+                                # connection.send(bytes(json.dumps(
+                                #     {"type": "singleton", "msg": USER_HOLD}),"utf-8"))
+                                # connection.send(bytes(json.dumps(template),"utf-8"))
                             except Exception as e:  # incase they disconnect
                                 #print "CallbackError:",e
                                 connection.close()  # then close their connection
@@ -520,7 +519,6 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                         connection.send(bytes(json.dumps(
                             {"type": "singleton", "msg": USER_NOT_FOUND}),"utf-8"))
                 except:
-                    print("PM Error")
                     print((traceback.format_exc()))
 
             elif type_msg == "AQUIREDATA!":
@@ -569,17 +567,17 @@ def auto_reply(connection, handle, my_key, ddaattaa):
             elif type_msg == "status_update":
                 st_text = data["text"]
                 st_link = data["link"]
-                st_from = data["from"]
+                st_from = msg_from
 
                 if db2["stats"].find_one(name=st_from)["password"] == my_key:
 
                     old_data = dict(name=st_from, password=my_key,
                                     text=st_text, link=st_link)
                     stat_table.update(old_data, ["name"])
-                   # print "Update complete"
+                    # print("Update complete")
                 else:
+                    # print("Status update failed")
                     pass
-                   # print "Status update failed"
 
             elif type_msg == "status_get":
                 st_which_user = data["which_user"]
@@ -716,17 +714,12 @@ def auto_reply(connection, handle, my_key, ddaattaa):
 
                 template["type"] = "broadcast"
                 template["from"] = msg_from
-                #template["time"] = data["time"]
-                #template["link"] = link_img
                 template["msg"] = data["msg"]
                 template["prof_img"] = DP_LATE + msg_from+".png"
                 for c_name, c_connw in list(clients_dict.items()):
                     try:
-
                         c_connw[1].send(bytes(json.dumps(template),"utf-8"))
-                       # print template["msg"]+" sent successfully"
                     except Exception as e:
-                        #print "Error1:",e
                         try:
                             c_connw[1].close()
                             clients.remove(c_connw[1])
@@ -940,6 +933,8 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                     print("not in groups")
 
         except socket.error as e:
+            print("socket error, breaking")
+            print(e)
             break
         except:
             print("-------------------------------massive")
