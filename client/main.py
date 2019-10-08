@@ -58,7 +58,7 @@ from kivymd.toast import toast
 from kivymd.uix.card import MDCardPost
 from kivymd.uix.useranimationcard import MDUserAnimationCard
 
-from spin_load import ProgressSpinner # Used somewhere
+from spin_load import ProgressSpinner  # Used somewhere
 
 from magnet import Magnet
 from random import sample, randint  # used at displaying group members
@@ -81,6 +81,7 @@ home = os.path.expanduser('~')
 Window.softinput_mode = "below_target"  # resize to accomodate keyboard
 Window.keyboard_anim_args = {'d': 0.5, 't': 'in_out_quart'}
 
+
 def isAndroid():
     # On Android sys.platform returns 'linux2', so prefer to check the
     # presence of python-for-android environment variables (ANDROID_ARGUMENT
@@ -102,7 +103,7 @@ DP_EXT = ".png"  # Profile pictures are stored in png format
 DEFAULT_ACCOUNT = False
 DEFAULT_STATUS = "cat.jpg"  # Image to display when no status has been set
 DEFAULT_PROFILE_PICTURE = "http://localhost/display/default.png"
-MAX_FILE_SIZE = 15000000 # 15 MB
+MAX_FILE_SIZE = 15000000  # 15 MB
 # Time before checking for new message in private/group chat
 MSG_CHECK_DELAY = 0.5
 OPTION_SELECTION_IMG = "option-img"
@@ -259,6 +260,7 @@ _server_ip = None
 generate_key()
 initialize_fonts()
 
+
 def return_site_web_address():
     global DEFAULT_PROFILE_PICTURE
     global _web_address
@@ -269,7 +271,7 @@ def return_site_web_address():
         a = requests.get(WEB_ADDR + "navigation/web_address")
         p = a.text.strip()
         _web_address = p
-        DEFAULT_PROFILE_PICTURE = _web_address + "/display/default.png"
+        DEFAULT_PROFILE_PICTURE = _web_address + "display/default.png"
         return p
     except Exception as e:
         print(e)
@@ -452,7 +454,6 @@ class A:
     def get_the_name(self):
         global name
         return name
-
 
 
 if isAndroid():
@@ -1752,6 +1753,7 @@ class Conversation(Screen):
             threading.Thread(target=self.prepare_audio_share).start()
             return
 
+
 # Name: group_convo
 
 
@@ -1783,7 +1785,6 @@ class GroupConversation(Screen):
     def on_back_pressed(self, *args):
         Tinkle().change_screen("controller_screen")
         Tinkle().manage_screens("group_convo", "remove")
-
 
     def on_menu_pressed(self, *args):
         pass
@@ -2026,7 +2027,7 @@ class Status(Screen):
                 files = {'testname': f}
                 # Thread-blocking
                 requests.post(return_site_web_address() +
-                                  "man_status.php", files=files)
+                              "man_status.php", files=files)
             site_path = return_site_web_address() + "status/" + new_name
 
             template = {"type": "status_update",
@@ -2049,7 +2050,6 @@ class Status(Screen):
 
 
 class DisplayStatus(Screen):
-
     img_src = StringProperty(DEFAULT_STATUS)
     txt_stat = StringProperty("loading...")
     global s, global_status_pic, global_status_text
@@ -2174,7 +2174,6 @@ class PublicChatScreen(Screen):
         self.bs_menu_1 = None
         self.bs_menu_2 = None
 
-
     def on_back_pressed(self, *args):
         Tinkle().manage_screens(self.name, "remove")
         Tinkle().change_screen("controller_screen")
@@ -2265,6 +2264,7 @@ class PublicChatScreen(Screen):
         except:
             pass
 
+
 # Name: controller_screen
 
 
@@ -2299,7 +2299,7 @@ class Controller(Screen):
             events_callback=self.dummy_callback).open()
 
     def download_file_arbi(self, url, media_type=""):
-        if 1 == 0:  # isAndroid():
+        if isAndroid():
             import permission_helper
             perms = ["android.permission.READ_EXTERNAL_STORAGE",
                      "android.permission.WRITE_EXTERNAL_STORAGE"]
@@ -2411,7 +2411,8 @@ class Controller(Screen):
                     data["msg"] = "empty_null"
                 if type_msg == "private_message":
                     try:  # if screen is private pass to convo else write to file
-                        if sm.current == "convo" and data["from"] == receiver_name or data["from"] == A().get_the_name():
+                        if sm.current == "convo" and data["from"] == receiver_name or data[
+                            "from"] == A().get_the_name():
                             append_to_file(receiver_name, data)
                             new_data_to_add = data
                             type_msg = ""
@@ -2623,10 +2624,7 @@ class Controller(Screen):
     def get_missed(self, *args):
         # Retrieves messages that were sent during offline period
         global s
-        template = {
-            "type": ""
-        }
-        template["type"] = "AQUIREDATA!"
+        template = {"type": "AQUIREDATA!"}
         s.send(bytes(json.dumps(template), "utf-8"))
 
 
@@ -2790,20 +2788,6 @@ class ImagePreviewShare(Screen):
 
 class ShareAudio:
     global s
-
-    def stop_sound(self):
-        self.tmp.unload()
-
-    def percent_to_play(self, num, src):
-        a = (num / 100) * src.length
-        return a
-
-    def play_percent(self):
-        from kivy.core.audio import SoundLoader
-        self.tmp = SoundLoader.load(self.filename)
-        self.tmp.play()
-        play_time = self.percent_to_play(10, self.tmp)
-        Clock.schedule_once(lambda dt: self.stop_sound(), play_time)
 
     def upload_audio(self, fname, urlll, dumped_list):
         global s
@@ -3108,6 +3092,7 @@ class Tinkle(App):
     sm = ScreenManager()
     pvt_username = "Private Chat"
     grp_name = "Group Chat"
+
     # dynamically add/remove screens to consume less memory
 
     def change_screen(self, screen_name):
