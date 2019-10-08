@@ -319,8 +319,9 @@ def check_if_exist(filename):
 
 
 def create_file(filename):
-    with open(filename, "wb") as f:
-        f.write("".encode("utf-8"))
+    pass
+    #with open(filename, "wb") as f:
+    #    f.write("".encode("utf-8"))
 
 
 def return_file_log(filename):
@@ -756,10 +757,6 @@ class GetFriendsAddGroup(Screen):
     @mainthread
     def add_one_line(self, data):
         self.ldml.add_widget(OneLineListItem(text=data,
-                                             markup=True,
-                                             text_size=(self.width, None),
-                                             size_hint_y=None,
-                                             font_size=(self.height / 20),
                                              on_release=partial(self.change_to_img, data)))  # data is the clients' name
 
     def change_to_img(self, img_client, *args):
@@ -780,7 +777,6 @@ class GetFriendsAddGroup(Screen):
             template["member_name"] = friend_name
             template["group_id"] = current_group_id
             s.send(bytes(json.dumps(template), "utf-8"))
-            self.dialog.dismiss()
             Tinkle().change_screen("advanced_screen")
         except:
             print(traceback.format_exc())
@@ -1398,7 +1394,7 @@ class GetNamesForCurrentFriendsScreen(BoxLayout):
                                                  name)))
 
     @mainthread
-    def open_private(self, pvt_client):
+    def open_private(self, pvt_client, *args):
         global receiver_name
         receiver_name = pvt_client
         Tinkle.pvt_username = pvt_client
@@ -1543,29 +1539,32 @@ class Conversation(Screen):
     def insert_data(self):
         global receiver_name, new_data_to_add
         self.full_path = os.path.join(chats_directory, receiver_name)
-        if check_if_exist(self.full_path) == False:
-            create_file(self.full_path)
-        else:
-            results_of_log_check = return_file_log(self.full_path)
-            if results_of_log_check != None:
-                for mx in results_of_log_check:
-                    if len(mx) > 0:
-                        tx_name, tx_message, tx_prof_link = mx.split("`")
-                        temp_link = re.findall(
-                            'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+', tx_prof_link)
-                        tx_prof_link.replace(
-                            temp_link[0], return_site_web_address()[:-1])
-                        self.apply_correct(tx_name, tx_message, tx_prof_link)
+        try:
+            if not check_if_exist(self.full_path):
+                create_file(self.full_path)
+            else:
+                results_of_log_check = return_file_log(self.full_path)
+                if results_of_log_check != None:
+                    for mx in results_of_log_check:
+                        if len(mx) > 0:
+                            tx_name, tx_message, tx_prof_link = mx.split("`")
+                            temp_link = re.findall(
+                                'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+', tx_prof_link)
+                            tx_prof_link.replace(
+                                temp_link[0], return_site_web_address()[:-1])
+                            self.apply_correct(tx_name, tx_message, tx_prof_link)
+        except:
+            print(traceback.format_exc())
         self.event = Clock.schedule_interval(self.handle_msg1, MSG_CHECK_DELAY)
 
     def on_enter(self):
         global IS_GROUP_MEDIA
         IS_GROUP_MEDIA = False
         threading.Thread(target=self.insert_data).start()
-        # threading.Thread(target=self.initial_conditions).start()
 
     def handle_msg1(self, *args):
         global new_data_to_add
+
         if self.prev_msg != new_data_to_add:
             self.apply_correct(
                 new_data_to_add["from"], new_data_to_add["msg"], new_data_to_add["link"])
@@ -1582,10 +1581,10 @@ class Conversation(Screen):
         else:
             self.has_profile_link_changed = True
 
-            if len(the_message) > 80:
-                self.add_three_line(the_name, the_message, prof_img)
-            else:
-                self.add_two_line(the_name, the_message, prof_img)
+        if len(the_message) > 80:
+            self.add_three_line(the_name, the_message, prof_img)
+        else:
+            self.add_two_line(the_name, the_message, prof_img)
 
     def send_msg(self):
         global s
@@ -1593,7 +1592,7 @@ class Conversation(Screen):
             # send the message to server
             check_bef_send = self.message.text.replace(" ", "")
             sanitized = self.message.text.replace("`", "")
-            if len(check_bef_send) > 0 and len(check_bef_send) <= 250:
+            if 0 < len(check_bef_send) <= 250:
                 template = {
                     "type": "private_message",
                     "msg": sanitized,
@@ -1607,6 +1606,8 @@ class Conversation(Screen):
             print(traceback.format_exc())
 
     def show_user_profile(self):
+        global current_status_view
+
         def main_back_callback():
             pass
 
@@ -1618,6 +1619,7 @@ class Conversation(Screen):
             self.user_animation_card.box_content.add_widget(
                 Factory.ProfileAnimationCard())
         self.user_animation_card.open()
+        current_status_view = receiver_name
 
     def show_bottom_sheet(self):
         if not self.bs_menu_1:
@@ -1657,18 +1659,11 @@ class Conversation(Screen):
         root.show()
 
     def callback_for_menu_items(self, scn):
-        if scn == "for_selecting_docs":
-            self.audio_or_file = "file"
-            self.prepare_file_share()
-            return
-        if scn == "for_selecting_audio":
-            self.audio_or_file = "audio"
-            self.prepare_audio_share()
-            return
         try:
             # Attempt to add, won't add if already exists
             Tinkle().manage_screens(scn, "add")
             Tinkle().change_screen(scn)
+            Tinkle().manage_screens(self.name, "remove")
         except:
             print(traceback.format_exc())
 
@@ -1682,9 +1677,9 @@ class Conversation(Screen):
             filechooser.open_file(on_selection=self.handle_selection, path=path_docs, filters=fil_avail_doc_ext_plyer)
 
     def handle_selection(self, selection):
-        '''
+        """
         Callback function for handling the selection response from Activity.
-        '''
+        """
         self.selection = selection
 
     def prepare_audio_share(self):
@@ -1698,12 +1693,13 @@ class Conversation(Screen):
             filechooser.open_file(on_selection=self.handle_selection, path=path_music, filters=fil_avail_aud_ext_plyer)
 
     def on_selection(self, *a, **k):
-        '''
+        """
         Update TextInput.text after FileChoose.selection is changed
         via FileChoose.handle_selection.
-        '''
+        """
         try:
             if os.path.isfile(self.selection[0]):
+                print(self.audio_or_file)
                 if self.audio_or_file == "audio":
                     print("audio")
                     ShareAudio().send_it_audio(self.selection[0])
@@ -1714,7 +1710,6 @@ class Conversation(Screen):
                     toast("unknown selection")
         except:
             print(traceback.format_exc())
-            pass
 
     def decide_share_image(self):
         Tinkle().manage_screens("for_selecting", "add")
@@ -1723,7 +1718,7 @@ class Conversation(Screen):
     def upload_image(self, fname, urlll, dumped_list):
         with open(fname, "rb") as f:
             files = {'testname': f}
-            r = requests.post(urlll, files=files)
+            requests.post(urlll, files=files)
         s.send(bytes(json.dumps(dumped_list), "utf-8"))
         toast("upload complete")
         self.remove_file(fname)
@@ -1746,10 +1741,12 @@ class Conversation(Screen):
             return
 
         if self.selection_type == OPTION_SELECTION_FILE:
+            self.audio_or_file = "file"
             threading.Thread(target=self.prepare_file_share).start()
             return
 
         if self.selection_type == OPTION_SELECTION_AUD:
+            self.audio_or_file = "audio"
             threading.Thread(target=self.prepare_audio_share).start()
             return
 
@@ -1809,10 +1806,8 @@ class GroupConversation(Screen):
         self.event = Clock.schedule_interval(self.handle_msg1, MSG_CHECK_DELAY)
 
     def handle_msg1(self, *args):
-        # print("checking for messages")
         global new_data_to_add_group
         if self.prev_msg != new_data_to_add_group:
-            # print(new_data_to_add_group)
             self.apply_correct(
                 new_data_to_add_group["from"], new_data_to_add_group["msg"], new_data_to_add_group["link"])
             self.prev_msg = new_data_to_add_group
@@ -1910,9 +1905,9 @@ class GroupConversation(Screen):
             filechooser.open_file(on_selection=self.handle_selection, path=path_docs, filters=fil_avail_doc_ext_plyer)
 
     def handle_selection(self, selection):
-        '''
+        """
         Callback function for handling the selection response from Activity.
-        '''
+        """
         self.selection = selection
 
     def prepare_audio_share(self):
@@ -1926,10 +1921,10 @@ class GroupConversation(Screen):
             filechooser.open_file(on_selection=self.handle_selection, path=path_music, filters=fil_avail_aud_ext_plyer)
 
     def on_selection(self, *a, **k):
-        '''
+        """
         Update TextInput.text after FileChoose.selection is changed
         via FileChoose.handle_selection.
-        '''
+        """
         try:
             if os.path.isfile(self.selection[0]):
                 if self.audio_or_file == "audio":
@@ -1989,9 +1984,9 @@ class Status(Screen):
                                   filters=fil_avail_image_ext_plyer)
 
     def handle_selection(self, selection):
-        '''
+        """
         Callback function for handling the selection response from Activity.
-        '''
+        """
         self.selection = selection
         try:
             if os.path.isfile(self.selection[0]) and os.path.splitext(self.selection[0])[1] in avail_img_ext:
@@ -2000,10 +1995,10 @@ class Status(Screen):
             toast("can't select file")
 
     def on_selection(self, *a, **k):
-        '''
+        """
         Update TextInput.text after FileChoose.selection is changed
         via FileChoose.handle_selection.
-        '''
+        """
         try:
             if os.path.isfile(self.selection[0]) and os.path.splitext(self.selection[0])[1] in avail_img_ext:
                 self.pic_day.source = self.selection[0]
@@ -2068,19 +2063,21 @@ class DisplayStatus(Screen):
 
     def on_enter(self):
         template = {}
-        Tinkle().manage_screens("names_for_status", "remove")
+        print("on enteree")
+        # Tinkle().manage_screens("names_for_status", "remove")
         try:
             self.the_target_name = current_status_view
             template["type"] = "status_get"
             template["which_user"] = self.the_target_name
-            self.event = Clock.schedule_interval(self.update_things, 2)
+            self.event = Clock.schedule_interval(self.update_things, 1)
             try:
                 s.send(bytes(json.dumps(template), "utf-8"))
+                print(template)
             except:
                 self.event.cancel()
                 toast("Check internet connection")
         except:
-            pass
+            print(traceback.format_exc())
 
     def update_things(self, dt):
         global ishere
@@ -2089,6 +2086,7 @@ class DisplayStatus(Screen):
                 self.img_src = global_status_pic
                 self.txt_stat = global_status_text
                 self.event.cancel()
+                print("updating things finished")
 
     def show_img_pop(self, src):
         the_pic = AsyncImage(source=src)
@@ -2219,7 +2217,7 @@ class PublicChatScreen(Screen):
                     tx_name, tx_message, tx_prof_link = mx.split("`")
                     self.apply_correct(tx_name, tx_message, tx_prof_link)
 
-    def send_msg(self, field, button):
+    def send_msg(self):
         global s, the_key
         try:
             # send the message to server
@@ -2411,12 +2409,14 @@ class Controller(Screen):
                     data["msg"] = "empty_null"
                 if type_msg == "private_message":
                     try:  # if screen is private pass to convo else write to file
+                        print("is a private message")
                         if sm.current == "convo" and data["from"] == receiver_name or data[
                             "from"] == A().get_the_name():
-                            append_to_file(receiver_name, data)
+                            # append_to_file(receiver_name, data)
                             new_data_to_add = data
                             type_msg = ""
                             data = ""
+                            # print(new_data_to_add)
                         else:
                             if check_if_exist(os.path.join(chats_directory, data["from"])):
                                 # append to file
@@ -2424,7 +2424,7 @@ class Controller(Screen):
                                 # setting if user wants notification one line
                                 Snackbar(text=f'Msg: {data["from"]}', button_text="open",
                                          button_callback=partial(
-                                             GetNamesForCurrentFriendsScreen().open_private(), data["from"])).show()
+                                             GetNamesForCurrentFriendsScreen().open_private, data["from"])).show()
 
                                 if data["from"] != A().get_the_name():
                                     threading.Thread(target=self.PlayAudio, args=(
@@ -2439,16 +2439,17 @@ class Controller(Screen):
                                 append_to_file(data["from"], data)
                                 Snackbar(text="Msg: " + data["from"], button_text="open",
                                          button_callback=partial(
-                                             self.change_convo, data["from"])).show()
+                                             GetNamesForCurrentFriendsScreen().open_private, data["from"])).show()
 
                                 if data["from"] != A().get_the_name():
+                                    print("played sound clip")
                                     threading.Thread(target=self.PlayAudio, args=(
                                         location_notification,)).start()
                                 type_msg = ""
                                 data = ""
 
                     except Exception as e:
-                        print("Cannot play ring:", e)
+                        print(traceback.format_exc())
                 if type_msg == "group_message":
                     try:  # if screen is private pass to convo else write to file
                         if sm.current == "group_convo" and data["group_identifier"] == current_group_id or data[
@@ -2521,9 +2522,9 @@ class Controller(Screen):
                     if save_messages == True and data != "":
                         # TODO: make this update to the global chat log
                         print(data["from"], data["msg"], data["prof_img"])
-                        #self.apply_correct(
+                        # self.apply_correct(
                         #    data["from"], data["msg"], data["prof_img"])
-                        #self.write_the_message(
+                        # self.write_the_message(
                         #    data["from"], data["msg"], data["prof_img"])
                 elif type_msg == "status_feedback":
                     global_status_text = data["text"]
@@ -2609,17 +2610,6 @@ class Controller(Screen):
 
     def load_previous_msg(self):
         pass
-        # if DEFAULT_ACCOUNT:
-        #     results_of_log_check = self.read_messages_from_log()
-        #     if results_of_log_check != None:
-        #         for mx in results_of_log_check:
-        #             if len(mx) > 0:
-        #                 tx_name, tx_message, tx_prof_link = mx.split("`")
-        #                 temp_link = re.findall(
-        #                     'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+', tx_prof_link)
-        #                 tx_prof_link.replace(
-        #                     temp_link[0], return_site_web_address()[:-1])
-        #                 self.apply_correct(tx_name, tx_message, tx_prof_link)
 
     def get_missed(self, *args):
         # Retrieves messages that were sent during offline period
@@ -2760,18 +2750,18 @@ class ImagePreviewShare(Screen):
                                   filters=fil_avail_image_ext_plyer)
 
     def handle_selection(self, selection):
-        '''
+        """
         Callback function for handling the selection response from Activity.
-        '''
+        """
         self.selection = selection
         # For some reason we need to call it manually
         self.on_selection()
 
     def on_selection(self, *a, **k):
-        '''
+        """
         Update TextInput.text after FileChoose.selection is changed
         via FileChoose.handle_selection.
-        '''
+        """
         try:
             if os.path.isfile(self.selection[0]) and os.path.splitext(self.selection[0])[1] in avail_img_ext:
                 self.image_preview.source = self.selection[0]
@@ -2925,9 +2915,7 @@ class ShareDocument:
 
                     to_who_doc = self.recvr
                     link_doc = url_for_doc_no_php + tempo_doc_file
-                    bibo = {}
-                    bibo["type"] = "document"
-                    bibo["link"] = link_doc
+                    bibo = {"type": "document", "link": link_doc}
 
                     if IS_GROUP_MEDIA:
                         bibo["group_based"] = True
