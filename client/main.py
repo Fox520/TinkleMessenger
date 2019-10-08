@@ -44,21 +44,21 @@ from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen, ScreenManager, NoTransition
 from kivy.utils import get_color_from_hex, get_hex_from_color
 
-from kivymd.bottomsheet import MDListBottomSheet
+from kivymd.uix.bottomsheet import MDListBottomSheet
 from kivymd.theming import ThemeManager
-from kivymd.button import MDRaisedButton
-from kivymd.dialog import MDDialog
-from kivymd.list import OneLineListItem, TwoLineListItem, ThreeLineAvatarListItem, \
+from kivymd.uix.button import MDRaisedButton
+from kivymd.uix.dialog import MDDialog
+from kivymd.uix.list import OneLineListItem, TwoLineListItem, ThreeLineAvatarListItem, \
     ThreeLineListItem
-from kivymd.textfields import MDTextField
-from kivymd.label import MDLabel
-from kivymd.snackbars import Snackbar
-from kivymd.popupscreen import MDPopupScreen
-from kivymd.button import MDIconButton
-from kivymd.list import ILeftBodyTouch
+from kivymd.uix.textfield import MDTextField
+from kivymd.uix.label import MDLabel
+from kivymd.uix.snackbar import Snackbar
+from kivymd.uix.popupscreen import MDPopupScreen
+from kivymd.uix.button import MDIconButton
+from kivymd.uix.list import ILeftBodyTouch
 from kivymd.toast import toast
-from kivymd.cards import MDCardPost
-from kivymd.useranimationcard import MDUserAnimationCard
+from kivymd.uix.card import MDCardPost
+from kivymd.uix.useranimationcard import MDUserAnimationCard
 
 from spin_load import ProgressSpinner # Used somewhere
 
@@ -103,7 +103,7 @@ OLD_GROUP_ID = ""
 DP_EXT = ".png"  # Profile pictures are stored in png format
 DEFAULT_ACCOUNT = False
 DEFAULT_STATUS = "cat.jpg"  # Image to display when no status has been set
-DEFAULT_PROFILE_PICTURE = "http://127.0.0.1/display/default.png"
+DEFAULT_PROFILE_PICTURE = "http://35.239.255.102/display/default.png"
 MAX_FILE_SIZE = 15000000
 # Time before checking for new message in private/group chat
 MSG_CHECK_DELAY = 0.5
@@ -254,7 +254,7 @@ if not os.path.exists(chats_directory):
 if not os.path.exists(other_files):
     os.makedirs(other_files)
 
-WEB_ADDR = "http://127.0.0.1/"
+WEB_ADDR = "http://35.239.255.102/"
 dp_path = None
 _web_address = None
 _server_ip = None
@@ -494,16 +494,12 @@ Builder.load_string("""
 #:import Clock __main__.Clock
 #:import ACTION __main__.ACTION
 
-#:import MDToolbar kivymd.toolbar.MDToolbar
-#:import NavigationLayout kivymd.navigationdrawer.NavigationLayout
-#:import MDThemePicker kivymd.pickers.MDThemePicker
-#:import MDBottomNavigation kivymd.bottomnavigation.MDBottomNavigation
-#:import MDBottomNavigationItem kivymd.bottomnavigation.MDBottomNavigationItem
-#:import MDRoundFlatButton kivymd.button.MDRoundFlatButton
-#:import SmartTileWithLabel kivymd.imagelists.SmartTileWithLabel
-#:import MDRoundFlatIconButton kivymd.button.MDRoundFlatIconButton
-#:import MDFloatingActionButton kivymd.button.MDFloatingActionButton
-#:import MDTextFieldRound kivymd.textfields.MDTextFieldRound
+#:import NavigationLayout kivymd.uix.navigationdrawer.NavigationLayout
+#:import MDThemePicker kivymd.uix.picker.MDThemePicker
+#:import MDBottomNavigation kivymd.uix.bottomnavigation.MDBottomNavigation
+#:import MDBottomNavigationItem kivymd.uix.bottomnavigation.MDBottomNavigationItem
+#:import SmartTileWithLabel kivymd.uix.imagelist.SmartTileWithLabel
+#:import MDTextFieldRound kivymd.uix.textfield.MDTextFieldRound
 
 #:set color_shadow [0, 0, 0, .2980392156862745]
 #:set color_lilac [.07058823529411765, .07058823529411765, .14901960784313725, .8]

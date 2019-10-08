@@ -1,18 +1,15 @@
-# -*- coding: utf-8 -*-
+"""
+KivyToast
+=========
 
-''' 
-Разработано специально для проекта VKGroups -
-https://github.com/HeaTTheatR/VKGroups
+Copyright (c) 2019 Ivanov Yuri
 
-Copyright © 2010-2018 HeaTTheatR
-
-Для предложений и вопросов:
+For suggestions and questions:
 <kivydevelopment@gmail.com>
 
-Данный файл распространяется по услолвиям той же лицензии,
-что и фреймворк Kivy.
-
-'''
+This file is distributed under the terms of the same license,
+as the Kivy framework.
+"""
 
 from kivy.core.window import Window
 from kivy.uix.label import Label
@@ -24,7 +21,8 @@ from kivy.lang import Builder
 
 from kivymd import images_path
 
-Builder.load_string("""
+Builder.load_string(
+    """
 <Toast>:
     canvas:
         Color:
@@ -33,16 +31,17 @@ Builder.load_string("""
             pos: self.pos
             size: self.size
             radius: [15,]
-""")
+"""
+)
 
 
 class Toast(ModalView):
     def __init__(self, **kwargs):
-        super(Toast, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.size_hint = (None, None)
-        self.pos_hint = {'center_x': .5, 'center_y': .1}
+        self.pos_hint = {"center_x": 0.5, "center_y": 0.1}
         self.background_color = [0, 0, 0, 0]
-        self.background = '{}transparent.png'.format(images_path)
+        self.background = f"{images_path}transparent.png"
         self.opacity = 0
         self.auto_dismiss = True
         self.label_toast = Label(size_hint=(None, None), opacity=0)
@@ -52,9 +51,9 @@ class Toast(ModalView):
     def label_check_texture_size(self, instance, texture_size):
         texture_width, texture_height = texture_size
         if texture_width > Window.width:
-           instance.text_size = (Window.width - dp(10), None)
-           instance.texture_update()
-           texture_width, texture_height = instance.texture_size
+            instance.text_size = (Window.width - dp(10), None)
+            instance.texture_update()
+            texture_width, texture_height = instance.texture_size
         self.size = (texture_width + 25, texture_height + 25)
 
     def toast(self, text_toast):
@@ -66,14 +65,22 @@ class Toast(ModalView):
         Clock.schedule_once(self.fade_out, 2.5)
 
     def fade_in(self):
-        Animation(opacity=1, duration=.4).start(self.label_toast)
-        Animation(opacity=1, duration=.4).start(self)
+        Animation(opacity=1, duration=0.4).start(self.label_toast)
+        Animation(opacity=1, duration=0.4).start(self)
 
     def fade_out(self, interval):
-        Animation(opacity=0, duration=.4).start(self.label_toast)
-        anim_body = Animation(opacity=0, duration=.4)
+        Animation(opacity=0, duration=0.4).start(self.label_toast)
+        anim_body = Animation(opacity=0, duration=0.4)
         anim_body.bind(on_complete=lambda *x: self.dismiss())
         anim_body.start(self)
+
+    def on_touch_down(self, touch):
+        if not self.collide_point(*touch.pos):
+            if self.auto_dismiss:
+                self.dismiss()
+                return False
+        super(ModalView, self).on_touch_down(touch)
+        return True
 
 
 def toast(text, length_long=False):
