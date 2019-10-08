@@ -25,20 +25,14 @@
         BoxLayout:
             size_hint_y: None
             height: 40
-            padding: [0, 0, 0, 7]
+            padding: [7, 0, 7, 7]
             orientation: "vertical"
-#            spacing: 20
-#            padding: [, 2, , 2]
 
-            MyMDTextFieldRound:
+            MDTextField:
                 id: message
                 hint_text: "Type your message"
                 multiline: False
-#                valign: 'bottom'
-                icon_type: "right"
-                icon_right: "send"
-                icon_callback: root.send_msg
-#                on_text_validate: root.send_msg()
+                on_text_validate: root.send_msg()
 
 <PopupScreenPrivateChat@BoxLayout>:
     orientation: 'vertical'

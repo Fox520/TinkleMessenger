@@ -15,7 +15,7 @@
 
         GridLayout:
             cols: 1
-            rows: 0
+            rows: 1
             ScrollView:
                 do_scroll_x: False
                 MDList:
@@ -24,13 +24,11 @@
         BoxLayout:
             size_hint_y: None
             height: 40
-            padding: [0, 0, 0, 7]
+            padding: [7, 4, 7, 7]
             orientation: "vertical"
 
-            MyMDTextFieldRound:
+            MDTextField:
                 id: message
                 hint_text: "Type your message"
                 multiline: False
-                icon_type: "right"
-                icon_right: "send"
-                icon_callback: root.send_msg
+                on_text_validate: root.send_msg()
