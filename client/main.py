@@ -256,7 +256,7 @@ if not os.path.exists(chats_directory):
 if not os.path.exists(other_files):
     os.makedirs(other_files)
 
-WEB_ADDR = "http://127.0.0.1/"
+WEB_ADDR = "http://tinkle.ddns.net/"
 dp_path = None
 _web_address = None
 _server_ip = None
