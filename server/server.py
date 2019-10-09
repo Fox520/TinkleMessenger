@@ -602,8 +602,8 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                    # print abc
                     if c_name not in abc:  # not in current friends
                         list_clients.append(c_name)
-                    template["msg"] = list_clients
-                    connection.send(bytes(json.dumps(template), "utf-8"))
+                template["msg"] = list_clients
+                connection.send(bytes(json.dumps(template), "utf-8"))
             elif type_msg == "whoisonline--status":  # request friend
                 template["type"] = "whoisonline--status"
                 list_status = []
@@ -634,8 +634,8 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                         "friend_requests"]
                     if c_name in abc:
                         list_accept.append(c_name)
-                    template["msg"] = list_accept
-                    connection.send(bytes(json.dumps(template),"utf-8"))
+                template["msg"] = list_accept
+                connection.send(bytes(json.dumps(template),"utf-8"))
 
             elif type_msg == "whoisonline--friends":  # accept friend from request here
                 template["type"] = "whoisonline--friends"
@@ -645,8 +645,8 @@ def auto_reply(connection, handle, my_key, ddaattaa):
                         "friend_accepts"]
                     if c_name in abc:
                         list_current.append(c_name)
-                    template["msg"] = list_current
-                    connection.send(bytes(json.dumps(template),"utf-8"))
+                template["msg"] = list_current
+                connection.send(bytes(json.dumps(template),"utf-8"))
 
             elif type_msg == "request_accept":
                 # Remove first from requesting
