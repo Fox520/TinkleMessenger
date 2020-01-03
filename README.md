@@ -43,10 +43,11 @@ pip install dataset
 ``` 
 Run ```main.py``` to start up the client
 ```
-Note: currently main.spec is not functioning properly. Pull requests are welcomed :)
+Note: main.spec can be used to make an executable.
+pyinstaller -F main.spec
 ```
 
-### How to set it up
+### How to set it up if still not clear
 https://youtu.be/JlSIrbnHPRw
 
 ## Sign in
