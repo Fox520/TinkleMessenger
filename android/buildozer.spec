@@ -74,7 +74,7 @@ version = 0.2
 
 # comma seperated e.g. requirements = sqlite3,kivy
 
-requirements = kivy,android,requests,pyjnius,hostpython2,dataset,sqlalchemy,alembic,mako,banal,normality,markupsafe
+requirements = kivy,android,requests,pyjnius,dataset,sqlalchemy,alembic,mako,banal,normality,markupsafe
 
 
 
