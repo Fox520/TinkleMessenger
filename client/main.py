@@ -19,7 +19,7 @@ import json
 
 # https://github.com/kivy/kivy/blob/297dd024ce407f85d1210dac1730e2817a03606f/kivy/modules/screen.py
 from kivy.modules import screen
-screen.apply_device("phone_iphone_6", 0.50, "portrait")
+screen.apply_device("phone_iphone_6", 0.50, "portrait") # remove before building apk
 from kivy import Config
 from kivy.modules import inspector
 from kivy.uix.boxlayout import BoxLayout
@@ -183,6 +183,7 @@ the_key = ""
 
 
 def initialize_fonts():
+    # register our custom font
     KIVY_FONTS = [
         {
             "name": "Cursive",
@@ -256,7 +257,7 @@ if not os.path.exists(chats_directory):
 if not os.path.exists(other_files):
     os.makedirs(other_files)
 
-WEB_ADDR = "http://tinkle.ddns.net/"
+WEB_ADDR = "http://localhost/"
 dp_path = None
 _web_address = None
 _server_ip = None
@@ -299,6 +300,10 @@ def profile_img_link():
 
 
 def create_file_sent_req(name_client):
+    # Empty file acts as proof that a friend request has already been sent
+    # when returning possible friends to send requests to, if their username
+    # equals a file name then if doesn't get displayed.
+    # There's a better way but too lazy for that xD
     with open(os.path.join(directory, name_client), "w") as f:
         f.write("")
 
@@ -357,6 +362,7 @@ def check_name():
 
 
 def write_name(foo_name, should_write=True, pwda=""):
+    # appropriate name for function should be do_login
     global name, DEFAULT_ACCOUNT
     if foo_name is "":
         return
@@ -538,16 +544,6 @@ Builder.load_string("""
         text: "Change Theme"
         on_release:
             MDThemePicker().open()
-
-
-
-<DumpScreen>:
-    BoxLayout:
-        canvas:
-            Rectangle:
-                pos: self.pos
-                size: self.size
-                source: LOADING_IMAGE
     
     """)
 
@@ -802,7 +798,7 @@ class SignInScreen(Screen):
                 self.alias.text = temp_string
 
     def on_enter(self):
-        Tinkle().manage_screens("dump_screen", "remove")
+        pass
 
     def _signin(self):
         temp_pw = ""
@@ -1076,13 +1072,6 @@ class CreateGroupScreen(Screen):
             toast("Check internet connection")
 
 
-# Name: dump_screen
-
-
-class DumpScreen(Screen):
-    pass
-
-
 # Name: names_for_status
 
 
@@ -1112,7 +1101,7 @@ class GetNamesForStatusScreen(Screen):
         global was_here_status
         if was_here_status:
             buttons = ["heart"]
-            self.event.cancel()
+            self.event.cancel() # cancel the checking event
             was_here_status = False
             self.ids.ldml.clear_widgets()
             for dictionary in current_share_status:
@@ -1126,7 +1115,7 @@ class GetNamesForStatusScreen(Screen):
     def on_enter(self):
         self.ldml = self.ids["ldml"]
         self.ldml.clear_widgets()
-        self.event = Clock.schedule_interval(self.do_checks, 0.3)
+        self.event = Clock.schedule_interval(self.do_checks, 0.3) # repeatedly checks if the data was retrieved
         threading.Thread(target=self.send_background).start()
 
     def send_background(self):
@@ -1294,7 +1283,7 @@ class GetNamesForFriendRequestsScreen(Screen):
     def on_enter(self, *args):
         self.ldml = self.ids["ldml"]
         self.ldml.clear_widgets()
-        self.add_one_line("sample name")
+        self.add_one_line("sample name") # for testing, you can remove it
         self.event = Clock.schedule_interval(self.do_checks, 0.3)
         threading.Thread(target=self.send_background).start()
 
@@ -1308,7 +1297,7 @@ class GetNamesForFriendRequestsScreen(Screen):
             toast("Check internet connection")
             self.event.cancel()
 
-    @mainthread
+    @mainthread # changes applied to the UI should happen on the main thread
     def add_one_line(self, name):
         self.ldml.add_widget(OneLineListItem(text=name,
                                              on_release=lambda *args: self.show_diag(
@@ -1390,13 +1379,12 @@ class GetNamesForCurrentFriendsScreen(BoxLayout):
             toast("Check internet connection")
             self.event.cancel()
 
-    @mainthread
+    @mainthread # changes applied to the UI should happen on the main thread
     def add_one_line(self, name):
         self.ldml.add_widget(OneLineListItem(text=name,
                                              on_press=lambda *args: self.open_private(
                                                  name)))
 
-    @mainthread
     def open_private(self, pvt_client, *args):
         global receiver_name
         receiver_name = pvt_client
@@ -1673,6 +1661,7 @@ class Conversation(Screen):
     def prepare_file_share(self):
         if isAndroid():
             if check_read_permission():
+                # Results with a black screen after selecting. Kivy issue I think
                 filechooser.open_file(on_selection=self.handle_selection)
             else:
                 toast("Permission to access external storage denied")
@@ -3098,7 +3087,6 @@ class Tinkle(App):
 
     def manage_screens(self, screen_name, action):
         scns = {
-            "dump_screen": DumpScreen,
             "profile_pic": ProfilePicture,
             "advanced_screen": AdvancedScreen,
             "controller_screen": Controller,
