@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # encoding=utf-8
-
+# Excuse the monstrous spaghetti, I was still learning. Probably should have left comments when I wrote this.
 import codecs
 import os
 import re
@@ -3078,8 +3078,10 @@ class Tinkle(App):
     grp_name = "Group Chat"
 
     # dynamically add/remove screens to consume less memory
-
+    
+    # centralize screen changing
     def change_screen(self, screen_name):
+        # Make sure the screen is 'available'
         if sm.has_screen(screen_name):
             sm.current = screen_name
         else:
@@ -3120,10 +3122,6 @@ class Tinkle(App):
         except:
             print(traceback.format_exc())
             print("Traceback ^.^")
-
-    def change_screen(self, sc):
-        # centralize screen changing
-        sm.current = sc
 
     def decide_change_dp(self):
         self.manage_screens("profile_pic", "add")
