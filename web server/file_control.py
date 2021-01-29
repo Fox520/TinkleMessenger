@@ -30,7 +30,7 @@ def handleRequest(conn):
         #decode
         template = {}
         #print("first")
-        data = json.loads(conn.recv(1024))
+        data = json.loads(conn.recv(1024).decode("utf-8"))
         media_type = data["media_type"]
         hash_request = data["hash"]
         HASH_FOUND = False
@@ -53,7 +53,7 @@ def handleRequest(conn):
         template["type"] = "hash_request"
         template["result"] = HASH_FOUND
         #print("Found hash?",HASH_FOUND)
-        conn.send(json.dumps(template))
+        conn.send(bytes(json.dumps(template), "utf-8"))
 
 
     except:
@@ -61,7 +61,7 @@ def handleRequest(conn):
 
 
 shutdown = False
-print "FileControl - Public"
+print("FileControl - Public")
 while not shutdown:
 	conn,addr = s.accept()
 	threading.Thread(target=handleRequest,args=(conn,)).start()
