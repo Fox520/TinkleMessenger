@@ -19,7 +19,7 @@ import json
 
 # https://github.com/kivy/kivy/blob/297dd024ce407f85d1210dac1730e2817a03606f/kivy/modules/screen.py
 from kivy.modules import screen
-screen.apply_device("phone_iphone_6", 0.50, "portrait") # remove before building apk
+screen.apply_device("phone_iphone_6", 0.65, "portrait") # remove before building apk
 from kivy import Config
 from kivy.modules import inspector
 from kivy.uix.boxlayout import BoxLayout
@@ -284,12 +284,14 @@ def return_site_web_address():
 def return_server_address():
     global _server_ip
     if _server_ip != None:
+        print(f"already has {_server_ip}")
         return _server_ip
     # fetch address from web and write it
     try:
         a = requests.get(WEB_ADDR + "navigation/server_ip")
         p = a.text.strip()
         _server_ip = p
+        print(f"fetched {_server_ip}")
         return p
     except Exception as e:
         print(e)
@@ -364,7 +366,7 @@ def check_name():
 def write_name(foo_name, should_write=True, pwda=""):
     # appropriate name for function should be do_login
     global name, DEFAULT_ACCOUNT
-    if foo_name is "":
+    if foo_name == "":
         return
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     nhost = return_server_address()
@@ -3071,7 +3073,7 @@ class ProfilePicture(Screen):
 class Tinkle(App):
     global sm
     theme_cls = ThemeManager()
-    theme_cls.primary_palette = 'Blue'
+    theme_cls.primary_palette = 'Yellow'
     theme_cls.theme_style = "Light"
     sm = ScreenManager()
     pvt_username = "Private Chat"
@@ -3136,8 +3138,8 @@ class Tinkle(App):
     def client_backup(self):
         if check_read_permission():
             with open(backup_file, "wb") as f:
-                f.write(A().get_the_name() + "\n")
-                f.write(get_password())
+                f.write(bytes(A().get_the_name() + "\n"))
+                f.write(bytes(get_password()))
                 toast("Backup file: " + backup_file)
 
     def display_settings(self, settings):
@@ -3189,7 +3191,7 @@ class Tinkle(App):
     def on_config_change(self, config, section, key, value):
 
         if key == "autoshow_img":
-            self.write_img_display(value)
+            self.write_img_display(bytes(value, "utf-8"))
 
     def write_img_display(self, value):
         with open("atp_img.dat", "wb") as f:

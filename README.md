@@ -40,6 +40,7 @@ Run the following commands
 ```
 pip install requests
 pip install dataset
+pip install plyer
 ``` 
 Run ```main.py``` to start up the client
 ```
